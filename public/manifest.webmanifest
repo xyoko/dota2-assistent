@@ -1,0 +1,16 @@
+{
+  "name": "AegisForge — Dota 2 Strategic Assistant",
+  "short_name": "AegisForge",
+  "description": "Tactical hero builds, counter drafting, and item matrix for Dota 2",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0e14",
+  "theme_color": "#ec3d3d",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

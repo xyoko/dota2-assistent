@@ -1,0 +1,8 @@
+# Cloudflare Pages / Workers Configuration
+name = "dota2-assistant"
+compatibility_date = "2024-09-01"
+pages_build_output_dir = "./dist"
+
+# For Cloudflare Pages deployment:
+# 1. Connect GitHub repo in Cloudflare Pages dashboard -> framework: Vite, build command: npm run build, output: dist
+# 2. Or direct CLI deploy: npx wrangler pages deploy dist --project-name dota2-assistant
