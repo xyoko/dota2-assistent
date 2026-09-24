@@ -20,7 +20,8 @@ import {
   Lightbulb,
   Coins,
   Flame,
-  ChevronRight
+  ChevronRight,
+  PictureInPicture
 } from 'lucide-react';
 
 interface HeroBuildViewProps {
@@ -29,6 +30,7 @@ interface HeroBuildViewProps {
   isFavorite: boolean;
   onToggleFavorite: (heroId: string) => void;
   onSelectOtherHero?: (heroId: string) => void;
+  onOpenPip?: (hero: HeroData) => void;
 }
 
 export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
@@ -36,7 +38,8 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
   onClose,
   isFavorite,
   onToggleFavorite,
-  onSelectOtherHero
+  onSelectOtherHero,
+  onOpenPip
 }) => {
   const [activeTab, setActiveTab] = useState<'build' | 'skills' | 'matchups' | 'strategy' | 'notes'>('build');
   const [userNote, setUserNote] = useState<string>('');
@@ -138,6 +141,20 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
 
             {/* Right: Controls & Close */}
             <div className="flex items-center gap-2 self-end sm:self-center">
+              {onOpenPip && (
+                <button
+                  onClick={() => {
+                    SoundEngine.playPick();
+                    onOpenPip(hero);
+                  }}
+                  className="p-2.5 rounded-xl bg-dota-gold/15 hover:bg-dota-gold/25 border border-dota-gold/50 text-dota-gold shadow-dota-glow transition-all flex items-center gap-1.5"
+                  title="Open in Picture-in-Picture Mini HUD (Always on top)"
+                >
+                  <PictureInPicture className="w-5 h-5 text-dota-gold" />
+                  <span className="hidden md:inline text-xs font-bold uppercase tracking-wider">PiP HUD</span>
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   onToggleFavorite(hero.id);

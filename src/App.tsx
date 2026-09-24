@@ -1,12 +1,14 @@
 import React, { useState, useMemo, Suspense, lazy } from 'react';
+import { createPortal } from 'react-dom';
 import { HEROES_DATA, HERO_MAP } from './data/heroes';
 import { HeroData, AttributeType, RoleType, AttackType } from './types/hero';
 import { StorageService } from './services/storageService';
+import { PipManager } from './services/pipManager';
 import { Navbar, ActiveTab } from './components/Navbar';
 import { HeroFilterBar } from './components/HeroFilterBar';
 import { HeroCard } from './components/HeroCard';
 import { AmbientParticles } from './components/AmbientParticles';
-import { Shield, Loader2 } from 'lucide-react';
+import { Shield, Loader2, PictureInPicture } from 'lucide-react';
 
 // Lazy-loaded heavy views for sub-100ms instant initial page load
 const DraftCounterPicker = lazy(() => import('./components/DraftCounterPicker').then(m => ({ default: m.DraftCounterPicker })));
@@ -18,6 +20,7 @@ const MetaTierList = lazy(() => import('./components/MetaTierList').then(m => ({
 const PatchNewsView = lazy(() => import('./components/PatchNewsView').then(m => ({ default: m.PatchNewsView })));
 const CustomNotesView = lazy(() => import('./components/CustomNotesView').then(m => ({ default: m.CustomNotesView })));
 const HeroBuildView = lazy(() => import('./components/HeroBuildView').then(m => ({ default: m.HeroBuildView })));
+const PictureInPictureHUD = lazy(() => import('./components/PictureInPictureHUD').then(m => ({ default: m.PictureInPictureHUD })));
 
 const ViewLoadingFallback = () => (
   <div className="w-full min-h-[420px] flex flex-col items-center justify-center p-12 bg-dota-panel/60 border border-dota-gold/30 rounded-3xl shadow-dota-glow space-y-4">
@@ -50,6 +53,12 @@ export const App: React.FC = () => {
 
   // Selected Hero for Detail Modal
   const [selectedHero, setSelectedHero] = useState<HeroData | null>(null);
+
+  // Picture-in-Picture & Mini HUD State
+  const [pipHero, setPipHero] = useState<HeroData>(HEROES_DATA[0]);
+  const [isPipOpen, setIsPipOpen] = useState<boolean>(false);
+  const [isNativePipActive, setIsNativePipActive] = useState<boolean>(false);
+  const [pipContainer, setPipContainer] = useState<HTMLElement | null>(null);
   
   // Favorites State
   const [favorites, setFavorites] = useState<string[]>(() => StorageService.getFavorites());
@@ -60,6 +69,44 @@ export const App: React.FC = () => {
   const handleToggleFavorite = (heroId: string) => {
     StorageService.toggleFavorite(heroId);
     setFavorites(StorageService.getFavorites());
+  };
+
+  // Launch Picture-in-Picture (Native Document PiP or In-App Floating Overlay)
+  const handleOpenPip = async (targetHero?: HeroData) => {
+    const heroToUse = targetHero || selectedHero || HEROES_DATA[0];
+    setPipHero(heroToUse);
+
+    if (PipManager.isSupported()) {
+      const containerDiv = document.createElement('div');
+      containerDiv.style.width = '100%';
+      containerDiv.style.height = '100%';
+
+      const success = await PipManager.openDocumentPip(containerDiv, () => {
+        setIsNativePipActive(false);
+        setIsPipOpen(false);
+        setPipContainer(null);
+      });
+
+      if (success) {
+        setPipContainer(containerDiv);
+        setIsNativePipActive(true);
+        setIsPipOpen(true);
+        return;
+      }
+    }
+
+    // Fallback: Floating overlay inside the main web page
+    setIsNativePipActive(false);
+    setIsPipOpen(true);
+  };
+
+  const handleClosePip = () => {
+    if (isNativePipActive) {
+      PipManager.closeDocumentPip();
+    }
+    setIsNativePipActive(false);
+    setIsPipOpen(false);
+    setPipContainer(null);
   };
 
   // Filtered & Sorted Heroes
@@ -112,6 +159,7 @@ export const App: React.FC = () => {
         setActiveTab={setActiveTab}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        onOpenPip={() => handleOpenPip()}
       />
 
       {/* Main Content Area */}
@@ -260,12 +308,50 @@ export const App: React.FC = () => {
             onClose={() => setSelectedHero(null)}
             isFavorite={favorites.includes(selectedHero.id)}
             onToggleFavorite={handleToggleFavorite}
+            onOpenPip={(hero) => handleOpenPip(hero)}
             onSelectOtherHero={(id) => {
               const nextHero = HERO_MAP.get(id);
               if (nextHero) setSelectedHero(nextHero);
             }}
           />
         </Suspense>
+      )}
+
+      {/* Native Document Picture-in-Picture Portal */}
+      {isNativePipActive && pipContainer && createPortal(
+        <Suspense fallback={<div className="p-4 text-xs text-amber-300">Loading PiP HUD...</div>}>
+          <PictureInPictureHUD
+            initialHero={pipHero}
+            onClose={handleClosePip}
+            isNativePip={true}
+          />
+        </Suspense>,
+        pipContainer
+      )}
+
+      {/* Floating In-App Mini HUD Overlay (Fallback or on-screen mode) */}
+      {isPipOpen && !isNativePipActive && (
+        <div className="fixed bottom-4 right-4 z-50 animate-slideUp">
+          <Suspense fallback={<ViewLoadingFallback />}>
+            <PictureInPictureHUD
+              initialHero={pipHero}
+              onClose={handleClosePip}
+              isNativePip={false}
+            />
+          </Suspense>
+        </div>
+      )}
+
+      {/* Floating PiP Quick Trigger Button when PiP is closed */}
+      {!isPipOpen && (
+        <button
+          onClick={() => handleOpenPip()}
+          className="fixed bottom-5 right-5 z-40 p-3 rounded-2xl bg-gradient-to-br from-amber-500 via-dota-gold to-yellow-600 text-slate-950 font-black shadow-dota-glow hover:scale-110 active:scale-95 transition-all flex items-center gap-2 border-2 border-amber-200 select-none group"
+          title="Open Picture-in-Picture Mini HUD (Always on top)"
+        >
+          <PictureInPicture className="w-5 h-5 text-slate-950" />
+          <span className="hidden sm:inline text-xs font-dota uppercase tracking-wider">Mini HUD</span>
+        </button>
       )}
 
       {/* Footer */}

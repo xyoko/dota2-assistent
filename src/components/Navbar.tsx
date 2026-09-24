@@ -12,7 +12,8 @@ import {
   Volume2,
   VolumeX,
   FlaskConical,
-  Newspaper
+  Newspaper,
+  PictureInPicture
 } from 'lucide-react';
 
 export type ActiveTab = 'heroes' | 'draft' | 'arena' | 'sandbox' | 'interactions' | 'counters' | 'meta' | 'patches' | 'notes';
@@ -22,13 +23,15 @@ interface NavbarProps {
   setActiveTab: (tab: ActiveTab) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  onOpenPip: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
   searchQuery,
-  setSearchQuery
+  setSearchQuery,
+  onOpenPip
 }) => {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => SoundEngine.isEnabled());
 
@@ -173,7 +176,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNavClick('meta')}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
                 activeTab === 'meta'
-                  ? 'bg-emerald-500/20 text-dota-agi border border-dota-agi/60 shadow-dota-glow font-black'
+                  ? 'bg-green-500/20 text-dota-agi border border-dota-agi/60 font-black'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
               }`}
             >
@@ -206,6 +209,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <BookOpen className="w-4 h-4" />
               <span>Notes</span>
+            </button>
+
+            {/* Picture-in-Picture Mini HUD Trigger Button */}
+            <button
+              onClick={() => {
+                SoundEngine.playPick();
+                onOpenPip();
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-dota-gold/15 hover:bg-dota-gold/25 border border-dota-gold/50 text-dota-gold shadow-dota-glow transition-all whitespace-nowrap"
+              title="Open Picture-in-Picture Mini HUD (Always on top during gaming)"
+            >
+              <PictureInPicture className="w-4 h-4 text-dota-gold" />
+              <span className="hidden xl:inline">PiP HUD</span>
             </button>
 
             {/* Sound Mute/Unmute Toggle */}
