@@ -109,6 +109,23 @@ export const App: React.FC = () => {
     setPipContainer(null);
   };
 
+  // Global Keyboard Shortcut: Alt+P (or Option+P) to toggle Picture-in-Picture Mini HUD
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === 'p' || e.key === 'P' || e.code === 'KeyP')) {
+        e.preventDefault();
+        if (isPipOpen || isNativePipActive) {
+          handleClosePip();
+        } else {
+          handleOpenPip();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPipOpen, isNativePipActive, selectedHero, pipHero]);
+
   // Filtered & Sorted Heroes
   const filteredHeroes = useMemo(() => {
     let list = HEROES_DATA.filter((hero) => {

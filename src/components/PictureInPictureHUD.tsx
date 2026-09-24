@@ -501,12 +501,16 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
       {/* TACTICAL FOOTER HUD & GESTURE INSTRUCTION BAR */}
       {/* ============================================================ */}
       <div className="bg-slate-950/95 border-t border-dota-border px-3 py-1.5 flex items-center justify-between text-[10px] text-slate-400 flex-shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="font-bold text-dota-gold">🖱️ 1-Click:</span>
           <span>Next Phase</span>
           <span className="text-slate-600">•</span>
           <span className="font-bold text-red-400">⚡ 2-Click:</span>
           <span>Counters</span>
+          <span className="text-slate-600">•</span>
+          <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-slate-700 font-mono text-[9px] text-amber-300 font-bold">
+            Alt+P
+          </kbd>
         </div>
 
         <div className="text-[9px] text-slate-500 uppercase tracking-widest font-dota">

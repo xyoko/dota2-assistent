@@ -62,6 +62,14 @@ export class PipManager {
       // Move or append container
       pip.document.body.appendChild(containerElement);
 
+      // Listen for Alt+P shortcut inside PiP window to close
+      pip.document.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.altKey && (e.key === 'p' || e.key === 'P' || e.code === 'KeyP')) {
+          e.preventDefault();
+          this.closeDocumentPip();
+        }
+      });
+
       pip.addEventListener('pagehide', () => {
         this.pipWindow = null;
         if (this.onPipCloseCallback) {
