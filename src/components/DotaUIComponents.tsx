@@ -246,3 +246,20 @@ export const getItemImageUrl = (itemId: string): string => {
   const cleanSlug = slugOverrides[itemId.toLowerCase()] || itemId.toLowerCase().replace(/[^a-z0-9]/g, '_');
   return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${cleanSlug}.png`;
 };
+
+/**
+ * Resolves the official full-body transparent PNG render from Valve's Dota 2 CDN.
+ * Endpoint: https://cdn.cloudflare.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders/<hero_name>.png
+ */
+export const getHeroFullBodyRenderUrl = (avatarUrl: string): string => {
+  if (!avatarUrl) return '';
+  const cleanUrl = avatarUrl.replace('/crops/', '/');
+  if (cleanUrl.includes('/images/dota_react/heroes/')) {
+    return cleanUrl.replace('/images/dota_react/heroes/', '/videos/dota_react/heroes/renders/');
+  }
+  const match = cleanUrl.match(/heroes\/([a-zA-Z0-9_-]+?)(?:_full|_vert|_sb|_lg)?\.(?:png|jpg|jpeg)/);
+  if (match && match[1]) {
+    return `https://cdn.cloudflare.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders/${match[1]}.png`;
+  }
+  return avatarUrl;
+};

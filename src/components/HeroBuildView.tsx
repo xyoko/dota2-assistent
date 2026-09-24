@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HeroData } from '../types/hero';
 import { StorageService } from '../services/storageService';
 import { SoundEngine } from '../services/soundFx';
-import { DotaComplexity, DotaRoleBadge, getItemImageUrl } from './DotaUIComponents';
+import { DotaComplexity, DotaRoleBadge, getItemImageUrl, getHeroFullBodyRenderUrl } from './DotaUIComponents';
 import { SEASON_META_DATA } from '../data/seasonMetaData';
 import { 
   X, 
@@ -77,46 +77,69 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
 
           <div className="relative z-10 flex flex-col md:flex-row items-start gap-6">
             
-            {/* 1. PROPER HERO PORTRAIT CARD (Foreground, Crisp, High-Resolution Vertical Showcase) */}
+            {/* 1. PROPER HERO FULL-BODY PORTRAIT SHOWCASE (Full character silhouette head-to-toe, pristine frame dimensions preserved) */}
             <div className={`relative w-44 sm:w-52 md:w-60 h-64 sm:h-72 md:h-80 rounded-2xl overflow-hidden border-2 ${
-              hero.attribute === 'str' ? 'border-red-600/70 shadow-[0_0_30px_rgba(236,61,61,0.35)]' :
-              hero.attribute === 'agi' ? 'border-emerald-600/70 shadow-[0_0_30px_rgba(44,227,71,0.35)]' :
-              hero.attribute === 'int' ? 'border-cyan-600/70 shadow-[0_0_30px_rgba(0,210,255,0.35)]' :
-              'border-purple-600/70 shadow-[0_0_30px_rgba(217,70,239,0.35)]'
-            } flex-shrink-0 bg-slate-950 shadow-2xl group select-none`}>
-              <img
-                src={hero.avatarUrl.includes('/heroes/') && !hero.avatarUrl.includes('/heroes/crops/') 
-                  ? hero.avatarUrl.replace('/heroes/', '/heroes/crops/') 
-                  : hero.avatarUrl}
-                alt={hero.name}
-                className="w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = hero.avatarUrl;
-                }}
-              />
+              hero.attribute === 'str' ? 'border-red-600/70 shadow-[0_0_35px_rgba(236,61,61,0.35)]' :
+              hero.attribute === 'agi' ? 'border-emerald-600/70 shadow-[0_0_35px_rgba(44,227,71,0.35)]' :
+              hero.attribute === 'int' ? 'border-cyan-600/70 shadow-[0_0_35px_rgba(0,210,255,0.35)]' :
+              'border-purple-600/70 shadow-[0_0_35px_rgba(217,70,239,0.35)]'
+            } flex-shrink-0 bg-slate-950 shadow-2xl group select-none flex flex-col justify-end`}>
+              
+              {/* Atmospheric Background & Hero Attribute Lighting */}
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-[#0a0e17] to-black" />
+              <div className={`absolute inset-0 opacity-45 bg-[radial-gradient(circle_at_50%_42%,_var(--tw-gradient-stops))] ${
+                hero.attribute === 'str' ? 'from-red-600/35 via-red-950/20 to-transparent' :
+                hero.attribute === 'agi' ? 'from-emerald-500/35 via-emerald-950/20 to-transparent' :
+                hero.attribute === 'int' ? 'from-cyan-500/35 via-cyan-950/20 to-transparent' :
+                'from-purple-500/35 via-purple-950/20 to-transparent'
+              } pointer-events-none`} />
 
-              {/* Cinematic Vignettes */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 pointer-events-none" />
+              {/* Pedestal Ground Glow for Hero Feet */}
+              <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 w-4/5 h-8 rounded-[100%] opacity-60 blur-md pointer-events-none ${
+                hero.attribute === 'str' ? 'bg-red-500/60 shadow-[0_0_20px_#ef4444]' :
+                hero.attribute === 'agi' ? 'bg-emerald-500/60 shadow-[0_0_20px_#10b981]' :
+                hero.attribute === 'int' ? 'bg-cyan-500/60 shadow-[0_0_20px_#06b6d4]' :
+                'bg-purple-500/60 shadow-[0_0_20px_#d946ef]'
+              }`} />
 
-              {/* Attribute & Attack Type Badge Overlay at bottom of portrait */}
-              <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-black/85 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center justify-between shadow-lg">
-                <div className="flex items-center gap-1.5">
-                  <span className={`w-3 h-3 rounded-full shadow ${
-                    hero.attribute === 'str' ? 'bg-red-500 shadow-[0_0_10px_#ef4444]' :
-                    hero.attribute === 'agi' ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' :
-                    hero.attribute === 'int' ? 'bg-cyan-500 shadow-[0_0_10px_#06b6d4]' :
-                    'bg-gradient-to-r from-teal-400 via-purple-400 to-pink-500 shadow-[0_0_10px_#d946ef]'
-                  }`} />
-                  <span className="text-[11px] font-bold text-white uppercase tracking-wider">
-                    {hero.attribute === 'str' ? 'Strength' :
-                     hero.attribute === 'agi' ? 'Agility' :
-                     hero.attribute === 'int' ? 'Intelligence' : 'Universal'}
-                  </span>
-                </div>
-                <span className="text-[10px] font-bold text-slate-300 bg-slate-800/90 px-1.5 py-0.5 rounded border border-slate-700">
-                  {hero.attackType}
+              {/* Floating Attribute Badge (Top Left - Never obscures hero body) */}
+              <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-white/10 shadow-lg">
+                <span className={`w-2.5 h-2.5 rounded-full ${
+                  hero.attribute === 'str' ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' :
+                  hero.attribute === 'agi' ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' :
+                  hero.attribute === 'int' ? 'bg-cyan-500 shadow-[0_0_8px_#06b6d4]' :
+                  'bg-gradient-to-r from-teal-400 via-purple-400 to-pink-500 shadow-[0_0_8px_#d946ef]'
+                }`} />
+                <span className="text-[10px] font-extrabold text-white uppercase tracking-wider">
+                  {hero.attribute === 'str' ? 'Strength' :
+                   hero.attribute === 'agi' ? 'Agility' :
+                   hero.attribute === 'int' ? 'Intelligence' : 'Universal'}
                 </span>
               </div>
+
+              {/* Floating Attack Type Badge (Top Right) */}
+              <div className="absolute top-2.5 right-2.5 z-20 px-2 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-white/10 shadow-lg text-[10px] font-bold text-slate-300">
+                {hero.attackType}
+              </div>
+
+              {/* Full-Body Hero Render (Crisp 1440x1440 Official Render, Head-to-Toe) */}
+              <div className="relative z-10 w-full h-full flex items-end justify-center overflow-hidden">
+                <img
+                  src={getHeroFullBodyRenderUrl(hero.avatarUrl)}
+                  alt={hero.name}
+                  className="w-full h-full object-contain object-bottom scale-[1.12] origin-bottom filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)] transition-transform duration-700 ease-out group-hover:scale-[1.16] p-1 pb-1.5"
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement;
+                    if (target.src !== hero.avatarUrl) {
+                      target.src = hero.avatarUrl;
+                      target.className = "w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105";
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Ground Pedestal Vignette Shadow (Grounds the feet smoothly into the card) */}
+              <div className="absolute bottom-0 inset-x-0 h-8 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none z-15" />
             </div>
 
             {/* 2. PROPER HERO INFORMATION PANEL (Right of Portrait) */}
