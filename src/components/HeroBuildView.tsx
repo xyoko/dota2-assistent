@@ -64,123 +64,200 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
       {/* Modal Container */}
       <div className="relative w-full max-w-5xl bg-dota-panel border-2 border-dota-gold/40 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[92vh]">
         
-        {/* Header Hero Banner */}
-        <div className="relative bg-slate-950 border-b-2 border-dota-border overflow-hidden">
+        {/* Header Hero Showcase Banner (Crisp Foreground Portrait & Proper Hero Info) */}
+        <div className="relative bg-gradient-to-b from-slate-950 via-[#0e131d] to-[#121722] border-b-2 border-dota-border overflow-hidden p-5 sm:p-6">
           
-          {/* Background image & gradient overlay */}
-          <div className="absolute inset-0 z-0 opacity-40">
-            <img
-              src={hero.avatarUrl}
-              alt={hero.name}
-              className="w-full h-full object-cover object-center filter blur-md scale-125"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-dota-panel via-dota-panel/95 to-transparent" />
-          </div>
+          {/* Subtle atmospheric ambient glow matching primary attribute */}
+          <div className={`absolute top-0 right-0 w-96 h-96 rounded-full opacity-20 filter blur-3xl pointer-events-none ${
+            hero.attribute === 'str' ? 'bg-red-600' :
+            hero.attribute === 'agi' ? 'bg-emerald-600' :
+            hero.attribute === 'int' ? 'bg-cyan-600' :
+            'bg-purple-600'
+          }`} />
 
-          <div className="relative z-10 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="relative z-10 flex flex-col md:flex-row items-start gap-6">
             
-            {/* Left: Avatar + Title + Attribute */}
-            <div className="flex items-center gap-4">
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-dota-gold shadow-dota-glow flex-shrink-0">
-                <img
-                  src={hero.avatarUrl}
-                  alt={hero.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+            {/* 1. PROPER HERO PORTRAIT CARD (Foreground, Crisp, High-Resolution Vertical Showcase) */}
+            <div className={`relative w-44 sm:w-52 md:w-60 h-64 sm:h-72 md:h-80 rounded-2xl overflow-hidden border-2 ${
+              hero.attribute === 'str' ? 'border-red-600/70 shadow-[0_0_30px_rgba(236,61,61,0.35)]' :
+              hero.attribute === 'agi' ? 'border-emerald-600/70 shadow-[0_0_30px_rgba(44,227,71,0.35)]' :
+              hero.attribute === 'int' ? 'border-cyan-600/70 shadow-[0_0_30px_rgba(0,210,255,0.35)]' :
+              'border-purple-600/70 shadow-[0_0_30px_rgba(217,70,239,0.35)]'
+            } flex-shrink-0 bg-slate-950 shadow-2xl group select-none`}>
+              <img
+                src={hero.avatarUrl.includes('/heroes/') && !hero.avatarUrl.includes('/heroes/crops/') 
+                  ? hero.avatarUrl.replace('/heroes/', '/heroes/crops/') 
+                  : hero.avatarUrl}
+                alt={hero.name}
+                className="w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = hero.avatarUrl;
+                }}
+              />
 
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="font-dota font-black text-2xl sm:text-3xl text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-yellow-300">
-                    {hero.name}
-                  </h1>
-                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${
-                    hero.attribute === 'str' ? 'bg-red-950/90 text-red-400 border-red-800' :
-                    hero.attribute === 'agi' ? 'bg-emerald-950/90 text-emerald-400 border-emerald-800' :
-                    hero.attribute === 'int' ? 'bg-blue-950/90 text-blue-400 border-blue-800' :
-                    'bg-purple-950/90 text-purple-300 border-purple-800'
-                  }`}>
-                    {hero.attribute.toUpperCase()} • {hero.attackType}
+              {/* Cinematic Vignettes */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 pointer-events-none" />
+
+              {/* Attribute & Attack Type Badge Overlay at bottom of portrait */}
+              <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-black/85 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center justify-between shadow-lg">
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-3 h-3 rounded-full shadow ${
+                    hero.attribute === 'str' ? 'bg-red-500 shadow-[0_0_10px_#ef4444]' :
+                    hero.attribute === 'agi' ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' :
+                    hero.attribute === 'int' ? 'bg-cyan-500 shadow-[0_0_10px_#06b6d4]' :
+                    'bg-gradient-to-r from-teal-400 via-purple-400 to-pink-500 shadow-[0_0_10px_#d946ef]'
+                  }`} />
+                  <span className="text-[11px] font-bold text-white uppercase tracking-wider">
+                    {hero.attribute === 'str' ? 'Strength' :
+                     hero.attribute === 'agi' ? 'Agility' :
+                     hero.attribute === 'int' ? 'Intelligence' : 'Universal'}
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-300 font-medium font-sans mt-0.5">
-                  {hero.title}
-                </p>
+                <span className="text-[10px] font-bold text-slate-300 bg-slate-800/90 px-1.5 py-0.5 rounded border border-slate-700">
+                  {hero.attackType}
+                </span>
+              </div>
+            </div>
 
-                {/* Official Roles Badges, Complexity & Season Meta */}
-                <div className="flex flex-wrap items-center gap-2 mt-2">
-                  <div className="flex flex-wrap items-center gap-1">
-                    {hero.roles.map((r) => (
-                      <DotaRoleBadge key={r} role={r} />
-                    ))}
-                  </div>
-
-                  <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded-md border border-emerald-800/60 text-xs">
-                    {hero.winRate}% Win Rate
-                  </span>
-
-                  <DotaComplexity complexity={hero.complexity} size="md" />
-
-                  {metaEntry ? (
-                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border flex items-center gap-1.5 ${
-                      metaEntry.tier === 'S+' || metaEntry.tier === 'S'
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/70 shadow-dota-glow'
-                        : 'bg-slate-800 text-slate-300 border-slate-700'
+            {/* 2. PROPER HERO INFORMATION PANEL (Right of Portrait) */}
+            <div className="flex-1 min-w-0 flex flex-col justify-between space-y-4">
+              
+              {/* Top Row: Hero Title & Right Controls */}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h1 className={`font-dota font-black text-3xl sm:text-4xl text-transparent bg-clip-text bg-gradient-to-r ${
+                      hero.attribute === 'str' ? 'from-white via-red-100 to-amber-200' :
+                      hero.attribute === 'agi' ? 'from-white via-emerald-100 to-amber-200' :
+                      hero.attribute === 'int' ? 'from-white via-cyan-100 to-amber-200' :
+                      'from-white via-purple-100 to-amber-200'
+                    } leading-tight drop-shadow`}>
+                      {hero.name}
+                    </h1>
+                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${
+                      hero.attribute === 'str' ? 'bg-red-950/90 text-red-400 border-red-800' :
+                      hero.attribute === 'agi' ? 'bg-emerald-950/90 text-emerald-400 border-emerald-800' :
+                      hero.attribute === 'int' ? 'bg-blue-950/90 text-blue-400 border-blue-800' :
+                      'bg-purple-950/90 text-purple-300 border-purple-800'
                     }`}>
-                      <Flame className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Season Meta: Tier {metaEntry.tier} {metaEntry.tier === 'S+' || metaEntry.tier === 'S' ? '(Dominant Pick)' : '(Balanced)'}</span>
+                      {hero.attribute.toUpperCase()} • {hero.attackType}
                     </span>
-                  ) : (
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700">
-                      Non-Meta
-                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-300 font-medium font-sans mt-0.5 italic">
+                    "{hero.title}"
+                  </p>
+                </div>
+
+                {/* Right: PiP, Favorite & Close Controls */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {onOpenPip && (
+                    <button
+                      onClick={() => {
+                        SoundEngine.playPick();
+                        onOpenPip(hero);
+                      }}
+                      className="p-2 sm:px-3 sm:py-2 rounded-xl bg-dota-gold/15 hover:bg-dota-gold/25 border border-dota-gold/50 text-dota-gold shadow-dota-glow transition-all flex items-center gap-1.5 group"
+                      title="Open in Picture-in-Picture Mini HUD (Shortcut: Alt+P)"
+                    >
+                      <PictureInPicture className="w-4 h-4 text-dota-gold" />
+                      <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">PiP HUD</span>
+                      <kbd className="hidden md:inline-block px-1 py-0.2 text-[8px] font-mono bg-black/60 rounded border border-dota-gold/40 text-amber-300">
+                        Alt+P
+                      </kbd>
+                    </button>
                   )}
+
+                  <button
+                    onClick={() => {
+                      onToggleFavorite(hero.id);
+                      SoundEngine.playHover();
+                    }}
+                    className={`p-2 rounded-xl border transition-all ${
+                      isFavorite
+                        ? 'bg-amber-500/20 border-amber-500/60 text-amber-400 shadow-dota-glow'
+                        : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-white'
+                    }`}
+                    title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Star className={`w-5 h-5 ${isFavorite ? 'fill-amber-400 text-amber-400' : ''}`} />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      SoundEngine.playHover();
+                      onClose();
+                    }}
+                    className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-950/80 border border-slate-700 hover:border-red-600 text-slate-400 hover:text-red-300 transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
+
+              {/* Row 2: Official Role Badges, Metrics & Season Meta */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {hero.roles.map((r) => (
+                    <DotaRoleBadge key={r} role={r} />
+                  ))}
+                </div>
+
+                <div className="h-4 w-px bg-slate-700 mx-1 hidden sm:block" />
+
+                <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded-md border border-emerald-800/60 text-xs shadow-sm">
+                  {hero.winRate}% Win Rate
+                </span>
+
+                <span className="text-cyan-300 font-bold bg-cyan-950/60 px-2.5 py-0.5 rounded-md border border-cyan-800/60 text-xs shadow-sm">
+                  {hero.pickRate}% Pick Rate
+                </span>
+
+                <DotaComplexity complexity={hero.complexity} size="md" />
+
+                {metaEntry ? (
+                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border flex items-center gap-1.5 ${
+                    metaEntry.tier === 'S+' || metaEntry.tier === 'S'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/70 shadow-dota-glow'
+                      : 'bg-slate-800 text-slate-300 border-slate-700'
+                  }`}>
+                    <Flame className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Patch 7.37d: Tier {metaEntry.tier} {metaEntry.tier === 'S+' || metaEntry.tier === 'S' ? '(Dominant Pick)' : '(Viable)'}</span>
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700">
+                    Non-Meta
+                  </span>
+                )}
+              </div>
+
+              {/* Row 3: Tactical Summary & Core Playstyle */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-1.5 shadow">
+                <p className="text-xs text-slate-200 leading-relaxed font-sans font-medium">
+                  {hero.summary}
+                </p>
+                <div className="text-[11px] text-slate-400 leading-relaxed font-sans border-t border-slate-800/80 pt-1.5 flex items-start gap-1.5">
+                  <span className="text-dota-gold font-bold uppercase tracking-wider flex-shrink-0">Doctrine:</span>
+                  <span>{hero.playstyle}</span>
+                </div>
+              </div>
+
+              {/* Row 4: Power Spikes Roadmap Preview */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5">
+                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Early Spike (0-12m)</span>
+                  <span className="text-[11px] text-slate-300 truncate block font-sans">{hero.powerSpikes.early}</span>
+                </div>
+                <div className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5">
+                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block">Mid Spike (12-25m)</span>
+                  <span className="text-[11px] text-slate-300 truncate block font-sans">{hero.powerSpikes.mid}</span>
+                </div>
+                <div className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5">
+                  <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">Late Spike (25m+)</span>
+                  <span className="text-[11px] text-slate-300 truncate block font-sans">{hero.powerSpikes.late}</span>
+                </div>
+              </div>
+
             </div>
-
-            {/* Right: Controls & Close */}
-            <div className="flex items-center gap-2 self-end sm:self-center">
-              {onOpenPip && (
-                <button
-                  onClick={() => {
-                    SoundEngine.playPick();
-                    onOpenPip(hero);
-                  }}
-                  className="p-2.5 rounded-xl bg-dota-gold/15 hover:bg-dota-gold/25 border border-dota-gold/50 text-dota-gold shadow-dota-glow transition-all flex items-center gap-1.5"
-                  title="Open in Picture-in-Picture Mini HUD (Always on top)"
-                >
-                  <PictureInPicture className="w-5 h-5 text-dota-gold" />
-                  <span className="hidden md:inline text-xs font-bold uppercase tracking-wider">PiP HUD</span>
-                </button>
-              )}
-
-              <button
-                onClick={() => {
-                  onToggleFavorite(hero.id);
-                  SoundEngine.playHover();
-                }}
-                className={`p-2.5 rounded-xl border transition-all ${
-                  isFavorite
-                    ? 'bg-amber-500/20 border-amber-500/60 text-amber-400 shadow-dota-glow'
-                    : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-white'
-                }`}
-                title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-              >
-                <Star className={`w-5 h-5 ${isFavorite ? 'fill-amber-400 text-amber-400' : ''}`} />
-              </button>
-
-              <button
-                onClick={() => {
-                  SoundEngine.playHover();
-                  onClose();
-                }}
-                className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-red-950/80 border border-slate-700 hover:border-red-600 text-slate-400 hover:text-red-300 transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
           </div>
 
           {/* Sub Navigation Tabs */}
