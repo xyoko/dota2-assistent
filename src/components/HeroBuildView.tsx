@@ -65,7 +65,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
       <div className="relative w-full max-w-5xl bg-dota-panel border-2 border-dota-gold/40 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header Hero Showcase Banner (Crisp Foreground Portrait & Proper Hero Info) */}
-        <div className="relative bg-gradient-to-b from-slate-950 via-[#0e131d] to-[#121722] border-b-2 border-dota-border overflow-hidden p-5 sm:p-6">
+        <div className="relative bg-gradient-to-b from-slate-950 via-[#0e131d] to-[#121722] border-b-2 border-dota-border overflow-hidden p-5 sm:p-6 flex-shrink-0">
           
           {/* Subtle atmospheric ambient glow matching primary attribute */}
           <div className={`absolute top-0 right-0 w-96 h-96 rounded-full opacity-20 filter blur-3xl pointer-events-none ${
@@ -83,7 +83,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               hero.attribute === 'agi' ? 'border-emerald-600/70 shadow-[0_0_35px_rgba(44,227,71,0.35)]' :
               hero.attribute === 'int' ? 'border-cyan-600/70 shadow-[0_0_35px_rgba(0,210,255,0.35)]' :
               'border-purple-600/70 shadow-[0_0_35px_rgba(217,70,239,0.35)]'
-            } flex-shrink-0 bg-slate-950 shadow-2xl group select-none flex flex-col justify-end`}>
+            } flex-shrink-0 bg-slate-950 shadow-2xl group select-none flex flex-col justify-start`}>
               
               {/* Atmospheric Background & Hero Attribute Lighting */}
               <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-[#0a0e17] to-black" />
@@ -122,12 +122,12 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                 {hero.attackType}
               </div>
 
-              {/* Full-Body Hero Render (Crisp 1440x1440 Official Render, Head-to-Toe) */}
-              <div className="relative z-10 w-full h-full flex items-end justify-center overflow-hidden">
+              {/* Full-Body Hero Render (Crisp 1440x1440 Official Render, Head-to-Toe, placed 1rem from top border) */}
+              <div className="relative z-10 w-full h-full flex items-start justify-center overflow-hidden pt-4">
                 <img
                   src={getHeroFullBodyRenderUrl(hero.avatarUrl)}
                   alt={hero.name}
-                  className="w-full h-full object-contain object-bottom scale-[1.12] origin-bottom filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)] transition-transform duration-700 ease-out group-hover:scale-[1.16] p-1 pb-1.5"
+                  className="w-full h-full object-contain object-top filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)] transition-transform duration-700 ease-out group-hover:scale-105 p-1"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement;
                     if (target.src !== hero.avatarUrl) {

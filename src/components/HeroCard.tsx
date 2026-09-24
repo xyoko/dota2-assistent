@@ -79,7 +79,7 @@ export const HeroCard: React.FC<HeroCardProps> = ({
           alt={hero.name}
           loading="lazy"
           decoding="async"
-          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500 ease-out"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
           }}
