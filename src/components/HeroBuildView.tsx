@@ -4,6 +4,7 @@ import { StorageService } from '../services/storageService';
 import { SoundEngine } from '../services/soundFx';
 import { DotaComplexity, DotaRoleBadge, getItemImageUrl, getHeroFullBodyRenderUrl } from './DotaUIComponents';
 import { SEASON_META_DATA } from '../data/seasonMetaData';
+import { getNumberedSkillPriority, getSkillNumberFromKey } from '../utils/skillUtils';
 import { 
   X, 
   Star, 
@@ -46,6 +47,11 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
   const [noteSaved, setNoteSaved] = useState<boolean>(false);
 
   const metaEntry = SEASON_META_DATA.heroes.find((m) => m.heroId === hero.id);
+
+  // Skills identified with numbers (1 to 4)
+  const numberedSkillPriority = React.useMemo(() => {
+    return getNumberedSkillPriority(hero.skillOrder.maxPriority, hero.abilities);
+  }, [hero.id, hero.skillOrder.maxPriority, hero.abilities]);
 
   useEffect(() => {
     setUserNote(StorageService.getHeroNote(hero.id));
@@ -738,25 +744,53 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                 <h3 className="font-dota font-bold text-sm text-cyan-300 mb-2">
                   Recommended Skill Leveling Order
                 </h3>
-                <p className="text-xs text-slate-400 mb-3 font-sans">
-                  Maxing priority: <span className="text-cyan-200 font-bold">{hero.skillOrder.maxPriority.join(' ➔ ')}</span>
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {hero.skillOrder.levelGuide.map((skill, index) => (
-                    <div
-                      key={index}
-                      className={`flex flex-col items-center justify-center w-8 h-10 rounded-lg border text-xs font-bold ${
-                        skill === 'R'
-                          ? 'bg-red-950/90 border-red-500 text-red-300 shadow-sm'
-                          : skill === 'Talent'
-                          ? 'bg-amber-950/90 border-amber-500 text-amber-300 text-[10px] shadow-sm'
-                          : 'bg-dota-bg border-dota-border text-slate-200'
-                      }`}
-                    >
-                      <span className="text-[9px] text-slate-500 font-normal">{index + 1}</span>
-                      <span>{skill}</span>
-                    </div>
+                <div className="text-xs text-slate-400 mb-3 font-sans flex items-center gap-1.5 flex-wrap">
+                  <span className="font-semibold text-slate-300">Maxing priority:</span>
+                  {numberedSkillPriority.map((s, idx) => (
+                    <span key={idx} className="inline-flex items-center gap-1">
+                      <span className="bg-cyan-950/80 text-cyan-200 px-2 py-0.5 rounded-lg border border-cyan-800/70 text-[11px] font-sans flex items-center gap-1 shadow-sm">
+                        <span className="text-[9px] font-mono text-cyan-400 font-bold">#{idx + 1}</span>
+                        <span className="font-bold text-dota-gold bg-black/60 px-1 rounded border border-dota-gold/40 text-[10px]">
+                          Skill {s.skillNumber}
+                        </span>
+                        <span className="text-slate-400 font-mono text-[10px]">({s.key})</span>
+                        <span className="font-semibold text-slate-200">{s.name}</span>
+                      </span>
+                      {idx < numberedSkillPriority.length - 1 && (
+                        <span className="text-slate-600 font-bold text-xs">➔</span>
+                      )}
+                    </span>
                   ))}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {hero.skillOrder.levelGuide.map((skill, index) => {
+                    const skillNum = getSkillNumberFromKey(skill);
+                    const isUlt = skill === 'R';
+                    const isTalent = skill === 'Talent';
+                    return (
+                      <div
+                        key={index}
+                        className={`flex flex-col items-center justify-center min-w-[36px] h-12 px-1 rounded-lg border text-xs font-bold transition-transform hover:scale-105 ${
+                          isUlt
+                            ? 'bg-red-950/90 border-red-500 text-red-300 shadow-sm'
+                            : isTalent
+                            ? 'bg-amber-950/90 border-amber-500 text-amber-300 text-[10px] shadow-sm'
+                            : 'bg-dota-bg border-dota-border text-slate-200'
+                        }`}
+                        title={isTalent ? `Hero Level ${index + 1}: Talent Tree Node` : `Hero Level ${index + 1}: Skill ${skillNum} (${skill})`}
+                      >
+                        <span className="text-[8px] text-slate-400 font-mono leading-none">Lv {index + 1}</span>
+                        {!isTalent ? (
+                          <>
+                            <span className="text-[11px] font-black text-white leading-tight mt-0.5">Skill {skillNum}</span>
+                            <span className="text-[8px] text-dota-gold font-mono font-bold leading-none">({skill})</span>
+                          </>
+                        ) : (
+                          <span className="text-[9px] font-bold text-amber-300 leading-tight mt-1">★ Talent</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -766,16 +800,31 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                   <div key={idx} className="bg-dota-panelAlt border border-dota-border rounded-2xl p-4 flex flex-col justify-between space-y-2 shadow">
                     <div>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs ${
+                        <div className="flex items-center gap-2">
+                          {/* Skill Number Badge */}
+                          <div className="w-8 h-8 rounded-lg flex flex-col items-center justify-center bg-slate-900 border border-dota-gold/60 text-dota-gold font-mono shadow flex-shrink-0">
+                            <span className="text-[7px] text-slate-400 font-sans uppercase leading-none font-bold">SKILL</span>
+                            <span className="text-xs font-black leading-none mt-0.5">{idx + 1}</span>
+                          </div>
+
+                          {/* Hotkey Key */}
+                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0 ${
                             ab.isUltimate ? 'bg-dota-red text-white shadow-dota-crimson' : 'bg-slate-800 text-dota-gold border border-dota-gold/40 shadow'
                           }`}>
                             {ab.key}
                           </span>
-                          <span className="font-bold text-sm text-slate-100">{ab.name}</span>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-sm text-slate-100 truncate">{ab.name}</span>
+                              <span className="text-[9px] text-dota-gold font-mono font-semibold bg-amber-950/70 px-1.5 py-0.2 rounded border border-amber-800/60">
+                                Skill #{idx + 1}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                         {ab.isUltimate && (
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-800">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-800 flex-shrink-0">
                             Ultimate
                           </span>
                         )}

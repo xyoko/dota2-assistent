@@ -3,6 +3,7 @@ import { HeroData } from '../types/hero';
 import { HEROES_DATA, HERO_MAP } from '../data/heroes';
 import { DOTA_ITEMS } from '../data/items';
 import { SoundEngine } from '../services/soundFx';
+import { getNumberedSkillPriority } from '../utils/skillUtils';
 import { 
   Swords, 
   ShieldAlert, 
@@ -67,21 +68,49 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
     SoundEngine.playPick();
   };
 
-  // Handle single click vs two fast clicks (double-click)
+  // Track pointer down coordinates to distinguish deliberate clicks anywhere on screen from drag-scrolling
+  const pointerDownPosRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerDownPosRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: Date.now()
+    };
+  };
+
+  // Handle single click vs two fast clicks (double-click) across the ENTIRE SCREEN for ease of use
   const handleContainerClick = (e: React.MouseEvent) => {
-    // If clicking on a button, select, input, or inside scroll area, let user interact/scroll without accidental stage/mode changes
+    // If clicking on specific interactive controls (buttons, inputs, select), let their handlers run
     const target = e.target as HTMLElement;
     if (
       target.closest('button') ||
       target.closest('select') ||
-      target.closest('input') ||
-      target.closest('.pip-scroll-area')
+      target.closest('input')
     ) {
       return;
     }
 
+    // If the user was dragging/scrolling (moved pointer more than 7px), do not trigger click action
+    if (pointerDownPosRef.current) {
+      const distance = Math.hypot(
+        e.clientX - pointerDownPosRef.current.x,
+        e.clientY - pointerDownPosRef.current.y
+      );
+      if (distance > 7) {
+        return;
+      }
+    }
+
+    // If hero search overlay is open, clicking anywhere outside hero buttons closes search
+    if (isSearchOpen) {
+      setIsSearchOpen(false);
+      setSearchQuery('');
+      return;
+    }
+
     if (clickTimeoutRef.current) {
-      // Second click within 250ms -> Two fast clicks (Double Click): Toggle Counter Mode
+      // Second click within 260ms -> Two fast clicks (Double Click): Toggle Counter Mode
       window.clearTimeout(clickTimeoutRef.current);
       clickTimeoutRef.current = null;
       toggleCounterMode();
@@ -126,9 +155,18 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
     h.aliases.some((a) => a.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  // Skills identified with numbers (Skill 1, Skill 2, Skill 3, Skill 4)
+  const numberedSkills = React.useMemo(() => {
+    return getNumberedSkillPriority(
+      selectedHero.skillOrder.maxPriority,
+      selectedHero.abilities
+    );
+  }, [selectedHero.id, selectedHero.skillOrder.maxPriority, selectedHero.abilities]);
+
   return (
     <div
       onClick={handleContainerClick}
+      onPointerDown={handlePointerDown}
       className={`select-none flex flex-col min-h-0 overflow-hidden bg-gradient-to-b from-[#10141d] to-[#0a0d14] text-slate-100 font-sans shadow-2xl ${
         isNativePip
           ? 'w-full h-full'
@@ -411,14 +449,45 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
               ))}
             </div>
 
-            {/* Quick Skill Maxing Roadmap */}
-            <div className="mt-3 pt-2 border-t border-slate-800/80 bg-slate-950/60 rounded-xl p-2 border border-slate-800">
-              <div className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider mb-1 flex items-center gap-1">
-                <Zap className="w-3 h-3 text-cyan-400" />
-                <span>Skill Priority:</span>
+            {/* Quick Skill Maxing Roadmap with Numbered Skills */}
+            <div className="mt-2.5 pt-2 border-t border-slate-800/80 bg-slate-950/80 rounded-xl p-2 border border-slate-800/90 shadow-sm">
+              <div className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-cyan-400" />
+                  <span>Skill Priority:</span>
+                </div>
+                <span className="text-[9px] text-slate-500 font-normal">Max order 1st ➔ 4th</span>
               </div>
-              <div className="text-[11px] font-semibold text-slate-300">
-                {selectedHero.skillOrder.maxPriority.join(' ➔ ')}
+
+              <div className="flex items-center gap-1 flex-wrap">
+                {numberedSkills.map((s, idx) => (
+                  <div key={idx} className="flex items-center gap-1">
+                    <div
+                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] transition-all ${
+                        s.isUlt
+                          ? 'bg-red-950/80 border-red-700/80 text-red-200'
+                          : 'bg-slate-900/90 border-slate-700 text-slate-200'
+                      }`}
+                      title={`${s.name} (${s.key}): Skill #${s.skillNumber}, Max Priority #${idx + 1}`}
+                    >
+                      <span className="text-[8px] font-mono text-cyan-300 font-black bg-cyan-950/90 px-1 py-0.2 rounded border border-cyan-800/70">
+                        #{idx + 1}
+                      </span>
+                      <span className="font-bold text-dota-gold bg-black/60 px-1 py-0.2 rounded border border-dota-gold/50 text-[9px] tracking-wide">
+                        Skill {s.skillNumber}
+                      </span>
+                      <span className="text-slate-400 font-mono text-[9px]">
+                        ({s.key})
+                      </span>
+                      <span className="font-medium text-slate-100 truncate max-w-[85px]">
+                        {s.name}
+                      </span>
+                    </div>
+                    {idx < numberedSkills.length - 1 && (
+                      <span className="text-slate-600 text-[10px] font-bold">➔</span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -574,7 +643,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
       {/* ============================================================ */}
       <div 
         className="bg-slate-950/95 border-t border-dota-border px-3 py-1.5 flex items-center justify-between text-[10px] text-slate-400 flex-shrink-0 cursor-pointer hover:bg-slate-900 transition-colors"
-        title="1-Click: Advance item build phase | 2-Clicks: Toggle Counters Matrix"
+        title="1-Click anywhere on screen: Advance build phase | 2-Clicks anywhere on screen: Toggle Counters Matrix"
       >
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="font-bold text-dota-gold">🖱️ 1-Click:</span>
@@ -582,6 +651,8 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
           <span className="text-slate-600">•</span>
           <span className="font-bold text-red-400">⚡ 2-Click:</span>
           <span>Counters</span>
+          <span className="text-slate-600">•</span>
+          <span className="text-[9px] text-slate-500 font-mono">(Tap anywhere on screen)</span>
           <span className="text-slate-600">•</span>
           <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-slate-700 font-mono text-[9px] text-amber-300 font-bold">
             Alt+P
