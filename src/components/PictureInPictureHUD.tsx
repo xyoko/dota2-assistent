@@ -11,7 +11,9 @@ import {
   X, 
   Search,
   Sparkles,
-  Zap
+  Zap,
+  Minimize2,
+  Maximize2
 } from 'lucide-react';
 
 interface PictureInPictureHUDProps {
@@ -32,6 +34,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
   const [isCounterMode, setIsCounterMode] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isCompact, setIsCompact] = useState<boolean>(false);
 
   // Click timing for double-click vs single-click detection
   const clickTimeoutRef = useRef<number | null>(null);
@@ -66,14 +69,19 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
 
   // Handle single click vs two fast clicks (double-click)
   const handleContainerClick = (e: React.MouseEvent) => {
-    // If clicking on a dropdown or button specifically, let its own handler execute
+    // If clicking on a button, select, input, or inside scroll area, let user interact/scroll without accidental stage/mode changes
     const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('select') || target.closest('input')) {
+    if (
+      target.closest('button') ||
+      target.closest('select') ||
+      target.closest('input') ||
+      target.closest('.pip-scroll-area')
+    ) {
       return;
     }
 
     if (clickTimeoutRef.current) {
-      // Second click within 280ms -> Two fast clicks (Double Click): Toggle Counter Mode
+      // Second click within 250ms -> Two fast clicks (Double Click): Toggle Counter Mode
       window.clearTimeout(clickTimeoutRef.current);
       clickTimeoutRef.current = null;
       toggleCounterMode();
@@ -112,28 +120,30 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
     all: 'text-purple-300 border-purple-500/50 bg-purple-950/80'
   }[selectedHero.attribute];
 
-  // Filtered heroes for quick search
+  // Filtered heroes for quick search across full hero roster
   const filteredHeroes = HEROES_DATA.filter((h) => 
     h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     h.aliases.some((a) => a.toLowerCase().includes(searchQuery.toLowerCase()))
-  ).slice(0, 8);
+  );
 
   return (
     <div
       onClick={handleContainerClick}
-      className={`select-none flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#10141d] to-[#0a0d14] text-slate-100 font-sans shadow-2xl ${
-        isNativePip ? 'w-full h-full' : 'w-[360px] h-[520px] rounded-2xl border-2 border-dota-gold/60 shadow-[0_0_40px_rgba(0,0,0,0.9)]'
+      className={`select-none flex flex-col min-h-0 overflow-hidden bg-gradient-to-b from-[#10141d] to-[#0a0d14] text-slate-100 font-sans shadow-2xl ${
+        isNativePip
+          ? 'w-full h-full'
+          : `${isCompact ? 'h-[280px]' : 'h-[520px]'} w-[360px] rounded-2xl border-2 border-dota-gold/60 shadow-[0_0_40px_rgba(0,0,0,0.9)] resize-y min-h-[200px] max-h-[85vh]`
       }`}
     >
       {/* ============================================================ */}
       {/* COMPACT TOP HEADER */}
       {/* ============================================================ */}
-      <div className="relative bg-slate-950/95 border-b border-dota-border p-2.5 flex-shrink-0">
-        <div className="flex items-center justify-between gap-2">
+      <div className="relative bg-slate-950/95 border-b border-dota-border p-2 flex-shrink-0">
+        <div className="flex items-center justify-between gap-1.5">
           
           {/* Hero Avatar & Quick Switcher */}
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-dota-gold/60 flex-shrink-0 shadow">
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-dota-gold/60 flex-shrink-0 shadow">
               <img
                 src={selectedHero.avatarUrl}
                 alt={selectedHero.name}
@@ -146,14 +156,14 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="font-dota font-black text-sm text-white truncate">
+                <span className="font-dota font-black text-xs text-white truncate">
                   {selectedHero.name}
                 </span>
-                <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border uppercase ${attrColor}`}>
+                <span className={`text-[8px] font-bold px-1 py-0.2 rounded border uppercase ${attrColor}`}>
                   {selectedHero.attribute.toUpperCase()}
                 </span>
               </div>
-              <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+              <div className="text-[9px] text-slate-400 truncate flex items-center gap-1">
                 <span>{selectedHero.roles[0]}</span>
                 <span>•</span>
                 <span className="text-emerald-400 font-bold">{selectedHero.winRate}% WR</span>
@@ -175,7 +185,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
               }`}
               title="Search and change hero"
             >
-              <Search className="w-3.5 h-3.5" />
+              <Search className="w-3 h-3" />
             </button>
 
             {/* Mode Switcher Button */}
@@ -184,16 +194,31 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                 e.stopPropagation();
                 toggleCounterMode();
               }}
-              className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1 transition-all ${
+              className={`px-1.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center gap-1 transition-all ${
                 isCounterMode 
                   ? 'bg-red-600/30 text-red-300 border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.3)]' 
                   : 'bg-dota-gold/20 text-dota-gold border-dota-gold/60 shadow-dota-glow'
               }`}
-              title="Double click anywhere or tap here to switch between Build and Counters"
+              title="Double click window or tap here to switch between Build and Counters"
             >
               {isCounterMode ? <ShieldAlert className="w-3 h-3 text-red-400" /> : <Swords className="w-3 h-3 text-amber-400" />}
-              <span>{isCounterMode ? 'Counters' : 'Build Path'}</span>
+              <span className="hidden xs:inline">{isCounterMode ? 'Counters' : 'Build'}</span>
             </button>
+
+            {/* Compact / Shorten Toggle (Floating mode only) */}
+            {!isNativePip && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCompact((prev) => !prev);
+                  SoundEngine.playHover();
+                }}
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-colors"
+                title={isCompact ? 'Expand HUD to full height' : 'Compact HUD (shortened view)'}
+              >
+                {isCompact ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
+              </button>
+            )}
 
             {/* Close Button */}
             <button
@@ -204,26 +229,60 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
               className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950 border border-slate-700 hover:border-red-600 text-slate-400 hover:text-red-300 transition-colors"
               title="Close PiP HUD"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3 h-3" />
             </button>
           </div>
 
         </div>
+      </div>
 
-        {/* Quick Hero Search Overlay */}
-        {isSearchOpen && (
-          <div className="mt-2 pt-2 border-t border-slate-800 space-y-1.5 animate-fadeIn">
-            <input
-              type="text"
-              autoFocus
-              placeholder="Search hero..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900 border border-dota-gold/50 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-dota-gold"
-            />
-            {filteredHeroes.length > 0 && (
-              <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto pr-1">
-                {filteredHeroes.map((h) => (
+      {/* ============================================================ */}
+      {/* MIDDLE BODY CONTENT: HERO SEARCH OR BUILD PATH OR COUNTERS */}
+      {/* ============================================================ */}
+      {isSearchOpen ? (
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-950/95 overflow-hidden">
+          {/* Hero Search Input Bar */}
+          <div className="p-2 border-b border-slate-800 bg-slate-900/90 flex items-center gap-1.5 flex-shrink-0">
+            <div className="relative flex-1">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                autoFocus
+                placeholder="Search 124+ heroes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-950 border border-dota-gold/40 rounded-lg pl-8 pr-7 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-dota-gold"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                setIsSearchOpen(false);
+                setSearchQuery('');
+              }}
+              className="px-2 py-1 text-[10px] font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700"
+            >
+              Done
+            </button>
+          </div>
+
+          {/* Full Scrollable Hero Grid (Smooth scrolling even when window is shortened) */}
+          <div className="pip-scroll-area flex-1 min-h-0 overflow-y-auto p-2 grid grid-cols-2 gap-1.5 custom-scrollbar overscroll-contain">
+            {filteredHeroes.length === 0 ? (
+              <div className="col-span-2 py-8 text-center text-xs text-slate-400">
+                No heroes match "{searchQuery}"
+              </div>
+            ) : (
+              filteredHeroes.map((h) => {
+                const isSelected = h.id === selectedHero.id;
+                return (
                   <button
                     key={h.id}
                     onClick={(e) => {
@@ -233,22 +292,35 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                       setSearchQuery('');
                       SoundEngine.playPick();
                     }}
-                    className="flex items-center gap-1.5 p-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-left border border-slate-700 text-[11px] truncate"
+                    className={`flex items-center gap-1.5 p-1.5 rounded-lg border text-left transition-all ${
+                      isSelected
+                        ? 'bg-dota-gold/20 border-dota-gold text-amber-200 shadow-dota-glow'
+                        : 'bg-slate-900/90 border-slate-800 hover:border-slate-600 hover:bg-slate-800/80 text-slate-300'
+                    }`}
                   >
-                    <img src={h.avatarUrl} alt={h.name} className="w-5 h-5 rounded object-cover flex-shrink-0" />
-                    <span className="truncate text-slate-200">{h.name}</span>
+                    <img
+                      src={h.avatarUrl}
+                      alt={h.name}
+                      className="w-7 h-7 rounded object-cover flex-shrink-0 border border-slate-700"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
+                      }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-bold truncate leading-tight">
+                        {h.name}
+                      </div>
+                      <div className="text-[9px] text-slate-400 uppercase tracking-wider">
+                        {h.attribute} • {h.winRate}%
+                      </div>
+                    </div>
                   </button>
-                ))}
-              </div>
+                );
+              })
             )}
           </div>
-        )}
-      </div>
-
-      {/* ============================================================ */}
-      {/* MODE A: ITEM & HERO BUILD PATH (1-CLICK CYCLING) */}
-      {/* ============================================================ */}
-      {!isCounterMode ? (
+        </div>
+      ) : !isCounterMode ? (
         <div className="flex-1 flex flex-col min-h-0">
           
           {/* Phase Selector Tabs */}
@@ -283,7 +355,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                 advanceStage();
               }}
               className="flex items-center gap-0.5 text-[9px] font-bold text-dota-gold hover:text-amber-200 uppercase bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-700/60 flex-shrink-0"
-              title="Click anywhere on window to advance stage"
+              title="Click anywhere on header/footer to advance stage"
             >
               <span>Next</span>
               <ChevronRight className="w-3 h-3" />
@@ -291,7 +363,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
           </div>
 
           {/* Active Phase Items List (Scrollable) */}
-          <div className="flex-1 overflow-y-auto p-2.5 space-y-2 custom-scrollbar">
+          <div className="pip-scroll-area flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2 custom-scrollbar overscroll-contain">
             
             <div className="flex items-center justify-between px-1 text-[11px] font-bold text-amber-300">
               <span className="uppercase tracking-wider flex items-center gap-1">
@@ -369,7 +441,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
             </span>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2.5 space-y-3 custom-scrollbar">
+          <div className="pip-scroll-area flex-1 min-h-0 overflow-y-auto p-2.5 space-y-3 custom-scrollbar overscroll-contain">
             
             {/* 1. ENEMY HERO COUNTERS (CHARACTER PICTURES ONLY) */}
             <div>
@@ -500,7 +572,10 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
       {/* ============================================================ */}
       {/* TACTICAL FOOTER HUD & GESTURE INSTRUCTION BAR */}
       {/* ============================================================ */}
-      <div className="bg-slate-950/95 border-t border-dota-border px-3 py-1.5 flex items-center justify-between text-[10px] text-slate-400 flex-shrink-0">
+      <div 
+        className="bg-slate-950/95 border-t border-dota-border px-3 py-1.5 flex items-center justify-between text-[10px] text-slate-400 flex-shrink-0 cursor-pointer hover:bg-slate-900 transition-colors"
+        title="1-Click: Advance item build phase | 2-Clicks: Toggle Counters Matrix"
+      >
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="font-bold text-dota-gold">🖱️ 1-Click:</span>
           <span>Next Phase</span>

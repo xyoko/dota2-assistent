@@ -33,6 +33,32 @@
   background: #c0392b;
 }
 
+/* Custom Slim Dota Scrollbar for PiP and compact panels */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(13, 17, 26, 0.7);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(200, 155, 60, 0.45);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(200, 155, 60, 0.85);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 155, 60, 0.45) rgba(13, 17, 26, 0.7);
+  overscroll-behavior: contain;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

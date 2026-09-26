@@ -55,9 +55,52 @@ export class PipManager {
       fontLink.href = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;600;700&display=swap';
       pip.document.head.appendChild(fontLink);
 
+      // Explicit PiP scrollbar and layout styles
+      const customPipStyles = document.createElement('style');
+      customPipStyles.textContent = `
+        html, body {
+          height: 100%;
+          width: 100%;
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+          background: #0a0d14;
+        }
+        * {
+          box-sizing: border-box;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+          height: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(13, 17, 26, 0.7);
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(200, 155, 60, 0.45);
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(200, 155, 60, 0.85);
+        }
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(200, 155, 60, 0.45) rgba(13, 17, 26, 0.7);
+          overscroll-behavior: contain;
+        }
+      `;
+      pip.document.head.appendChild(customPipStyles);
+
       // Title & Body
       pip.document.title = 'AegisForge PiP Overlay';
-      pip.document.body.className = 'bg-[#0a0d14] text-slate-100 m-0 p-0 overflow-hidden select-none';
+      pip.document.body.className = 'bg-[#0a0d14] text-slate-100 m-0 p-0 w-full h-full overflow-hidden select-none';
+
+      // Ensure container takes full window
+      containerElement.style.width = '100%';
+      containerElement.style.height = '100%';
+      containerElement.style.minHeight = '0';
+      containerElement.style.overflow = 'hidden';
 
       // Move or append container
       pip.document.body.appendChild(containerElement);
