@@ -13,6 +13,7 @@ import {
   Search,
   Sparkles,
   Zap,
+  Clock,
   Minimize2,
   Maximize2
 } from 'lucide-react';
@@ -23,7 +24,7 @@ interface PictureInPictureHUDProps {
   isNativePip?: boolean;
 }
 
-type BuildStage = 'early' | 'mid' | 'late' | 'starting';
+type BuildStage = 'early' | 'mid' | 'late' | 'neutrals' | 'starting';
 
 export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
   initialHero,
@@ -50,6 +51,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
     { key: 'early', label: 'Early Game', short: 'Early', badge: '0-12m' },
     { key: 'mid', label: 'Core / Mid Game', short: 'Mid (Core)', badge: '12-25m' },
     { key: 'late', label: 'Late Game / Luxury', short: 'Late', badge: '25m+' },
+    { key: 'neutrals', label: 'Neutral Items (Tiers 1-5)', short: 'Neutrals', badge: 'T1-T5' },
     { key: 'starting', label: 'Starting Items', short: 'Starting', badge: 'Lane' }
   ];
 
@@ -132,13 +134,60 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
     return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${clean}.png`;
   };
 
+  // Resolve neutral item image with official Steam CDN slug overrides
+  const getNeutralItemImg = (name: string) => {
+    const slugMap: Record<string, string> = {
+      'specialist array': 'specialists_array',
+      "specialist's array": 'specialists_array',
+      'vindicator axe': 'vindicators_axe',
+      "vindicator's axe": 'vindicators_axe',
+      'aviana feather': 'avianas_feather',
+      "aviana's feather": 'avianas_feather',
+      'aviana’s feather': 'avianas_feather',
+      'safety bubble': 'safety_bubble',
+      'duelist gloves': 'duelist_gloves',
+      'arcane ring': 'arcane_ring',
+      'vampire fangs': 'vampire_fangs',
+      'grove bow': 'grove_bow',
+      'dragon scale': 'dragon_scale',
+      'eye of the vizier': 'eye_of_the_vizier',
+      'paladin sword': 'paladin_sword',
+      'nemesis curse': 'nemesis_curse',
+      'enchanted quiver': 'enchanted_quiver',
+      'elven tunic': 'elven_tunic',
+      'mind breaker': 'mind_breaker',
+      'ninja gear': 'ninja_gear',
+      'apex': 'apex',
+      'pirate hat': 'pirate_hat',
+      'mirror shield': 'mirror_shield'
+    };
+    const cleanLower = name.toLowerCase().trim();
+    const mapped = slugMap[cleanLower];
+    const clean = mapped || cleanLower.replace(/['’]/g, '').replace(/[^a-z0-9]/g, '_');
+    return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${clean}.png`;
+  };
+
+  // Hero neutral items list with fallback
+  const heroNeutrals = React.useMemo(() => {
+    if (selectedHero.build?.neutrals && selectedHero.build.neutrals.length > 0) {
+      return selectedHero.build.neutrals;
+    }
+    return [
+      { tier: 1, items: ['Duelist Gloves', 'Arcane Ring', 'Safety Bubble'] },
+      { tier: 2, items: ['Dragon Scale', 'Vampire Fangs', 'Grove Bow'] },
+      { tier: 3, items: ['Paladin Sword', 'Nemesis Curse', 'Enchanted Quiver'] },
+      { tier: 4, items: ['Mind Breaker', 'Ninja Gear', 'Aviana’s Feather'] },
+      { tier: 5, items: ['Apex', 'Pirate Hat', 'Mirror Shield'] }
+    ];
+  }, [selectedHero]);
+
   // Items for current active stage
   const currentItems = React.useMemo(() => {
     if (activeStage === 'starting') return selectedHero.build.starting;
     if (activeStage === 'early') return selectedHero.build.early;
     if (activeStage === 'mid') return selectedHero.build.core;
     if (activeStage === 'late') return selectedHero.build.late;
-    return selectedHero.build.early;
+    return [];
   }, [activeStage, selectedHero]);
 
   // Attribute styling
@@ -403,51 +452,193 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
           {/* Active Phase Items List (Scrollable) */}
           <div className="pip-scroll-area flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2 custom-scrollbar overscroll-contain">
             
-            <div className="flex items-center justify-between px-1 text-[11px] font-bold text-amber-300">
-              <span className="uppercase tracking-wider flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-dota-gold" />
-                {stages.find((s) => s.key === activeStage)?.label}
-              </span>
-              <span className="text-[10px] text-slate-400">
-                {currentItems.length} Items
-              </span>
-            </div>
+            {activeStage === 'neutrals' ? (
+              /* ============================================================ */
+              /* NEUTRAL ITEMS BREAKDOWN (TIERS 1 - 5) */
+              /* ============================================================ */
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-1 text-[11px] font-bold text-emerald-400">
+                  <span className="uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-emerald-400" />
+                    Recommended Neutral Items
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Tiers 1 - 5
+                  </span>
+                </div>
 
-            <div className="space-y-1.5">
-              {currentItems.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="group bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-dota-gold/60 rounded-xl p-2 flex items-center gap-2.5 transition-all shadow"
-                >
-                  <img
-                    src={getItemImg(item.id, item.name)}
-                    alt={item.name}
-                    className="w-10 h-7 rounded object-contain border border-slate-700 group-hover:border-dota-gold/80 flex-shrink-0 bg-black/60 shadow"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
+                {heroNeutrals.map((tierData) => {
+                  const tierMeta = {
+                    1: { label: 'Tier 1', time: '7:00+', color: 'text-emerald-400 border-emerald-500/40 bg-emerald-950/40' },
+                    2: { label: 'Tier 2', time: '17:00+', color: 'text-teal-400 border-teal-500/40 bg-teal-950/40' },
+                    3: { label: 'Tier 3', time: '27:00+', color: 'text-sky-400 border-sky-500/40 bg-sky-950/40' },
+                    4: { label: 'Tier 4', time: '37:00+', color: 'text-purple-300 border-purple-500/40 bg-purple-950/40' },
+                    5: { label: 'Tier 5', time: '60:00+', color: 'text-amber-300 border-amber-500/50 bg-amber-950/40' }
+                  }[tierData.tier] || { label: `Tier ${tierData.tier}`, time: '', color: 'text-slate-300 border-slate-700 bg-slate-900' };
+
+                  return (
+                    <div key={tierData.tier} className="bg-slate-900/90 border border-slate-800 rounded-xl p-2 shadow-sm space-y-1.5">
+                      <div className="flex items-center justify-between px-1">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded border ${tierMeta.color}`}>
+                          {tierMeta.label}
+                        </span>
+                        <span className="text-[9px] font-mono text-slate-400 flex items-center gap-1">
+                          <Clock className="w-2.5 h-2.5 text-slate-500" />
+                          <span>Unlocks:</span>
+                          <span className="text-white font-bold">{tierMeta.time}</span>
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {tierData.items.map((itemName, i) => (
+                          <div
+                            key={i}
+                            className="bg-slate-950/80 hover:bg-slate-800/90 border border-slate-800 hover:border-dota-gold/60 rounded-lg p-1.5 flex flex-col items-center text-center transition-all group shadow"
+                            title={`${itemName} (Tier ${tierData.tier} Neutral Item • ${tierMeta.time})`}
+                          >
+                            <img
+                              src={getNeutralItemImg(itemName)}
+                              alt={itemName}
+                              className="w-10 h-7 rounded object-contain border border-slate-700/80 group-hover:border-dota-gold/80 bg-black/60 shadow flex-shrink-0"
+                              onError={(e) => {
+                                const el = e.currentTarget as HTMLImageElement;
+                                el.onerror = null;
+                                el.src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/apex.png';
+                              }}
+                            />
+                            <span className="text-[10px] font-semibold text-slate-200 group-hover:text-amber-200 mt-1 line-clamp-1 leading-tight w-full">
+                              {itemName}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* STANDARD ITEMS LIST */
+              <>
+                <div className="flex items-center justify-between px-1 text-[11px] font-bold text-amber-300">
+                  <span className="uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-dota-gold" />
+                    {stages.find((s) => s.key === activeStage)?.label}
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    {currentItems.length} Items
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {currentItems.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="group bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-dota-gold/60 rounded-xl p-2 flex items-center gap-2.5 transition-all shadow"
+                    >
+                      <img
+                        src={getItemImg(item.id, item.name)}
+                        alt={item.name}
+                        className="w-10 h-7 rounded object-contain border border-slate-700 group-hover:border-dota-gold/80 flex-shrink-0 bg-black/60 shadow"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
+                        }}
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-bold text-xs text-slate-100 group-hover:text-amber-200 truncate">
+                            {item.name}
+                          </span>
+                          <span className="text-[11px] font-bold text-dota-gold flex items-center gap-0.5 flex-shrink-0">
+                            <Coins className="w-2.5 h-2.5" />
+                            {item.cost}g
+                          </span>
+                        </div>
+
+                        {item.reason && (
+                          <p className="text-[10px] text-slate-400 line-clamp-1 group-hover:line-clamp-2 leading-tight mt-0.5">
+                            {item.reason}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Contextual Neutral Item Hint based on current stage */}
+                {activeStage === 'early' && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveStage('neutrals');
+                      SoundEngine.playPick();
                     }}
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-bold text-xs text-slate-100 group-hover:text-amber-200 truncate">
-                        {item.name}
+                    className="p-1.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-950/70 border border-emerald-800/50 hover:border-emerald-500/80 flex items-center justify-between cursor-pointer transition-all text-[10px] shadow"
+                    title="Click to view all Tier 1-5 Neutral Items"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40 text-[9px] uppercase flex-shrink-0">
+                        7m+ Neutral
                       </span>
-                      <span className="text-[11px] font-bold text-dota-gold flex items-center gap-0.5 flex-shrink-0">
-                        <Coins className="w-2.5 h-2.5" />
-                        {item.cost}g
+                      <span className="text-slate-300 truncate text-[10px]">
+                        {heroNeutrals.find((n) => n.tier === 1)?.items.slice(0, 3).join(', ')}
                       </span>
                     </div>
-
-                    {item.reason && (
-                      <p className="text-[10px] text-slate-400 line-clamp-1 group-hover:line-clamp-2 leading-tight mt-0.5">
-                        {item.reason}
-                      </p>
-                    )}
+                    <span className="text-[9px] font-bold text-emerald-400 flex items-center flex-shrink-0">
+                      All Tiers <ChevronRight className="w-3 h-3 ml-0.5" />
+                    </span>
                   </div>
-                </div>
-              ))}
-            </div>
+                )}
+
+                {activeStage === 'mid' && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveStage('neutrals');
+                      SoundEngine.playPick();
+                    }}
+                    className="p-1.5 rounded-xl bg-teal-950/40 hover:bg-teal-950/70 border border-teal-800/50 hover:border-teal-500/80 flex items-center justify-between cursor-pointer transition-all text-[10px] shadow"
+                    title="Click to view all Tier 1-5 Neutral Items"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300 font-bold border border-teal-500/40 text-[9px] uppercase flex-shrink-0">
+                        17m+ Neutral
+                      </span>
+                      <span className="text-slate-300 truncate text-[10px]">
+                        {heroNeutrals.find((n) => n.tier === 2)?.items.slice(0, 3).join(', ')}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-bold text-teal-400 flex items-center flex-shrink-0">
+                      All Tiers <ChevronRight className="w-3 h-3 ml-0.5" />
+                    </span>
+                  </div>
+                )}
+
+                {activeStage === 'late' && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveStage('neutrals');
+                      SoundEngine.playPick();
+                    }}
+                    className="p-1.5 rounded-xl bg-purple-950/40 hover:bg-purple-950/70 border border-purple-800/50 hover:border-purple-500/80 flex items-center justify-between cursor-pointer transition-all text-[10px] shadow"
+                    title="Click to view all Tier 1-5 Neutral Items"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/40 text-[9px] uppercase flex-shrink-0">
+                        Late Neutrals
+                      </span>
+                      <span className="text-slate-300 truncate text-[10px]">
+                        Tiers 3, 4, 5 ({heroNeutrals.find((n) => n.tier === 3)?.items[0]}, {heroNeutrals.find((n) => n.tier === 4)?.items[0]}...)
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-bold text-purple-400 flex items-center flex-shrink-0">
+                      All Tiers <ChevronRight className="w-3 h-3 ml-0.5" />
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Quick Skill Maxing Roadmap with Numbered Skills */}
             <div className="mt-2.5 pt-2 border-t border-slate-800/80 bg-slate-950/80 rounded-xl p-2 border border-slate-800/90 shadow-sm">
