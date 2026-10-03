@@ -13,10 +13,11 @@ import {
   VolumeX,
   FlaskConical,
   Newspaper,
-  PictureInPicture
+  PictureInPicture,
+  BrainCircuit
 } from 'lucide-react';
 
-export type ActiveTab = 'heroes' | 'draft' | 'arena' | 'sandbox' | 'interactions' | 'counters' | 'meta' | 'patches' | 'notes';
+export type ActiveTab = 'heroes' | 'predictive' | 'draft' | 'arena' | 'sandbox' | 'interactions' | 'counters' | 'meta' | 'patches' | 'notes';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -106,6 +107,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Swords className="w-4 h-4" />
               <span>Hero Arsenal</span>
+            </button>
+
+            <button
+              onClick={() => handleNavClick('predictive')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all relative whitespace-nowrap ${
+                activeTab === 'predictive'
+                  ? 'bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 text-amber-300 border border-amber-500/70 shadow-dota-glow font-black'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
+              }`}
+            >
+              <BrainCircuit className="w-4 h-4 text-amber-400" />
+              <span>5v5 Predictive</span>
+              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full bg-gradient-to-r from-indigo-500/50 to-purple-500/50 text-indigo-200 border border-indigo-400/50 shadow-sm animate-pulse">
+                Oracle
+              </span>
             </button>
 
             <button

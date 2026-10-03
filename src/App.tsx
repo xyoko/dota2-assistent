@@ -11,6 +11,7 @@ import { AmbientParticles } from './components/AmbientParticles';
 import { Shield, Loader2, PictureInPicture } from 'lucide-react';
 
 // Lazy-loaded heavy views for sub-100ms instant initial page load
+const PredictiveDraft5v5 = lazy(() => import('./components/PredictiveDraft5v5').then(m => ({ default: m.PredictiveDraft5v5 })));
 const DraftCounterPicker = lazy(() => import('./components/DraftCounterPicker').then(m => ({ default: m.DraftCounterPicker })));
 const MatchupArena = lazy(() => import('./components/MatchupArena').then(m => ({ default: m.MatchupArena })));
 const BuildSandbox = lazy(() => import('./components/BuildSandbox').then(m => ({ default: m.BuildSandbox })));
@@ -41,7 +42,43 @@ const ViewLoadingFallback = () => (
 );
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('heroes');
+  const getInitialTab = (): ActiveTab => {
+    try {
+      const hash = window.location.hash.replace('#', '');
+      const validTabs: ActiveTab[] = ['heroes', 'predictive', 'draft', 'arena', 'sandbox', 'interactions', 'counters', 'meta', 'patches', 'notes'];
+      if (validTabs.includes(hash as ActiveTab)) {
+        return hash as ActiveTab;
+      }
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam && validTabs.includes(tabParam as ActiveTab)) {
+        return tabParam as ActiveTab;
+      }
+    } catch {}
+    return 'heroes';
+  };
+
+  const [activeTab, setActiveTabState] = useState<ActiveTab>(getInitialTab);
+
+  const setActiveTab = (tab: ActiveTab) => {
+    setActiveTabState(tab);
+    try {
+      window.location.hash = tab;
+    } catch {}
+  };
+
+  React.useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      const validTabs: ActiveTab[] = ['heroes', 'predictive', 'draft', 'arena', 'sandbox', 'interactions', 'counters', 'meta', 'patches', 'notes'];
+      if (validTabs.includes(hash as ActiveTab)) {
+        setActiveTabState(hash as ActiveTab);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   
   // Hero filters
@@ -238,6 +275,15 @@ export const App: React.FC = () => {
             )}
 
           </div>
+        )}
+
+        {/* VIEW: 5v5 PREDICTIVE DRAFT ORACLE */}
+        {activeTab === 'predictive' && (
+          <Suspense fallback={<ViewLoadingFallback />}>
+            <PredictiveDraft5v5
+              onSelectHero={setSelectedHero}
+            />
+          </Suspense>
         )}
 
         {/* VIEW 2: DRAFT STUDIO */}
