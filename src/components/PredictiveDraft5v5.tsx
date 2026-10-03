@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { HEROES_DATA, HERO_MAP } from '../data/heroes';
-import { HeroData, AttributeType, RoleType } from '../types/hero';
+import { HeroData, AttributeType } from '../types/hero';
 import { 
   runPredictive5v5Analysis, 
-  POSITION_DEFINITIONS,
-  PositionNumber,
-  Predictive5v5Analysis
+  POSITION_DEFINITIONS, 
+  PositionNumber, 
+  Predictive5v5Analysis 
 } from '../services/predictiveDraftEngine';
 import { SoundEngine } from '../services/soundFx';
 import { 
@@ -23,7 +23,7 @@ import {
   Search, 
   Crown, 
   Lock, 
-  Grid 
+  Trash2
 } from 'lucide-react';
 
 interface PredictiveDraft5v5Props {
@@ -85,40 +85,33 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
   const [radiantHeroIds, setRadiantHeroIds] = useState<string[]>(['sven', 'storm_spirit', 'lion']);
   const [direHeroIds, setDireHeroIds] = useState<string[]>(['faceless_void', 'witch_doctor']);
 
-  // Bans (up to 5-7 bans each)
+  // Bans (up to 7 bans each)
   const [radiantBanIds, setRadiantBanIds] = useState<string[]>(['pudge']);
   const [direBanIds, setDireBanIds] = useState<string[]>(['anti_mage', 'nyx_assassin']);
 
   // Active Perspective: 'radiant' or 'dire'
   const [userTeam, setUserTeam] = useState<'radiant' | 'dire'>('radiant');
 
-  // Currently active slot for one-click hero assignment
+  // Currently targeted slot for inline hero assignment
   const [activeTargetSlot, setActiveTargetSlot] = useState<{
     team: 'radiant' | 'dire';
     pos: PositionNumber;
   }>({ team: 'radiant', pos: 4 });
 
-  // Sub-tab view: 'suggestions' | 'arsenal' | 'bans_intent' | 'tactical'
-  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'suggestions' | 'arsenal' | 'bans_intent' | 'tactical'>(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const sub = params.get('subtab');
-      if (sub === 'suggestions' || sub === 'arsenal' || sub === 'bans_intent' || sub === 'tactical') {
-        return sub;
-      }
-    } catch {}
-    return 'suggestions'; // Default to suggestions for immediate pick action
-  });
+  // Mode for the inline selection pool: 'pick' or 'ban'
+  const [activeTargetMode, setActiveTargetMode] = useState<'pick' | 'ban'>('pick');
+
+  // Inline Hero Pool search & filter states (like Draft Studio)
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [heroPoolAttr, setHeroPoolAttr] = useState<AttributeType | 'all'>('all');
+
+  // Sub-tab view for analysis: 'picks' | 'bans' | 'lanes'
+  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'picks' | 'bans' | 'lanes'>('picks');
 
   // Pick suggestions filter by position
   const [suggestionRoleFilter, setSuggestionRoleFilter] = useState<PositionNumber | 'all'>('all');
 
-  // Hero Arsenal Tab quick filter state
-  const [arsenalSearch, setArsenalSearch] = useState<string>('');
-  const [arsenalAttr, setArsenalAttr] = useState<AttributeType | 'all'>('all');
-  const [arsenalRole, setArsenalRole] = useState<RoleType | 'all'>('all');
-
-  // Modal State for Slot Picker / Ban Picker
+  // Search Modal state (identical to Draft Studio)
   const [modalTarget, setModalTarget] = useState<{
     team: 'radiant' | 'dire';
     type: 'pick' | 'ban';
@@ -128,7 +121,6 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
 
   const [modalSearch, setModalSearch] = useState<string>('');
   const [modalAttr, setModalAttr] = useState<AttributeType | 'all'>('all');
-  const [modalRole, setModalRole] = useState<RoleType | 'all'>('all');
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -142,22 +134,26 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
     );
   }, [radiantHeroIds, direHeroIds, radiantBanIds, direBanIds]);
 
-  // Set of already selected IDs
+  // Set of all selected hero IDs (picks and bans across both teams)
   const allSelectedIds = useMemo(() => {
     return new Set([...radiantHeroIds, ...direHeroIds, ...radiantBanIds, ...direBanIds]);
   }, [radiantHeroIds, direHeroIds, radiantBanIds, direBanIds]);
 
-  // Handle Preset Load
+  // Preset loading
   const handleLoadPreset = (preset: PresetScenario) => {
     SoundEngine.playPick();
     setRadiantHeroIds(preset.radiantHeroIds);
     setDireHeroIds(preset.direHeroIds);
     setRadiantBanIds(preset.radiantBanIds);
     setDireBanIds(preset.direBanIds);
-    setActiveTargetSlot({ team: 'radiant', pos: (Math.min(5, preset.radiantHeroIds.length + 1) as PositionNumber) });
+    setActiveTargetSlot({ 
+      team: 'radiant', 
+      pos: (Math.min(5, preset.radiantHeroIds.length + 1) as PositionNumber) 
+    });
+    setActiveTargetMode('pick');
   };
 
-  // Handle Clear Draft
+  // Clear draft
   const handleClearDraft = () => {
     SoundEngine.playHover();
     setRadiantHeroIds([]);
@@ -165,93 +161,34 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
     setRadiantBanIds([]);
     setDireBanIds([]);
     setActiveTargetSlot({ team: 'radiant', pos: 1 });
+    setActiveTargetMode('pick');
   };
 
-  // Handle Open Modal
-  const handleOpenPicker = (team: 'radiant' | 'dire', type: 'pick' | 'ban', pos?: PositionNumber, slotIndex?: number) => {
+  // Open Search Modal (Draft Studio style)
+  const handleOpenSlotModal = (team: 'radiant' | 'dire', type: 'pick' | 'ban', pos?: PositionNumber, slotIndex?: number) => {
     SoundEngine.playHover();
     if (pos) {
       setActiveTargetSlot({ team, pos });
+      setActiveTargetMode('pick');
+    } else if (type === 'ban') {
+      setActiveTargetMode('ban');
     }
     setModalTarget({ team, type, pos, slotIndex });
     setModalSearch('');
     setModalAttr('all');
-    setModalRole('all');
   };
 
-  // Assign hero to a specific team & slot without jumping scroll
-  const assignHeroToTeam = (team: 'radiant' | 'dire', pos: PositionNumber, heroId: string) => {
-    SoundEngine.playPick();
-    const currentHeroIds = team === 'radiant' ? [...radiantHeroIds] : [...direHeroIds];
-    const targetIdx = pos - 1;
-
-    if (targetIdx < currentHeroIds.length) {
-      currentHeroIds[targetIdx] = heroId;
-    } else {
-      currentHeroIds.push(heroId);
-    }
-
-    if (team === 'radiant') {
-      setRadiantHeroIds(currentHeroIds);
-    } else {
-      setDireHeroIds(currentHeroIds);
-    }
-
-    // Auto-advance activeTargetSlot to next empty position
-    let nextPos: PositionNumber = pos;
-    for (let p = 1; p <= 5; p++) {
-      if (p > currentHeroIds.length) {
-        nextPos = p as PositionNumber;
-        break;
-      }
-    }
-    setActiveTargetSlot({ team, pos: nextPos });
-  };
-
-  // 1-Click Pick from Suggested Picks (zero scroll jump)
-  const handlePickSuggested = (e: React.MouseEvent, heroId: string, rolePos?: PositionNumber) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const targetPos = rolePos || activeTargetSlot.pos;
-    assignHeroToTeam(userTeam, targetPos, heroId);
-  };
-
-  // 1-Click Pick from Arsenal Grid (zero scroll jump)
-  const handlePickFromArsenal = (e: React.MouseEvent, heroId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    assignHeroToTeam(activeTargetSlot.team, activeTargetSlot.pos, heroId);
-  };
-
-  // 1-Click Ban from Suggestions (zero scroll jump)
-  const handleBanHero = (e: React.MouseEvent, heroId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // Core Hero Assignment Function (handles picks, bans, and swaps)
+  const handleAssignHero = (
+    team: 'radiant' | 'dire', 
+    type: 'pick' | 'ban', 
+    heroId: string, 
+    pos?: PositionNumber, 
+    slotIndex?: number
+  ) => {
     SoundEngine.playPick();
 
-    if (userTeam === 'radiant') {
-      if (!radiantBanIds.includes(heroId) && radiantBanIds.length < 7) {
-        setRadiantBanIds([...radiantBanIds, heroId]);
-      }
-    } else {
-      if (!direBanIds.includes(heroId) && direBanIds.length < 7) {
-        setDireBanIds([...direBanIds, heroId]);
-      }
-    }
-  };
-
-  // Modal hero click
-  const handleAssignHeroFromModal = (heroId: string) => {
-    if (!modalTarget) return;
-
-    SoundEngine.playPick();
-    const { team, type, slotIndex } = modalTarget;
-
-    if (type === 'pick') {
-      const pos = (slotIndex !== undefined ? slotIndex + 1 : 1) as PositionNumber;
-      assignHeroToTeam(team, pos, heroId);
-    } else {
-      // Ban
+    if (type === 'ban') {
       if (team === 'radiant') {
         if (!radiantBanIds.includes(heroId) && radiantBanIds.length < 7) {
           setRadiantBanIds([...radiantBanIds, heroId]);
@@ -261,72 +198,141 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
           setDireBanIds([...direBanIds, heroId]);
         }
       }
+      setModalTarget(null);
+      return;
     }
 
+    // It's a pick
+    const currentHeroIds = team === 'radiant' ? [...radiantHeroIds] : [...direHeroIds];
+    const targetIdx = pos ? pos - 1 : (slotIndex !== undefined ? slotIndex : currentHeroIds.length);
+
+    const existingIdx = currentHeroIds.indexOf(heroId);
+    if (existingIdx !== -1 && existingIdx !== targetIdx) {
+      if (targetIdx < currentHeroIds.length) {
+        currentHeroIds[existingIdx] = currentHeroIds[targetIdx];
+        currentHeroIds[targetIdx] = heroId;
+      } else {
+        currentHeroIds.splice(existingIdx, 1);
+        currentHeroIds.push(heroId);
+      }
+    } else {
+      if (targetIdx < currentHeroIds.length) {
+        currentHeroIds[targetIdx] = heroId;
+      } else {
+        currentHeroIds.push(heroId);
+      }
+    }
+
+    if (team === 'radiant') {
+      setRadiantHeroIds(currentHeroIds);
+    } else {
+      setDireHeroIds(currentHeroIds);
+    }
+
+    // Auto-advance target to the next vacant position on the team
+    let nextPos: PositionNumber = 1;
+    for (let p = 1; p <= 5; p++) {
+      if (p > currentHeroIds.length) {
+        nextPos = p as PositionNumber;
+        break;
+      }
+    }
+    setActiveTargetSlot({ team, pos: nextPos });
     setModalTarget(null);
   };
 
-  // Quick Remove from slot or ban
+  // Remove hero from pick or ban
   const handleRemoveHero = (team: 'radiant' | 'dire', type: 'pick' | 'ban', index: number) => {
     SoundEngine.playHover();
     if (type === 'pick') {
       if (team === 'radiant') {
-        setRadiantHeroIds(radiantHeroIds.filter((_, i) => i !== index));
+        const next = [...radiantHeroIds];
+        next.splice(index, 1);
+        setRadiantHeroIds(next);
         setActiveTargetSlot({ team: 'radiant', pos: (index + 1) as PositionNumber });
       } else {
-        setDireHeroIds(direHeroIds.filter((_, i) => i !== index));
+        const next = [...direHeroIds];
+        next.splice(index, 1);
+        setDireHeroIds(next);
         setActiveTargetSlot({ team: 'dire', pos: (index + 1) as PositionNumber });
       }
     } else {
       if (team === 'radiant') {
-        setRadiantBanIds(radiantBanIds.filter((_, i) => i !== index));
+        const next = [...radiantBanIds];
+        next.splice(index, 1);
+        setRadiantBanIds(next);
       } else {
-        setDireBanIds(direBanIds.filter((_, i) => i !== index));
+        const next = [...direBanIds];
+        next.splice(index, 1);
+        setDireBanIds(next);
       }
     }
   };
 
-  // Filtered heroes for Hero Arsenal Quick Picker Tab
-  const arsenalHeroes = useMemo(() => {
-    return HEROES_DATA.filter((hero) => {
-      if (arsenalAttr !== 'all' && hero.attribute !== arsenalAttr) return false;
-      if (arsenalRole !== 'all' && !hero.roles.includes(arsenalRole)) return false;
-      if (arsenalSearch.trim()) {
-        const q = arsenalSearch.toLowerCase();
-        const matchesName = hero.name.toLowerCase().includes(q);
-        const matchesAlias = hero.aliases?.some((a) => a.toLowerCase().includes(q));
-        const matchesTitle = hero.title.toLowerCase().includes(q);
-        if (!matchesName && !matchesAlias && !matchesTitle) return false;
-      }
-      return true;
-    });
-  }, [arsenalAttr, arsenalRole, arsenalSearch]);
+  // 1-Click Quick Select from the Inline Hero Pool (Draft Studio style)
+  const handleQuickSelectHero = (heroId: string) => {
+    if (activeTargetMode === 'ban') {
+      handleAssignHero(activeTargetSlot.team, 'ban', heroId);
+    } else {
+      handleAssignHero(activeTargetSlot.team, 'pick', heroId, activeTargetSlot.pos);
+    }
+  };
 
-  // Filtered heroes for Modal Picker
-  const modalCandidateHeroes = useMemo(() => {
+  // 1-Click Pick from Suggested Picks
+  const handlePickSuggested = (heroId: string, rolePos?: PositionNumber) => {
+    const targetPos = rolePos || activeTargetSlot.pos;
+    handleAssignHero(userTeam, 'pick', heroId, targetPos);
+  };
+
+  // 1-Click Ban from Suggested Bans
+  const handleBanSuggested = (heroId: string) => {
+    handleAssignHero(userTeam, 'ban', heroId);
+  };
+
+  // Filter available heroes for inline pool (matching Draft Studio search logic)
+  const availablePoolHeroes = useMemo(() => {
     return HEROES_DATA.filter((hero) => {
-      if (modalAttr !== 'all' && hero.attribute !== modalAttr) return false;
-      if (modalRole !== 'all' && !hero.roles.includes(modalRole)) return false;
-      if (modalSearch.trim()) {
-        const q = modalSearch.toLowerCase();
+      // Attribute filter
+      if (heroPoolAttr !== 'all' && hero.attribute !== heroPoolAttr) return false;
+
+      // Search query (names, titles, aliases, roles)
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
         const matchesName = hero.name.toLowerCase().includes(q);
-        const matchesAlias = hero.aliases?.some((a) => a.toLowerCase().includes(q));
         const matchesTitle = hero.title.toLowerCase().includes(q);
-        if (!matchesName && !matchesAlias && !matchesTitle) return false;
+        const matchesAlias = hero.aliases?.some((a) => a.toLowerCase().includes(q));
+        const matchesRole = hero.roles?.some((r) => r.toLowerCase().includes(q));
+        if (!matchesName && !matchesTitle && !matchesAlias && !matchesRole) return false;
       }
       return true;
     });
-  }, [modalAttr, modalRole, modalSearch]);
+  }, [searchQuery, heroPoolAttr]);
+
+  // Filter heroes for modal search (Draft Studio style)
+  const filteredModalHeroes = useMemo(() => {
+    return HEROES_DATA.filter((h) => {
+      if (modalAttr !== 'all' && h.attribute !== modalAttr) return false;
+      if (modalSearch.trim()) {
+        const q = modalSearch.toLowerCase().trim();
+        const matchesName = h.name.toLowerCase().includes(q);
+        const matchesTitle = h.title.toLowerCase().includes(q);
+        const matchesAlias = h.aliases?.some((a) => a.toLowerCase().includes(q));
+        const matchesRole = h.roles?.some((r) => r.toLowerCase().includes(q));
+        if (!matchesName && !matchesTitle && !matchesAlias && !matchesRole) return false;
+      }
+      return true;
+    });
+  }, [modalSearch, modalAttr]);
 
   return (
     <div ref={containerRef} className="space-y-4 pb-12 animate-fadeIn">
       
       {/* ========================================================= */}
-      {/* 1. COMPACT STREAMLINED HEADER & ADVANTAGE BAR (~80px)     */}
+      {/* 1. TOP BANNER & ADVANTAGE METRICS                         */}
       {/* ========================================================= */}
-      <div className="bg-gradient-to-r from-dota-panel via-dota-panelAlt to-dota-bg border-2 border-dota-border rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-gradient-to-r from-dota-panel via-slate-900 to-dota-bg border-2 border-dota-border rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
         
-        {/* Title & Badge */}
+        {/* Title & Perspective Toggle */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-amber-500 p-0.5 flex items-center justify-center flex-shrink-0 shadow-dota-glow">
             <div className="w-full h-full bg-dota-bg rounded-[10px] flex items-center justify-center">
@@ -342,16 +348,9 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                 AI Engine
               </span>
             </div>
-            <div className="text-[11px] text-slate-400 flex items-center gap-2">
-              <span>Target: <strong className={activeTargetSlot.team === 'radiant' ? 'text-emerald-400' : 'text-rose-400'}>{activeTargetSlot.team.toUpperCase()} Pos {activeTargetSlot.pos} ({POSITION_DEFINITIONS[activeTargetSlot.pos].name})</strong></span>
-              <span>•</span>
-              <button
-                onClick={() => setUserTeam(userTeam === 'radiant' ? 'dire' : 'radiant')}
-                className="text-[10px] text-amber-300 font-bold hover:underline"
-              >
-                Switch to {userTeam === 'radiant' ? 'Dire' : 'Radiant'} Perspective
-              </button>
-            </div>
+            <p className="text-[11px] text-slate-400">
+              Captains Mode 5v5 draft analysis with AI ban-intent decryption, telegraphed enemy picks, and role counter-synergy.
+            </p>
           </div>
         </div>
 
@@ -386,7 +385,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
 
           {/* Quick Presets & Reset */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {PRESET_SCENARIOS.slice(0, 2).map((p) => (
+            {PRESET_SCENARIOS.slice(0, 3).map((p) => (
               <button
                 key={p.id}
                 onClick={() => handleLoadPreset(p)}
@@ -409,55 +408,57 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       </div>
 
       {/* ========================================================= */}
-      {/* 2. HORIZONTAL PRO-ARENA DRAFT BOARD (COMPACT ~130px)      */}
+      {/* 2. DRAFT BOARD SLOTS (DRAFT STUDIO STYLE CARDS)          */}
       {/* ========================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
         
-        {/* RADIANT SIDE - HORIZONTAL 5 SLOTS */}
+        {/* RADIANT SIDE */}
         <div className="bg-dota-panel rounded-2xl border-2 border-emerald-500/40 p-2.5 sm:p-3 space-y-2 shadow-lg">
           <div className="flex items-center justify-between text-xs pb-1 border-b border-emerald-500/20">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
               <span className="font-dota font-black text-sm text-emerald-300 tracking-wider">THE RADIANT</span>
               <span className="text-[10px] text-emerald-400 font-bold px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-500/30">
-                {radiantHeroIds.length}/5
+                {radiantHeroIds.length}/5 Picks
               </span>
             </div>
-            {userTeam === 'radiant' && (
-              <span className="text-[9px] font-black uppercase tracking-wider text-amber-300 px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-500/40">
-                Your Team
-              </span>
-            )}
+            <button
+              onClick={() => setUserTeam('radiant')}
+              className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded transition-all ${
+                userTeam === 'radiant'
+                  ? 'bg-emerald-500 text-slate-950 font-black shadow'
+                  : 'text-slate-400 hover:text-white bg-slate-800 border border-slate-700'
+              }`}
+            >
+              {userTeam === 'radiant' ? 'Active Perspective' : 'Set as Your Team'}
+            </button>
           </div>
 
-          {/* 5 Horizontal Slots Grid */}
+          {/* 5 Radiant Slot Cards */}
           <div className="grid grid-cols-5 gap-1.5">
             {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
               const def = POSITION_DEFINITIONS[pos];
               const heroId = radiantHeroIds[pos - 1];
               const hero = heroId ? HERO_MAP.get(heroId) : null;
-              const isActiveTarget = activeTargetSlot.team === 'radiant' && activeTargetSlot.pos === pos;
+              const isTargeted = activeTargetSlot.team === 'radiant' && activeTargetSlot.pos === pos && activeTargetMode === 'pick';
 
               return (
                 <div
                   key={`rad-pos-${pos}`}
-                  onClick={() => {
-                    setActiveTargetSlot({ team: 'radiant', pos });
-                    SoundEngine.playHover();
-                  }}
-                  className={`h-20 rounded-xl border p-1 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
-                    isActiveTarget 
+                  onClick={() => handleOpenSlotModal('radiant', 'pick', pos, pos - 1)}
+                  className={`h-24 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
+                    isTargeted 
                       ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-2 ring-dota-gold/80' 
                       : hero 
-                        ? 'bg-dota-card/95 border-emerald-500/50 hover:border-emerald-400' 
-                        : 'bg-dota-bg/80 border-dashed border-emerald-500/30 hover:border-emerald-500/60'
+                        ? 'bg-dota-card/95 border-emerald-500/50 hover:border-emerald-400 hover:scale-[1.02]' 
+                        : 'bg-dota-bg/80 border-dashed border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/10'
                   }`}
-                  title={hero ? `${hero.name} (Click to inspect or change)` : `Click to target Pos ${pos}`}
+                  title={hero ? `${hero.name} (Radiant Pos ${pos}) - Click to search or change` : `Radiant Pos ${pos} - Click to search hero`}
                 >
                   {/* Top Bar: Pos & Remove */}
                   <div className="flex items-center justify-between text-[10px] leading-none">
                     <span className={`font-black uppercase px-1 py-0.2 rounded text-[8px] ${
-                      isActiveTarget ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-emerald-400 border border-emerald-500/40'
+                      isTargeted ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-emerald-400 border border-emerald-500/40'
                     }`}>
                       P{pos}
                     </span>
@@ -467,52 +468,62 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                           e.stopPropagation();
                           handleRemoveHero('radiant', 'pick', pos - 1);
                         }}
-                        className="text-slate-400 hover:text-red-400 p-0.5 leading-none"
-                        title="Remove"
+                        className="p-0.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-950/60 leading-none transition-colors"
+                        title="Remove hero"
                       >
-                        ×
+                        <Trash2 className="w-2.5 h-2.5" />
                       </button>
                     ) : (
                       <span className="text-[8px] text-slate-500 uppercase">{def.lane.split(' ')[0]}</span>
                     )}
                   </div>
 
-                  {/* Center: Hero Avatar & Name OR + Pick */}
+                  {/* Center: Hero Avatar & Name OR + Add Hero */}
                   {hero ? (
                     <div 
                       onClick={(e) => {
                         e.stopPropagation();
                         if (onSelectHero) onSelectHero(hero);
                       }}
-                      className="flex items-center gap-1 overflow-hidden"
+                      className="flex items-center gap-1.5 overflow-hidden"
                     >
-                      <img src={hero.avatarUrl} alt={hero.name} className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-emerald-500/50" />
+                      <img 
+                        src={hero.avatarUrl} 
+                        alt={hero.name} 
+                        className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-emerald-500/50 shadow group-hover:scale-105 transition-transform" 
+                      />
                       <div className="truncate flex-1">
-                        <div className="font-dota font-bold text-[11px] text-slate-100 truncate group-hover:text-emerald-300 leading-tight">
+                        <div className="font-dota font-bold text-xs text-slate-100 truncate group-hover:text-emerald-300 leading-tight">
                           {hero.name}
                         </div>
-                        <div className="text-[9px] text-emerald-400 font-semibold leading-none">{hero.winRate}%</div>
+                        <div className="text-[9px] text-emerald-400 font-semibold leading-none">{hero.winRate}% WR</div>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-0.5 text-slate-400 group-hover:text-emerald-300">
-                      <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-[9px] font-bold">Pick</span>
+                    <div className="flex flex-col items-center justify-center py-1 text-slate-400 group-hover:text-emerald-300">
+                      <div className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-emerald-500 group-hover:bg-emerald-500/20 flex items-center justify-center transition-all group-hover:scale-110">
+                        <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                      </div>
+                      <span className="text-[9px] font-bold mt-1">Add Hero</span>
                     </div>
                   )}
 
-                  {/* Bottom: Role & Target Tag */}
+                  {/* Bottom: Role Label & Target Status */}
                   <div className="text-[8px] text-slate-400 truncate flex items-center justify-between leading-none">
                     <span className="truncate">{hero ? hero.roles[0].replace(' Support', ' Sup') : def.role.replace(' Support', ' Sup')}</span>
-                    {isActiveTarget && <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>}
+                    {isTargeted ? (
+                      <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>
+                    ) : (
+                      <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Search</span>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Radiant Bans Bar (Compact Single Row) */}
-          <div className="flex items-center gap-1.5 h-7 min-h-[28px] overflow-x-auto custom-scrollbar pt-0.5 border-t border-emerald-500/20 text-[10px]">
+          {/* Radiant Bans Bar */}
+          <div className="flex items-center gap-1.5 min-h-[28px] overflow-x-auto custom-scrollbar pt-1 border-t border-emerald-500/20 text-[10px]">
             <span className="text-slate-400 flex items-center gap-1 flex-shrink-0 font-bold">
               <Lock className="w-3 h-3 text-red-400" /> Bans:
             </span>
@@ -528,60 +539,62 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
             })}
             {radiantBanIds.length < 7 && (
               <button
-                onClick={() => handleOpenPicker('radiant', 'ban')}
-                className="flex-shrink-0 text-red-400 hover:text-red-300 font-bold flex items-center gap-0.5 text-[10px] px-1 py-0.5 rounded border border-dashed border-red-500/40"
+                onClick={() => handleOpenSlotModal('radiant', 'ban')}
+                className="flex-shrink-0 text-red-400 hover:text-red-300 font-bold flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10 transition-colors"
               >
-                <Plus className="w-2.5 h-2.5" /> Ban
+                <Plus className="w-2.5 h-2.5" /> Ban Hero
               </button>
             )}
           </div>
         </div>
 
-        {/* DIRE SIDE - HORIZONTAL 5 SLOTS */}
+        {/* DIRE SIDE */}
         <div className="bg-dota-panel rounded-2xl border-2 border-rose-500/40 p-2.5 sm:p-3 space-y-2 shadow-lg">
           <div className="flex items-center justify-between text-xs pb-1 border-b border-rose-500/20">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]" />
               <span className="font-dota font-black text-sm text-rose-300 tracking-wider">THE DIRE</span>
               <span className="text-[10px] text-rose-400 font-bold px-1.5 py-0.2 rounded bg-rose-950 border border-rose-500/30">
-                {direHeroIds.length}/5
+                {direHeroIds.length}/5 Picks
               </span>
             </div>
-            {userTeam === 'dire' && (
-              <span className="text-[9px] font-black uppercase tracking-wider text-amber-300 px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-500/40">
-                Your Team
-              </span>
-            )}
+            <button
+              onClick={() => setUserTeam('dire')}
+              className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded transition-all ${
+                userTeam === 'dire'
+                  ? 'bg-rose-500 text-slate-950 font-black shadow'
+                  : 'text-slate-400 hover:text-white bg-slate-800 border border-slate-700'
+              }`}
+            >
+              {userTeam === 'dire' ? 'Active Perspective' : 'Set as Your Team'}
+            </button>
           </div>
 
-          {/* 5 Horizontal Slots Grid */}
+          {/* 5 Dire Slot Cards */}
           <div className="grid grid-cols-5 gap-1.5">
             {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
               const def = POSITION_DEFINITIONS[pos];
               const heroId = direHeroIds[pos - 1];
               const hero = heroId ? HERO_MAP.get(heroId) : null;
-              const isActiveTarget = activeTargetSlot.team === 'dire' && activeTargetSlot.pos === pos;
+              const isTargeted = activeTargetSlot.team === 'dire' && activeTargetSlot.pos === pos && activeTargetMode === 'pick';
 
               return (
                 <div
                   key={`dire-pos-${pos}`}
-                  onClick={() => {
-                    setActiveTargetSlot({ team: 'dire', pos });
-                    SoundEngine.playHover();
-                  }}
-                  className={`h-20 rounded-xl border p-1 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
-                    isActiveTarget 
+                  onClick={() => handleOpenSlotModal('dire', 'pick', pos, pos - 1)}
+                  className={`h-24 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
+                    isTargeted 
                       ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-2 ring-dota-gold/80' 
                       : hero 
-                        ? 'bg-dota-card/95 border-rose-500/50 hover:border-rose-400' 
-                        : 'bg-dota-bg/80 border-dashed border-rose-500/30 hover:border-rose-500/60'
+                        ? 'bg-dota-card/95 border-rose-500/50 hover:border-rose-400 hover:scale-[1.02]' 
+                        : 'bg-dota-bg/80 border-dashed border-rose-500/30 hover:border-rose-500/60 hover:bg-rose-500/10'
                   }`}
-                  title={hero ? `${hero.name} (Click to inspect or change)` : `Click to target Pos ${pos}`}
+                  title={hero ? `${hero.name} (Dire Pos ${pos}) - Click to search or change` : `Dire Pos ${pos} - Click to search hero`}
                 >
                   {/* Top Bar: Pos & Remove */}
                   <div className="flex items-center justify-between text-[10px] leading-none">
                     <span className={`font-black uppercase px-1 py-0.2 rounded text-[8px] ${
-                      isActiveTarget ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-rose-400 border border-rose-500/40'
+                      isTargeted ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-rose-400 border border-rose-500/40'
                     }`}>
                       P{pos}
                     </span>
@@ -591,52 +604,62 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                           e.stopPropagation();
                           handleRemoveHero('dire', 'pick', pos - 1);
                         }}
-                        className="text-slate-400 hover:text-red-400 p-0.5 leading-none"
-                        title="Remove"
+                        className="p-0.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-950/60 leading-none transition-colors"
+                        title="Remove hero"
                       >
-                        ×
+                        <Trash2 className="w-2.5 h-2.5" />
                       </button>
                     ) : (
                       <span className="text-[8px] text-slate-500 uppercase">{def.lane.split(' ')[0]}</span>
                     )}
                   </div>
 
-                  {/* Center: Hero Avatar & Name OR + Pick */}
+                  {/* Center: Hero Avatar & Name OR + Add Hero */}
                   {hero ? (
                     <div 
                       onClick={(e) => {
                         e.stopPropagation();
                         if (onSelectHero) onSelectHero(hero);
                       }}
-                      className="flex items-center gap-1 overflow-hidden"
+                      className="flex items-center gap-1.5 overflow-hidden"
                     >
-                      <img src={hero.avatarUrl} alt={hero.name} className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-rose-500/50" />
+                      <img 
+                        src={hero.avatarUrl} 
+                        alt={hero.name} 
+                        className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-rose-500/50 shadow group-hover:scale-105 transition-transform" 
+                      />
                       <div className="truncate flex-1">
-                        <div className="font-dota font-bold text-[11px] text-slate-100 truncate group-hover:text-rose-300 leading-tight">
+                        <div className="font-dota font-bold text-xs text-slate-100 truncate group-hover:text-rose-300 leading-tight">
                           {hero.name}
                         </div>
-                        <div className="text-[9px] text-rose-400 font-semibold leading-none">{hero.winRate}%</div>
+                        <div className="text-[9px] text-rose-400 font-semibold leading-none">{hero.winRate}% WR</div>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-0.5 text-slate-400 group-hover:text-rose-300">
-                      <Plus className="w-3.5 h-3.5 text-rose-400" />
-                      <span className="text-[9px] font-bold">Pick</span>
+                    <div className="flex flex-col items-center justify-center py-1 text-slate-400 group-hover:text-rose-300">
+                      <div className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-rose-500 group-hover:bg-rose-500/20 flex items-center justify-center transition-all group-hover:scale-110">
+                        <Plus className="w-3.5 h-3.5 text-rose-400" />
+                      </div>
+                      <span className="text-[9px] font-bold mt-1">Add Hero</span>
                     </div>
                   )}
 
-                  {/* Bottom: Role & Target Tag */}
+                  {/* Bottom: Role Label & Target Status */}
                   <div className="text-[8px] text-slate-400 truncate flex items-center justify-between leading-none">
                     <span className="truncate">{hero ? hero.roles[0].replace(' Support', ' Sup') : def.role.replace(' Support', ' Sup')}</span>
-                    {isActiveTarget && <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>}
+                    {isTargeted ? (
+                      <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>
+                    ) : (
+                      <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Search</span>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Dire Bans Bar (Compact Single Row) */}
-          <div className="flex items-center gap-1.5 h-7 min-h-[28px] overflow-x-auto custom-scrollbar pt-0.5 border-t border-rose-500/20 text-[10px]">
+          {/* Dire Bans Bar */}
+          <div className="flex items-center gap-1.5 min-h-[28px] overflow-x-auto custom-scrollbar pt-1 border-t border-rose-500/20 text-[10px]">
             <span className="text-slate-400 flex items-center gap-1 flex-shrink-0 font-bold">
               <Lock className="w-3 h-3 text-red-400" /> Bans:
             </span>
@@ -652,10 +675,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
             })}
             {direBanIds.length < 7 && (
               <button
-                onClick={() => handleOpenPicker('dire', 'ban')}
-                className="flex-shrink-0 text-red-400 hover:text-red-300 font-bold flex items-center gap-0.5 text-[10px] px-1 py-0.5 rounded border border-dashed border-red-500/40"
+                onClick={() => handleOpenSlotModal('dire', 'ban')}
+                className="flex-shrink-0 text-red-400 hover:text-red-300 font-bold flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10 transition-colors"
               >
-                <Plus className="w-2.5 h-2.5" /> Ban
+                <Plus className="w-2.5 h-2.5" /> Ban Hero
               </button>
             )}
           </div>
@@ -664,7 +687,189 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       </div>
 
       {/* ========================================================= */}
-      {/* 3. THE SELECTING WINDOW & ORACLE HUB (STARTS AT Y ~240px) */}
+      {/* 3. HERO SELECTION POOL (SEARCH & CLICK SELECT - DRAFT STUDIO STYLE) */}
+      {/* ========================================================= */}
+      <div className="bg-dota-panel border border-dota-border rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
+        
+        {/* Header Bar: Active Target & Live Search & Filters */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          
+          {/* Left: Active Target Selector & Search Modal Button */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-dota font-bold text-xs sm:text-sm text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+              <span>Hero Pool:</span>
+            </h3>
+
+            {/* Target Team & Slot Badge */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-dota-bg border border-dota-border text-xs shadow-inner">
+              <span className="text-slate-400 text-[11px]">Assigning:</span>
+              <button
+                onClick={() => {
+                  SoundEngine.playHover();
+                  setActiveTargetSlot((prev) => ({ ...prev, team: prev.team === 'radiant' ? 'dire' : 'radiant' }));
+                }}
+                className={`font-black text-[11px] px-2 py-0.5 rounded transition-all ${
+                  activeTargetSlot.team === 'radiant' 
+                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-900' 
+                    : 'bg-rose-950 text-rose-300 border border-rose-500/50 hover:bg-rose-900'
+                }`}
+                title="Click to toggle Radiant vs Dire"
+              >
+                {activeTargetSlot.team === 'radiant' ? 'THE RADIANT' : 'THE DIRE'}
+              </button>
+
+              {activeTargetMode === 'pick' ? (
+                <span className="text-dota-gold font-bold text-[11px]">
+                  Pos {activeTargetSlot.pos} ({POSITION_DEFINITIONS[activeTargetSlot.pos].name.split(' ')[0]})
+                </span>
+              ) : (
+                <span className="text-red-400 font-bold text-[11px]">Banning</span>
+              )}
+            </div>
+
+            {/* Position 1 to 5 + Ban quick selector pills */}
+            <div className="flex items-center gap-0.5 bg-dota-bg p-0.5 rounded-lg border border-dota-border text-[10px]">
+              {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => (
+                <button
+                  key={`quick-pos-${pos}`}
+                  onClick={() => {
+                    SoundEngine.playHover();
+                    setActiveTargetSlot((prev) => ({ ...prev, pos }));
+                    setActiveTargetMode('pick');
+                  }}
+                  className={`px-2 py-0.5 rounded font-bold transition-all ${
+                    activeTargetMode === 'pick' && activeTargetSlot.pos === pos
+                      ? 'bg-dota-gold text-slate-950 font-black shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  P{pos}
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  SoundEngine.playHover();
+                  setActiveTargetMode(activeTargetMode === 'ban' ? 'pick' : 'ban');
+                }}
+                className={`px-2 py-0.5 rounded font-bold transition-all ${
+                  activeTargetMode === 'ban'
+                    ? 'bg-red-600 text-white font-black shadow'
+                    : 'text-red-400 hover:text-white'
+                }`}
+              >
+                Ban
+              </button>
+            </div>
+
+            {/* Draft Studio style "Search Modal" button */}
+            <button
+              onClick={() => handleOpenSlotModal(
+                activeTargetSlot.team, 
+                activeTargetMode, 
+                activeTargetMode === 'pick' ? activeTargetSlot.pos : undefined
+              )}
+              className="px-2.5 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-600/70 text-xs font-bold text-amber-300 flex items-center gap-1.5 transition-all shadow-sm"
+              title="Open full-screen search and filter modal"
+            >
+              <Search className="w-3.5 h-3.5 text-amber-400" />
+              <span>Search Modal</span>
+            </button>
+          </div>
+
+          {/* Right: Attribute Pills & Live Search Input */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Attribute Filter Pills */}
+            <div className="flex items-center gap-0.5 bg-dota-bg p-0.5 rounded-lg border border-dota-border text-[10px]">
+              {[
+                { id: 'all', label: 'ALL' },
+                { id: 'str', label: 'STR' },
+                { id: 'agi', label: 'AGI' },
+                { id: 'int', label: 'INT' },
+                { id: 'all_attr', label: 'UNI' },
+              ].map((attr) => (
+                <button
+                  key={attr.id}
+                  onClick={() => setHeroPoolAttr(attr.id === 'all_attr' ? 'all' : attr.id as any)}
+                  className={`px-2 py-0.5 rounded font-bold transition-all ${
+                    (heroPoolAttr === attr.id || (attr.id === 'all_attr' && heroPoolAttr === 'all'))
+                      ? 'bg-dota-gold text-slate-950 font-black shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {attr.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Live Search Input (Draft Studio style) */}
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search hero to add (e.g. Invoker, Carry)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-7 py-1.5 bg-dota-bg border border-dota-border rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-dota-gold"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Hero Pool Grid / Chips (Fast Click-to-Select, exactly like Draft Studio!) */}
+        <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1 custom-scrollbar">
+          {availablePoolHeroes.map((hero) => {
+            const isAlreadyPicked = allSelectedIds.has(hero.id);
+            const isTargetRadiant = activeTargetSlot.team === 'radiant';
+
+            return (
+              <button
+                key={`pool-hero-${hero.id}`}
+                onClick={() => handleQuickSelectHero(hero.id)}
+                disabled={isAlreadyPicked}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                  isAlreadyPicked
+                    ? 'opacity-30 cursor-not-allowed bg-slate-900 border-slate-800 text-slate-500'
+                    : isTargetRadiant
+                      ? 'bg-dota-panelAlt hover:bg-emerald-950/70 border-slate-700 hover:border-emerald-500/70 text-slate-200 hover:text-white hover:scale-[1.02]'
+                      : 'bg-dota-panelAlt hover:bg-rose-950/70 border-slate-700 hover:border-rose-500/70 text-slate-200 hover:text-white hover:scale-[1.02]'
+                }`}
+                title={
+                  isAlreadyPicked 
+                    ? `${hero.name} (Already drafted/banned)` 
+                    : `${hero.name} (${hero.roles.join(', ')}) - Click to assign to ${activeTargetSlot.team.toUpperCase()} ${activeTargetMode === 'ban' ? 'Bans' : `Pos ${activeTargetSlot.pos}`}`
+                }
+              >
+                <img
+                  src={hero.avatarUrl}
+                  alt={hero.name}
+                  className="w-5 h-5 rounded object-cover flex-shrink-0"
+                />
+                <span className="truncate max-w-[110px]">{hero.name}</span>
+                <Plus className={`w-3 h-3 ml-0.5 ${
+                  activeTargetMode === 'ban'
+                    ? 'text-red-400'
+                    : isTargetRadiant
+                    ? 'text-emerald-400'
+                    : 'text-rose-400'
+                }`} />
+              </button>
+            );
+          })}
+        </div>
+
+      </div>
+
+      {/* ========================================================= */}
+      {/* 4. PREDICTIVE ANALYSIS & STRATEGY ENGINE                  */}
       {/* ========================================================= */}
       <div className="bg-dota-panel rounded-2xl border-2 border-dota-border overflow-hidden shadow-2xl">
         
@@ -674,10 +879,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
           <button
             onClick={() => {
               SoundEngine.playHover();
-              setActiveAnalysisTab('suggestions');
+              setActiveAnalysisTab('picks');
             }}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-              activeAnalysisTab === 'suggestions'
+              activeAnalysisTab === 'picks'
                 ? 'bg-gradient-to-r from-emerald-500/30 to-teal-500/30 text-emerald-300 border border-emerald-500/70 shadow-dota-glow font-black'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
             }`}
@@ -689,25 +894,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
           <button
             onClick={() => {
               SoundEngine.playHover();
-              setActiveAnalysisTab('arsenal');
+              setActiveAnalysisTab('bans');
             }}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-              activeAnalysisTab === 'arsenal'
-                ? 'bg-gradient-to-r from-indigo-500/30 to-blue-500/30 text-indigo-300 border border-indigo-500/70 shadow-dota-mana font-black'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
-            }`}
-          >
-            <Grid className="w-3.5 h-3.5 text-indigo-400" />
-            <span>🎮 Hero Arsenal (Quick Picker)</span>
-          </button>
-
-          <button
-            onClick={() => {
-              SoundEngine.playHover();
-              setActiveAnalysisTab('bans_intent');
-            }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-              activeAnalysisTab === 'bans_intent'
+              activeAnalysisTab === 'bans'
                 ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300 border border-amber-500/70 shadow-dota-glow font-black'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
             }`}
@@ -724,10 +914,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
           <button
             onClick={() => {
               SoundEngine.playHover();
-              setActiveAnalysisTab('tactical');
+              setActiveAnalysisTab('lanes');
             }}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-              activeAnalysisTab === 'tactical'
+              activeAnalysisTab === 'lanes'
                 ? 'bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-cyan-300 border border-cyan-500/70 shadow font-black'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
             }`}
@@ -738,16 +928,14 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
 
         </div>
 
-        {/* TAB CONTENT - IMMACULATELY SIZED FOR FULL VIEWPORT VISIBILITY */}
+        {/* TAB CONTENT */}
         <div className="p-4 sm:p-5 space-y-5">
 
-          {/* ========================================================= */}
-          {/* TAB 1: OPTIMAL PICKS (DIRECTLY VISIBLE, MULTIPLE ROWS!)   */}
-          {/* ========================================================= */}
-          {activeAnalysisTab === 'suggestions' && (
+          {/* TAB 1: OPTIMAL PICKS & COUNTER BANS */}
+          {activeAnalysisTab === 'picks' && (
             <div className="space-y-6 animate-fadeIn">
               
-              {/* PICKS FIRST: High visibility, 2-3 rows immediately visible */}
+              {/* Picks Section */}
               <div className="space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
                   <div className="flex items-center gap-2">
@@ -778,6 +966,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                         onClick={() => {
                           setSuggestionRoleFilter(pos);
                           setActiveTargetSlot({ team: userTeam, pos });
+                          setActiveTargetMode('pick');
                         }}
                         className={`px-2 py-0.5 rounded font-bold transition-all ${
                           suggestionRoleFilter === pos || activeTargetSlot.pos === pos
@@ -791,7 +980,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                   </div>
                 </div>
 
-                {/* Compact Picks Grid - Multiple rows fit easily in view */}
+                {/* 4-column cards grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
                   {analysis.suggestedPicks
                     .filter((p) => suggestionRoleFilter === 'all' || p.pos === suggestionRoleFilter)
@@ -834,7 +1023,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                             Guide →
                           </button>
                           <button
-                            onClick={(e) => handlePickSuggested(e, pick.hero.id, pick.pos)}
+                            onClick={() => handlePickSuggested(pick.hero.id, pick.pos)}
                             className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[10px] shadow active:scale-95"
                           >
                             Pick for {userTeam === 'radiant' ? 'Radiant' : 'Dire'}
@@ -845,7 +1034,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                 </div>
               </div>
 
-              {/* RECOMMENDED BANS SECTION */}
+              {/* Recommended Bans Section */}
               <div className="space-y-2.5 pt-4 border-t border-slate-800">
                 <div className="flex items-center justify-between text-xs pb-1">
                   <div className="flex items-center gap-2">
@@ -885,7 +1074,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                       </div>
 
                       <button
-                        onClick={(e) => handleBanHero(e, ban.hero.id)}
+                        onClick={() => handleBanSuggested(ban.hero.id)}
                         className="w-full py-0.5 rounded bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-500/40 text-[10px] font-bold transition-all active:scale-95"
                       >
                         Ban Hero
@@ -898,111 +1087,8 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
             </div>
           )}
 
-          {/* ========================================================= */}
-          {/* TAB 2: HERO ARSENAL (QUICK 1-CLICK PICKER - 4+ ROWS!)    */}
-          {/* ========================================================= */}
-          {activeAnalysisTab === 'arsenal' && (
-            <div className="space-y-3 animate-fadeIn">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
-                <div>
-                  <h3 className="font-dota font-bold text-sm text-slate-100 flex items-center gap-2">
-                    <span>1-CLICK HERO ARSENAL</span>
-                    <span className="text-[10px] font-mono font-bold text-indigo-300 px-1.5 py-0.2 rounded bg-indigo-500/20 border border-indigo-500/40">
-                      Target: {activeTargetSlot.team.toUpperCase()} Pos {activeTargetSlot.pos}
-                    </span>
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Click any hero to instantly draft into {activeTargetSlot.team.toUpperCase()} Pos {activeTargetSlot.pos} ({POSITION_DEFINITIONS[activeTargetSlot.pos].name})
-                  </p>
-                </div>
-
-                {/* Search & Pills */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative w-44 sm:w-56">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Search 128 heroes..."
-                      value={arsenalSearch}
-                      onChange={(e) => setArsenalSearch(e.target.value)}
-                      className="w-full pl-7 pr-3 py-1 bg-dota-bg border border-dota-border rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-dota-gold"
-                    />
-                  </div>
-
-                  {/* Attributes */}
-                  <div className="flex items-center gap-0.5 bg-dota-bg p-0.5 rounded-lg border border-dota-border text-[10px]">
-                    {(['all', 'str', 'agi', 'int', 'all'] as (AttributeType | 'all')[]).slice(0, 4).map((attr, idx) => (
-                      <button
-                        key={`attr-arsenal-${idx}`}
-                        onClick={() => setArsenalAttr(attr)}
-                        className={`px-1.5 py-0.5 rounded font-bold uppercase ${
-                          arsenalAttr === attr ? 'bg-dota-gold text-slate-950 font-black' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {attr === 'all' ? 'All' : attr}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Roles */}
-                  <div className="flex items-center gap-0.5 bg-dota-bg p-0.5 rounded-lg border border-dota-border text-[10px]">
-                    {(['all', 'Carry', 'Mid', 'Offlane', 'Soft Support', 'Hard Support'] as (RoleType | 'all')[]).map((role, idx) => (
-                      <button
-                        key={`role-arsenal-${idx}`}
-                        onClick={() => setArsenalRole(role)}
-                        className={`px-1.5 py-0.5 rounded font-bold uppercase ${
-                          arsenalRole === role ? 'bg-indigo-500 text-white font-black' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        {role === 'all' ? 'All' : role.replace(' Support', '')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* 1-Click Hero Arsenal Grid - 4 to 5 full rows visible! */}
-              <div className="max-h-[460px] overflow-y-auto custom-scrollbar pr-1">
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                  {arsenalHeroes.map((hero) => {
-                    const isSelected = allSelectedIds.has(hero.id);
-
-                    return (
-                      <button
-                        key={`arsenal-hero-${hero.id}`}
-                        disabled={isSelected}
-                        onClick={(e) => handlePickFromArsenal(e, hero.id)}
-                        className={`flex items-center gap-1.5 p-1.5 rounded-xl border text-left transition-all ${
-                          isSelected
-                            ? 'opacity-30 cursor-not-allowed bg-slate-950 border-slate-900'
-                            : 'bg-dota-card hover:bg-slate-800 border-dota-border hover:border-dota-gold/70 hover:scale-[1.02] shadow-sm'
-                        }`}
-                        title={isSelected ? 'Already drafted or banned' : `Pick ${hero.name} for ${activeTargetSlot.team.toUpperCase()} Pos ${activeTargetSlot.pos}`}
-                      >
-                        <img src={hero.avatarUrl} alt={hero.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
-                        <div className="truncate flex-1">
-                          <div className="font-dota font-bold text-[11px] text-slate-100 truncate">{hero.name}</div>
-                          <div className="text-[9px] text-slate-400 flex items-center justify-between">
-                            <span className={`uppercase font-bold ${
-                              hero.attribute === 'str' ? 'text-red-400' :
-                              hero.attribute === 'agi' ? 'text-green-400' :
-                              hero.attribute === 'int' ? 'text-blue-400' : 'text-purple-400'
-                            }`}>{hero.attribute}</span>
-                            <span className="text-emerald-400 font-semibold">{hero.winRate}%</span>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================= */}
-          {/* TAB 3: BAN INTENT & PREDICTED LINEUP                      */}
-          {/* ========================================================= */}
-          {activeAnalysisTab === 'bans_intent' && (
+          {/* TAB 2: BAN INTENT & PREDICTED LINEUP */}
+          {activeAnalysisTab === 'bans' && (
             <div className="space-y-5 animate-fadeIn">
               
               {/* Ban Intent Decryption Card */}
@@ -1110,14 +1196,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                       </div>
 
                       <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          assignHeroToTeam('dire', pred.predictedPos, pred.hero.id);
-                        }}
+                        onClick={() => handleAssignHero('dire', 'pick', pred.hero.id, pred.predictedPos)}
                         className="w-full py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-500/40 font-bold text-[10px]"
                       >
-                        Assign to Dire
+                        Assign to Dire Pos {pred.predictedPos}
                       </button>
                     </div>
                   ))}
@@ -1127,10 +1209,8 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
             </div>
           )}
 
-          {/* ========================================================= */}
-          {/* TAB 4: TACTICAL ADVANTAGE & LANE FORECAST                 */}
-          {/* ========================================================= */}
-          {activeAnalysisTab === 'tactical' && (
+          {/* TAB 3: TACTICAL ADVANTAGE & LANE FORECAST */}
+          {activeAnalysisTab === 'lanes' && (
             <div className="space-y-5 animate-fadeIn">
               
               {/* Lane Forecast Cards */}
@@ -1233,115 +1313,166 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       </div>
 
       {/* ========================================================= */}
-      {/* 4. COMPACT MODAL HERO SELECTOR FOR PICKS & BANS           */}
+      {/* 5. SEARCH & SELECT MODAL (EXACT DRAFT STUDIO PATTERN)     */}
       {/* ========================================================= */}
       {modalTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="w-full max-w-4xl bg-dota-panel rounded-2xl border-2 border-dota-gold/60 p-4 sm:p-5 space-y-3 shadow-2xl max-h-[85vh] flex flex-col">
+          <div className="w-full max-w-4xl bg-dota-panel rounded-2xl border-2 border-dota-gold/70 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-dota-border">
-              <div className="flex items-center gap-2.5">
-                <div className={`p-1.5 rounded-lg border ${
+            <div className="p-4 bg-gradient-to-r from-slate-900 via-dota-panel to-slate-950 border-b border-dota-border flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl border ${
                   modalTarget.type === 'pick'
-                    ? (modalTarget.team === 'radiant' ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300' : 'bg-rose-500/20 border-rose-500/50 text-rose-300')
-                    : 'bg-red-500/20 border-red-500/50 text-red-300'
+                    ? (modalTarget.team === 'radiant' ? 'bg-emerald-950 border-emerald-500/60 text-emerald-300' : 'bg-rose-950 border-rose-500/60 text-rose-300')
+                    : 'bg-red-950 border-red-500/60 text-red-300'
                 }`}>
-                  {modalTarget.type === 'pick' ? <Swords className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                  {modalTarget.type === 'pick' ? <Swords className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
                 </div>
                 <div>
-                  <h3 className="font-dota font-black text-base text-slate-100">
-                    {modalTarget.type === 'pick'
-                      ? `Select Hero for ${modalTarget.team.toUpperCase()} (Pos ${modalTarget.pos || 1})`
-                      : `Add Ban for ${modalTarget.team.toUpperCase()}`
-                    }
+                  <h3 className="font-dota font-bold text-base text-white flex items-center gap-2">
+                    <span>
+                      {modalTarget.type === 'pick'
+                        ? `Select Hero for ${modalTarget.team.toUpperCase()} Pos ${modalTarget.pos || 1} (${POSITION_DEFINITIONS[modalTarget.pos || 1]?.name || 'Pick'})`
+                        : `Ban Hero for ${modalTarget.team.toUpperCase()}`
+                      }
+                    </span>
+                    {modalTarget.type === 'pick' && modalTarget.pos && (
+                      (() => {
+                        const existingId = modalTarget.team === 'radiant' 
+                          ? radiantHeroIds[modalTarget.pos - 1] 
+                          : direHeroIds[modalTarget.pos - 1];
+                        return existingId ? (
+                          <span className="text-xs font-sans px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">
+                            Replacing: {HERO_MAP.get(existingId)?.name}
+                          </span>
+                        ) : null;
+                      })()
+                    )}
                   </h3>
-                  <p className="text-[11px] text-slate-400">
-                    {modalTarget.type === 'pick' ? 'Choose from available Dota 2 heroes' : 'Banning this hero will update predictive enemy intent'}
+                  <p className="text-xs text-slate-400">
+                    Search by hero name, title, alias, or role to assign into this draft slot
                   </p>
                 </div>
               </div>
 
               <button
                 onClick={() => setModalTarget(null)}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all"
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                title="Close"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Search & Filters */}
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            {/* Modal Filter Controls: Search Bar + Attribute Filters */}
+            <div className="p-4 bg-slate-950 border-b border-slate-800 space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search 128 heroes..."
+                  autoFocus
+                  placeholder="Search heroes by name, title, alias, or role (e.g. Anti-Mage, Magina, Carry, Stun)..."
                   value={modalSearch}
                   onChange={(e) => setModalSearch(e.target.value)}
-                  autoFocus
-                  className="w-full pl-8 pr-3 py-1.5 bg-dota-bg border border-dota-border rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-dota-gold"
+                  className="w-full pl-10 pr-9 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-dota-gold shadow-inner"
                 />
+                {modalSearch && (
+                  <button
+                    onClick={() => setModalSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs p-1"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
-              {/* Attribute filter */}
-              <div className="flex items-center gap-0.5 bg-dota-bg p-0.5 rounded-lg border border-dota-border text-xs">
-                {(['all', 'str', 'agi', 'int', 'all'] as (AttributeType | 'all')[]).slice(0, 4).map((attr, idx) => (
+              {/* Attribute Filter Pills */}
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { id: 'all', label: 'All Heroes' },
+                  { id: 'str', label: 'Strength' },
+                  { id: 'agi', label: 'Agility' },
+                  { id: 'int', label: 'Intelligence' },
+                  { id: 'all_attr', label: 'Universal' },
+                ].map((attr) => (
                   <button
-                    key={`attr-modal-${idx}`}
-                    onClick={() => setModalAttr(attr)}
-                    className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase transition-all ${
-                      modalAttr === attr ? 'bg-dota-gold text-slate-950 font-black' : 'text-slate-400 hover:text-white'
+                    key={attr.id}
+                    onClick={() => setModalAttr(attr.id === 'all_attr' ? 'all' : attr.id as any)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      (modalAttr === attr.id || (attr.id === 'all_attr' && modalAttr === 'all'))
+                        ? 'bg-dota-gold text-slate-950 font-black shadow'
+                        : 'bg-slate-800 text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    {attr === 'all' ? 'All' : attr}
+                    {attr.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Heroes Grid Scrollable - 4 to 5 rows visible! */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 max-h-[55vh]">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                {modalCandidateHeroes.map((hero) => {
-                  const isSelected = allSelectedIds.has(hero.id);
+            {/* Modal Heroes Grid */}
+            <div className="p-4 overflow-y-auto max-h-[50vh] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 custom-scrollbar">
+              {filteredModalHeroes.length > 0 ? (
+                filteredModalHeroes.map((h) => {
+                  const isAlreadyDrafted = allSelectedIds.has(h.id);
 
                   return (
-                    <button
-                      key={`modal-hero-${hero.id}`}
-                      disabled={isSelected}
-                      onClick={() => handleAssignHeroFromModal(hero.id)}
-                      className={`flex items-center gap-2 p-1.5 rounded-xl border text-left transition-all ${
-                        isSelected
-                          ? 'opacity-30 cursor-not-allowed bg-slate-900 border-slate-800'
-                          : 'bg-dota-card/90 hover:bg-slate-800 border-dota-border hover:border-dota-gold/60 hover:scale-[1.02]'
+                    <div
+                      key={`modal-picker-${h.id}`}
+                      onClick={() => handleAssignHero(
+                        modalTarget.team, 
+                        modalTarget.type, 
+                        h.id, 
+                        modalTarget.pos, 
+                        modalTarget.slotIndex
+                      )}
+                      className={`group bg-dota-bg/90 hover:bg-slate-800 border rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all hover:scale-[1.01] shadow ${
+                        isAlreadyDrafted
+                          ? 'border-slate-800 opacity-40 hover:opacity-100 hover:border-amber-500'
+                          : modalTarget.team === 'radiant'
+                          ? 'border-slate-800 hover:border-emerald-500/80 hover:bg-emerald-950/20'
+                          : 'border-slate-800 hover:border-rose-500/80 hover:bg-rose-950/20'
                       }`}
                     >
-                      <img src={hero.avatarUrl} alt={hero.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
-                      <div className="truncate">
-                        <div className="font-dota font-bold text-xs text-slate-100 truncate">{hero.name}</div>
-                        <div className="text-[9px] text-slate-400 flex items-center gap-1">
-                          <span className={`uppercase font-bold ${
-                            hero.attribute === 'str' ? 'text-red-400' :
-                            hero.attribute === 'agi' ? 'text-green-400' :
-                            hero.attribute === 'int' ? 'text-blue-400' : 'text-purple-400'
-                          }`}>{hero.attribute}</span>
-                          <span>•</span>
-                          <span>{hero.winRate}%</span>
+                      <img
+                        src={h.avatarUrl}
+                        alt={h.name}
+                        className="w-12 h-12 rounded-lg object-cover border border-slate-700 group-hover:border-dota-gold flex-shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-bold text-xs sm:text-sm text-slate-200 group-hover:text-dota-gold truncate">
+                            {h.name}
+                          </span>
+                          <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                            {h.winRate}% WR
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                          {h.roles.slice(0, 2).join(', ')}
+                        </div>
+                        <div className="flex items-center justify-between text-[9px] mt-1 text-slate-500">
+                          <span className="uppercase font-bold text-slate-400">{h.attribute}</span>
+                          <span className="text-amber-400 font-bold group-hover:underline">Click to Select</span>
                         </div>
                       </div>
-                    </button>
+                    </div>
                   );
-                })}
-              </div>
+                })
+              ) : (
+                <div className="col-span-full py-8 text-center text-slate-500 text-xs">
+                  No heroes found matching "{modalSearch}"
+                </div>
+              )}
             </div>
 
             {/* Modal Footer */}
-            <div className="pt-2 border-t border-dota-border flex items-center justify-between text-xs text-slate-400">
-              <span className="text-[11px]">Showing {modalCandidateHeroes.length} heroes</span>
+            <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+              <span>Showing {filteredModalHeroes.length} heroes</span>
               <button
                 onClick={() => setModalTarget(null)}
-                className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all"
+                className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all"
               >
                 Close
               </button>
