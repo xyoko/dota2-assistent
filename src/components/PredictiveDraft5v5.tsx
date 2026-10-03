@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { HEROES_DATA, HERO_MAP } from '../data/heroes';
 import { HeroData, AttributeType } from '../types/hero';
 import { 
@@ -23,7 +24,8 @@ import {
   Search, 
   Crown, 
   Lock, 
-  Trash2
+  Trash2,
+  Crosshair
 } from 'lucide-react';
 
 interface PredictiveDraft5v5Props {
@@ -325,7 +327,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
   }, [modalSearch, modalAttr]);
 
   return (
-    <div ref={containerRef} className="space-y-4 pb-12 animate-fadeIn">
+    <div ref={containerRef} className="space-y-4 pb-12">
       
       {/* ========================================================= */}
       {/* 1. TOP BANNER & ADVANTAGE METRICS                         */}
@@ -1315,20 +1317,32 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       {/* ========================================================= */}
       {/* 5. SEARCH & SELECT MODAL (EXACT DRAFT STUDIO PATTERN)     */}
       {/* ========================================================= */}
-      {modalTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="w-full max-w-4xl bg-dota-panel rounded-2xl border-2 border-dota-gold/70 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      {modalTarget && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className={`bg-slate-900 border-2 rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh] ${
+            modalTarget.type === 'ban' 
+              ? 'border-red-500/70' 
+              : modalTarget.team === 'radiant' 
+                ? 'border-emerald-500/70' 
+                : 'border-rose-500/70'
+          }`}>
             
             {/* Modal Header */}
-            <div className="p-4 bg-gradient-to-r from-slate-900 via-dota-panel to-slate-950 border-b border-dota-border flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl border ${
-                  modalTarget.type === 'pick'
-                    ? (modalTarget.team === 'radiant' ? 'bg-emerald-950 border-emerald-500/60 text-emerald-300' : 'bg-rose-950 border-rose-500/60 text-rose-300')
-                    : 'bg-red-950 border-red-500/60 text-red-300'
-                }`}>
-                  {modalTarget.type === 'pick' ? <Swords className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
-                </div>
+            <div className={`p-4 border-b flex items-center justify-between ${
+              modalTarget.type === 'ban' 
+                ? 'bg-gradient-to-r from-red-950 via-slate-900 to-slate-950 border-red-900/50' 
+                : modalTarget.team === 'radiant'
+                  ? 'bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 border-emerald-900/50'
+                  : 'bg-gradient-to-r from-rose-950 via-slate-900 to-slate-950 border-rose-900/50'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <Crosshair className={`w-5 h-5 ${
+                  modalTarget.type === 'ban' 
+                    ? 'text-red-400' 
+                    : modalTarget.team === 'radiant' 
+                      ? 'text-emerald-400' 
+                      : 'text-rose-400'
+                }`} />
                 <div>
                   <h3 className="font-dota font-bold text-base text-white flex items-center gap-2">
                     <span>
@@ -1351,7 +1365,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                     )}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Search by hero name, title, alias, or role to assign into this draft slot
+                    Search by hero name, alias, or role to assign into this draft slot
                   </p>
                 </div>
               </div>
@@ -1375,7 +1389,13 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                   placeholder="Search heroes by name, title, alias, or role (e.g. Anti-Mage, Magina, Carry, Stun)..."
                   value={modalSearch}
                   onChange={(e) => setModalSearch(e.target.value)}
-                  className="w-full pl-10 pr-9 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-dota-gold shadow-inner"
+                  className={`w-full pl-10 pr-9 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none shadow-inner ${
+                    modalTarget.type === 'ban' 
+                      ? 'focus:border-red-500' 
+                      : modalTarget.team === 'radiant' 
+                        ? 'focus:border-emerald-500' 
+                        : 'focus:border-rose-500'
+                  }`}
                 />
                 {modalSearch && (
                   <button
@@ -1401,7 +1421,11 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                     onClick={() => setModalAttr(attr.id === 'all_attr' ? 'all' : attr.id as any)}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                       (modalAttr === attr.id || (attr.id === 'all_attr' && modalAttr === 'all'))
-                        ? 'bg-dota-gold text-slate-950 font-black shadow'
+                        ? (modalTarget.type === 'ban' 
+                            ? 'bg-dota-red text-white font-black shadow' 
+                            : modalTarget.team === 'radiant' 
+                              ? 'bg-emerald-600 text-white font-black shadow' 
+                              : 'bg-rose-600 text-white font-black shadow')
                         : 'bg-slate-800 text-slate-400 hover:text-slate-200'
                     }`}
                   >
@@ -1411,11 +1435,15 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
               </div>
             </div>
 
-            {/* Modal Heroes Grid */}
+            {/* Modal Heroes Grid (Draft Studio exact style) */}
             <div className="p-4 overflow-y-auto max-h-[50vh] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 custom-scrollbar">
               {filteredModalHeroes.length > 0 ? (
                 filteredModalHeroes.map((h) => {
-                  const isAlreadyDrafted = allSelectedIds.has(h.id);
+                  const isCurrentSlotHero = modalTarget.type === 'pick' && (
+                    (modalTarget.team === 'radiant' && modalTarget.pos && radiantHeroIds[modalTarget.pos - 1] === h.id) ||
+                    (modalTarget.team === 'dire' && modalTarget.pos && direHeroIds[modalTarget.pos - 1] === h.id)
+                  );
+                  const isOtherSlotHero = allSelectedIds.has(h.id) && !isCurrentSlotHero;
 
                   return (
                     <div
@@ -1427,12 +1455,14 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                         modalTarget.pos, 
                         modalTarget.slotIndex
                       )}
-                      className={`group bg-dota-bg/90 hover:bg-slate-800 border rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all hover:scale-[1.01] shadow ${
-                        isAlreadyDrafted
+                      className={`group bg-dota-bg/90 hover:bg-slate-850 border rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all hover:scale-[1.01] shadow ${
+                        isCurrentSlotHero
+                          ? 'border-emerald-500 bg-emerald-950/30'
+                          : isOtherSlotHero
                           ? 'border-slate-800 opacity-40 hover:opacity-100 hover:border-amber-500'
                           : modalTarget.team === 'radiant'
-                          ? 'border-slate-800 hover:border-emerald-500/80 hover:bg-emerald-950/20'
-                          : 'border-slate-800 hover:border-rose-500/80 hover:bg-rose-950/20'
+                          ? 'border-slate-800 hover:border-emerald-500/70'
+                          : 'border-slate-800 hover:border-rose-500/70'
                       }`}
                     >
                       <img
@@ -1442,19 +1472,17 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="font-bold text-xs sm:text-sm text-slate-200 group-hover:text-dota-gold truncate">
+                          <span className="font-bold text-xs sm:text-sm text-slate-200 group-hover:text-amber-300 truncate">
                             {h.name}
                           </span>
-                          <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                            {h.winRate}% WR
+                          <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded flex-shrink-0">
+                            {h.attribute}
                           </span>
                         </div>
-                        <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                          {h.roles.slice(0, 2).join(', ')}
-                        </div>
-                        <div className="flex items-center justify-between text-[9px] mt-1 text-slate-500">
-                          <span className="uppercase font-bold text-slate-400">{h.attribute}</span>
-                          <span className="text-amber-400 font-bold group-hover:underline">Click to Select</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] text-slate-400 truncate">
+                            {h.roles.slice(0, 2).join(', ')}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1479,7 +1507,8 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
