@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { HEROES_DATA, HERO_MAP } from '../data/heroes';
 import { HeroData, AttributeType, RoleType } from '../types/hero';
 import { 
@@ -24,7 +24,8 @@ import {
   Crown,
   Lock,
   SlidersHorizontal,
-  Info
+  Info,
+  Grid
 } from 'lucide-react';
 
 interface PredictiveDraft5v5Props {
@@ -47,9 +48,9 @@ const PRESET_SCENARIOS: PresetScenario[] = [
     id: 'ban_telegraph_am',
     name: 'Ban Intent: AM & Nyx Banned',
     description: 'Dire banned Anti-Mage and Nyx. Oracle decrypts incoming Medusa / Storm Spirit mana-shield core.',
-    radiantHeroIds: ['sven', 'lion'],
-    direHeroIds: ['axe', 'witch_doctor'],
-    radiantBanIds: ['faceless_void'],
+    radiantHeroIds: ['sven', 'storm_spirit', 'lion'],
+    direHeroIds: ['faceless_void', 'witch_doctor'],
+    radiantBanIds: ['pudge'],
     direBanIds: ['anti_mage', 'nyx_assassin']
   },
   {
@@ -93,20 +94,31 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
   // Active Perspective: 'radiant' or 'dire'
   const [userTeam, setUserTeam] = useState<'radiant' | 'dire'>('radiant');
 
-  // Sub-tab view: 'bans_intent' | 'suggestions' | 'tactical'
-  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'bans_intent' | 'suggestions' | 'tactical'>(() => {
+  // Currently active slot for one-click hero assignment
+  const [activeTargetSlot, setActiveTargetSlot] = useState<{
+    team: 'radiant' | 'dire';
+    pos: PositionNumber;
+  }>({ team: 'radiant', pos: 4 });
+
+  // Sub-tab view: 'suggestions' | 'arsenal' | 'bans_intent' | 'tactical'
+  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'suggestions' | 'arsenal' | 'bans_intent' | 'tactical'>(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const sub = params.get('subtab');
-      if (sub === 'suggestions' || sub === 'tactical' || sub === 'bans_intent') {
+      if (sub === 'suggestions' || sub === 'arsenal' || sub === 'bans_intent' || sub === 'tactical') {
         return sub;
       }
     } catch {}
-    return 'bans_intent';
+    return 'suggestions'; // Default to suggestions for immediate pick/ban action
   });
 
   // Pick suggestions filter by position
   const [suggestionRoleFilter, setSuggestionRoleFilter] = useState<PositionNumber | 'all'>('all');
+
+  // Hero Arsenal Tab quick filter state
+  const [arsenalSearch, setArsenalSearch] = useState<string>('');
+  const [arsenalAttr, setArsenalAttr] = useState<AttributeType | 'all'>('all');
+  const [arsenalRole, setArsenalRole] = useState<RoleType | 'all'>('all');
 
   // Modal State for Slot Picker / Ban Picker
   const [modalTarget, setModalTarget] = useState<{
@@ -119,6 +131,8 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
   const [modalSearch, setModalSearch] = useState<string>('');
   const [modalAttr, setModalAttr] = useState<AttributeType | 'all'>('all');
   const [modalRole, setModalRole] = useState<RoleType | 'all'>('all');
+
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Run the Predictive Engine
   const analysis: Predictive5v5Analysis = useMemo(() => {
@@ -142,6 +156,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
     setDireHeroIds(preset.direHeroIds);
     setRadiantBanIds(preset.radiantBanIds);
     setDireBanIds(preset.direBanIds);
+    setActiveTargetSlot({ team: 'radiant', pos: (Math.min(5, preset.radiantHeroIds.length + 1) as PositionNumber) });
   };
 
   // Handle Clear Draft
@@ -151,50 +166,100 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
     setDireHeroIds([]);
     setRadiantBanIds([]);
     setDireBanIds([]);
+    setActiveTargetSlot({ team: 'radiant', pos: 1 });
   };
 
   // Handle Open Modal
   const handleOpenPicker = (team: 'radiant' | 'dire', type: 'pick' | 'ban', pos?: PositionNumber, slotIndex?: number) => {
     SoundEngine.playHover();
+    if (pos) {
+      setActiveTargetSlot({ team, pos });
+    }
     setModalTarget({ team, type, pos, slotIndex });
     setModalSearch('');
     setModalAttr('all');
     setModalRole('all');
   };
 
-  // Handle Slot Assignment
-  const handleAssignHero = (heroId: string) => {
+  // Assign hero to a specific team & slot without jumping scroll
+  const assignHeroToTeam = (team: 'radiant' | 'dire', pos: PositionNumber, heroId: string) => {
+    SoundEngine.playPick();
+    const currentHeroIds = team === 'radiant' ? [...radiantHeroIds] : [...direHeroIds];
+    const targetIdx = pos - 1;
+
+    if (targetIdx < currentHeroIds.length) {
+      currentHeroIds[targetIdx] = heroId;
+    } else {
+      currentHeroIds.push(heroId);
+    }
+
+    if (team === 'radiant') {
+      setRadiantHeroIds(currentHeroIds);
+    } else {
+      setDireHeroIds(currentHeroIds);
+    }
+
+    // Auto-advance activeTargetSlot to next empty position
+    let nextPos: PositionNumber = pos;
+    for (let p = 1; p <= 5; p++) {
+      if (p > currentHeroIds.length) {
+        nextPos = p as PositionNumber;
+        break;
+      }
+    }
+    setActiveTargetSlot({ team, pos: nextPos });
+  };
+
+  // 1-Click Pick from Suggested Picks (zero scroll jump)
+  const handlePickSuggested = (e: React.MouseEvent, heroId: string, rolePos?: PositionNumber) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const targetPos = rolePos || activeTargetSlot.pos;
+    assignHeroToTeam(userTeam, targetPos, heroId);
+  };
+
+  // 1-Click Pick from Arsenal Grid (zero scroll jump)
+  const handlePickFromArsenal = (e: React.MouseEvent, heroId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    assignHeroToTeam(activeTargetSlot.team, activeTargetSlot.pos, heroId);
+  };
+
+  // 1-Click Ban from Suggestions (zero scroll jump)
+  const handleBanHero = (e: React.MouseEvent, heroId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    SoundEngine.playPick();
+
+    if (userTeam === 'radiant') {
+      if (!radiantBanIds.includes(heroId) && radiantBanIds.length < 7) {
+        setRadiantBanIds([...radiantBanIds, heroId]);
+      }
+    } else {
+      if (!direBanIds.includes(heroId) && direBanIds.length < 7) {
+        setDireBanIds([...direBanIds, heroId]);
+      }
+    }
+  };
+
+  // Modal hero click
+  const handleAssignHeroFromModal = (heroId: string) => {
     if (!modalTarget) return;
 
     SoundEngine.playPick();
     const { team, type, slotIndex } = modalTarget;
 
     if (type === 'pick') {
-      if (team === 'radiant') {
-        const next = [...radiantHeroIds];
-        if (slotIndex !== undefined && slotIndex < next.length) {
-          next[slotIndex] = heroId;
-        } else {
-          next.push(heroId);
-        }
-        setRadiantHeroIds(next);
-      } else {
-        const next = [...direHeroIds];
-        if (slotIndex !== undefined && slotIndex < next.length) {
-          next[slotIndex] = heroId;
-        } else {
-          next.push(heroId);
-        }
-        setDireHeroIds(next);
-      }
+      const pos = (slotIndex !== undefined ? slotIndex + 1 : 1) as PositionNumber;
+      assignHeroToTeam(team, pos, heroId);
     } else {
       // Ban
       if (team === 'radiant') {
-        if (!radiantBanIds.includes(heroId)) {
+        if (!radiantBanIds.includes(heroId) && radiantBanIds.length < 7) {
           setRadiantBanIds([...radiantBanIds, heroId]);
         }
       } else {
-        if (!direBanIds.includes(heroId)) {
+        if (!direBanIds.includes(heroId) && direBanIds.length < 7) {
           setDireBanIds([...direBanIds, heroId]);
         }
       }
@@ -203,14 +268,16 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
     setModalTarget(null);
   };
 
-  // Quick Remove
+  // Quick Remove from slot or ban
   const handleRemoveHero = (team: 'radiant' | 'dire', type: 'pick' | 'ban', index: number) => {
     SoundEngine.playHover();
     if (type === 'pick') {
       if (team === 'radiant') {
         setRadiantHeroIds(radiantHeroIds.filter((_, i) => i !== index));
+        setActiveTargetSlot({ team: 'radiant', pos: (index + 1) as PositionNumber });
       } else {
         setDireHeroIds(direHeroIds.filter((_, i) => i !== index));
+        setActiveTargetSlot({ team: 'dire', pos: (index + 1) as PositionNumber });
       }
     } else {
       if (team === 'radiant') {
@@ -220,6 +287,22 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       }
     }
   };
+
+  // Filtered heroes for Hero Arsenal Quick Picker Tab
+  const arsenalHeroes = useMemo(() => {
+    return HEROES_DATA.filter((hero) => {
+      if (arsenalAttr !== 'all' && hero.attribute !== arsenalAttr) return false;
+      if (arsenalRole !== 'all' && !hero.roles.includes(arsenalRole)) return false;
+      if (arsenalSearch.trim()) {
+        const q = arsenalSearch.toLowerCase();
+        const matchesName = hero.name.toLowerCase().includes(q);
+        const matchesAlias = hero.aliases?.some((a) => a.toLowerCase().includes(q));
+        const matchesTitle = hero.title.toLowerCase().includes(q);
+        if (!matchesName && !matchesAlias && !matchesTitle) return false;
+      }
+      return true;
+    });
+  }, [arsenalAttr, arsenalRole, arsenalSearch]);
 
   // Filtered heroes for Modal Picker
   const modalCandidateHeroes = useMemo(() => {
@@ -238,7 +321,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
   }, [modalAttr, modalRole, modalSearch]);
 
   return (
-    <div className="space-y-6 pb-16 animate-fadeIn">
+    <div ref={containerRef} className="space-y-6 pb-16 animate-fadeIn">
       
       {/* ========================================================= */}
       {/* 1. TOP HEADER & DRAFT ADVANTAGE METER                     */}
@@ -247,7 +330,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
         <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-rose-500/5 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 space-y-6">
+        <div className="relative z-10 space-y-5">
           
           {/* Header Title & Badges */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -301,7 +384,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
           </div>
 
           {/* Draft Advantage Meter */}
-          <div className="bg-dota-card/90 rounded-2xl border border-dota-border p-4 space-y-3 shadow-inner">
+          <div className="bg-dota-card/90 rounded-2xl border border-dota-border p-4 space-y-2.5 shadow-inner">
             <div className="flex items-center justify-between text-xs font-bold">
               <div className="flex items-center gap-2 text-emerald-400">
                 <Shield className="w-4 h-4" />
@@ -325,7 +408,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
             </div>
 
             {/* Split Progress Bar */}
-            <div className="relative h-4 w-full bg-slate-900 rounded-full overflow-hidden flex border border-dota-border">
+            <div className="relative h-3.5 w-full bg-slate-900 rounded-full overflow-hidden flex border border-dota-border">
               <div 
                 className="h-full bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-400 transition-all duration-700 ease-out flex items-center justify-start pl-2"
                 style={{ width: `${analysis.draftAdvantage.radiantScore}%` }}
@@ -341,32 +424,43 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
               </div>
             </div>
 
-            {/* Perspective Selector */}
-            <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400 border-t border-slate-800">
-              <span className="flex items-center gap-1.5">
-                <Info className="w-3.5 h-3.5 text-dota-gold" />
-                AI recommendations are tailored for your perspective:
-              </span>
-              <div className="flex items-center gap-1">
+            {/* Perspective & Active Target Indicator */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-[11px] text-slate-400 border-t border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1 text-slate-400">
+                  <Info className="w-3.5 h-3.5 text-dota-gold" />
+                  Active Target Slot:
+                </span>
+                <span className={`px-2 py-0.5 rounded-md font-bold uppercase text-[10px] border ${
+                  activeTargetSlot.team === 'radiant'
+                    ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50'
+                    : 'bg-rose-950 text-rose-300 border-rose-500/50'
+                }`}>
+                  {activeTargetSlot.team.toUpperCase()} POS {activeTargetSlot.pos} ({POSITION_DEFINITIONS[activeTargetSlot.pos].name})
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400 text-[10px] uppercase font-bold mr-1">Drafting Side:</span>
                 <button
                   onClick={() => setUserTeam('radiant')}
                   className={`px-3 py-1 rounded-lg font-bold uppercase tracking-wider text-[10px] transition-all ${
                     userTeam === 'radiant'
-                      ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/60 shadow-dota-glow'
+                      ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/60 shadow-dota-glow font-black'
                       : 'text-slate-400 hover:text-white bg-slate-800/60 border border-transparent'
                   }`}
                 >
-                  Drafting as Radiant
+                  Radiant View
                 </button>
                 <button
                   onClick={() => setUserTeam('dire')}
                   className={`px-3 py-1 rounded-lg font-bold uppercase tracking-wider text-[10px] transition-all ${
                     userTeam === 'dire'
-                      ? 'bg-rose-500/25 text-rose-300 border border-rose-500/60 shadow-dota-crimson'
+                      ? 'bg-rose-500/25 text-rose-300 border border-rose-500/60 shadow-dota-crimson font-black'
                       : 'text-slate-400 hover:text-white bg-slate-800/60 border border-transparent'
                   }`}
                 >
-                  Drafting as Dire
+                  Dire View
                 </button>
               </div>
             </div>
@@ -377,116 +471,145 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       </div>
 
       {/* ========================================================= */}
-      {/* 2. THE 5v5 DRAFT BOARD: RADIANT VS DIRE                   */}
+      {/* 2. THE 5v5 DRAFT BOARD: RADIANT VS DIRE (FIXED HEIGHT)    */}
       {/* ========================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         
         {/* RADIANT TEAM (LIGHT) */}
-        <div className="bg-dota-panel rounded-3xl border-2 border-emerald-500/30 p-4 sm:p-5 space-y-4 shadow-xl relative">
-          <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
-              <h2 className="font-dota font-black text-lg text-emerald-300 tracking-wider">
-                THE RADIANT
-              </h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
-                {radiantHeroIds.length} / 5 Picked
-              </span>
+        <div className="bg-dota-panel rounded-3xl border-2 border-emerald-500/30 p-4 sm:p-5 space-y-3.5 shadow-xl relative min-h-[460px] flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
+                <h2 className="font-dota font-black text-lg text-emerald-300 tracking-wider">
+                  THE RADIANT
+                </h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
+                  {radiantHeroIds.length} / 5 Picked
+                </span>
+              </div>
+              {userTeam === 'radiant' && (
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                  <Crown className="w-3 h-3 text-amber-400" />
+                  Your Perspective
+                </span>
+              )}
             </div>
-            {userTeam === 'radiant' && (
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-                <Crown className="w-3 h-3 text-amber-400" />
-                Your Perspective
-              </span>
-            )}
-          </div>
 
-          {/* 5 Pos Slots */}
-          <div className="space-y-2.5">
-            {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
-              const def = POSITION_DEFINITIONS[pos];
-              const heroId = radiantHeroIds[pos - 1];
-              const hero = heroId ? HERO_MAP.get(heroId) : null;
+            {/* 5 Pos Slots - Strict Fixed Height (h-16) to eliminate layout shift */}
+            <div className="space-y-2">
+              {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
+                const def = POSITION_DEFINITIONS[pos];
+                const heroId = radiantHeroIds[pos - 1];
+                const hero = heroId ? HERO_MAP.get(heroId) : null;
+                const isActiveTarget = activeTargetSlot.team === 'radiant' && activeTargetSlot.pos === pos;
 
-              return (
-                <div 
-                  key={`rad-pos-${pos}`}
-                  className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all ${
-                    hero 
-                      ? 'bg-dota-card/90 border-emerald-500/40 shadow-sm'
-                      : 'bg-dota-bg/60 border-dashed border-emerald-500/30 hover:border-emerald-500/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Pos Badge */}
-                    <div className="w-9 h-9 rounded-xl bg-slate-900 border border-emerald-500/40 flex flex-col items-center justify-center flex-shrink-0">
-                      <span className="text-[9px] font-black uppercase text-emerald-400 leading-none">POS</span>
-                      <span className="text-sm font-black text-white leading-none font-dota">{pos}</span>
+                return (
+                  <div 
+                    key={`rad-pos-${pos}`}
+                    onClick={() => {
+                      setActiveTargetSlot({ team: 'radiant', pos });
+                      SoundEngine.playHover();
+                    }}
+                    className={`h-16 min-h-[64px] max-h-16 flex items-center justify-between px-3 py-1.5 rounded-2xl border transition-all cursor-pointer select-none ${
+                      isActiveTarget
+                        ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-1 ring-dota-gold/80'
+                        : hero 
+                          ? 'bg-dota-card/90 border-emerald-500/40 hover:border-emerald-400' 
+                          : 'bg-dota-bg/60 border-dashed border-emerald-500/30 hover:border-emerald-500/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      {/* Pos Badge */}
+                      <div className={`w-9 h-9 rounded-xl flex flex-col items-center justify-center flex-shrink-0 border transition-all ${
+                        isActiveTarget ? 'bg-amber-950/80 border-dota-gold text-amber-300' : 'bg-slate-900 border-emerald-500/40 text-emerald-400'
+                      }`}>
+                        <span className="text-[8px] font-black uppercase leading-none">POS</span>
+                        <span className="text-sm font-black leading-none font-dota">{pos}</span>
+                      </div>
+
+                      {hero ? (
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onSelectHero) onSelectHero(hero);
+                          }}
+                          className="flex items-center gap-2.5 group overflow-hidden"
+                          title="Click to view full hero guide"
+                        >
+                          <div className="w-11 h-11 rounded-xl overflow-hidden border border-emerald-500/60 relative flex-shrink-0 group-hover:scale-105 transition-transform">
+                            <img src={hero.avatarUrl} alt={hero.name} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="truncate">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="font-dota font-bold text-sm text-slate-100 group-hover:text-emerald-300 transition-colors truncate">
+                                {hero.name}
+                              </span>
+                              <span className={`text-[9px] font-bold px-1 py-0.2 rounded uppercase ${
+                                hero.attribute === 'str' ? 'bg-red-500/20 text-red-300' :
+                                hero.attribute === 'agi' ? 'bg-green-500/20 text-green-300' :
+                                hero.attribute === 'int' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'
+                              }`}>
+                                {hero.attribute}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-2 truncate">
+                              <span>{def.lane}</span>
+                              <span>•</span>
+                              <span className="text-emerald-400 font-bold">{hero.winRate}% WR</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="truncate">
+                          <div className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                            <span>{def.name}</span>
+                            {isActiveTarget && (
+                              <span className="text-[9px] font-black text-amber-300 uppercase px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-500/40">
+                                Target Slot
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500">{def.lane} • Click hero below to pick</div>
+                        </div>
+                      )}
                     </div>
 
-                    {hero ? (
-                      <div 
-                        onClick={() => onSelectHero && onSelectHero(hero)}
-                        className="flex items-center gap-3 cursor-pointer group"
-                      >
-                        <div className="w-12 h-12 rounded-xl overflow-hidden border border-emerald-500/60 relative flex-shrink-0 group-hover:scale-105 transition-transform">
-                          <img src={hero.avatarUrl} alt={hero.name} className="w-full h-full object-cover" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-dota font-bold text-sm text-slate-100 group-hover:text-emerald-300 transition-colors">
-                              {hero.name}
-                            </span>
-                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase ${
-                              hero.attribute === 'str' ? 'bg-red-500/20 text-red-300' :
-                              hero.attribute === 'agi' ? 'bg-green-500/20 text-green-300' :
-                              hero.attribute === 'int' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'
-                            }`}>
-                              {hero.attribute}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-400 flex items-center gap-2">
-                            <span>{def.name} • {def.lane}</span>
-                            <span className="text-emerald-400 font-bold">{hero.winRate}% WR</span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="text-xs font-bold text-slate-300">{def.name}</div>
-                        <div className="text-[11px] text-slate-500">{def.lane} • Vacant Slot</div>
-                      </div>
-                    )}
-                  </div>
+                    {/* Slot Actions */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {hero ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveHero('radiant', 'pick', pos - 1);
+                          }}
+                          className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-red-950/60 text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-500/50 transition-all"
+                          title="Remove Hero"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenPicker('radiant', 'pick', pos, pos - 1);
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-500/50 hover:border-emerald-400 text-xs font-bold transition-all shadow-sm"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Search</span>
+                        </button>
+                      )}
+                    </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-1.5">
-                    {hero ? (
-                      <button
-                        onClick={() => handleRemoveHero('radiant', 'pick', pos - 1)}
-                        className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-red-950/60 text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-500/50 transition-all"
-                        title="Remove Hero"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleOpenPicker('radiant', 'pick', pos, pos - 1)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-500/50 hover:border-emerald-400 text-xs font-bold transition-all shadow-sm"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Pick</span>
-                      </button>
-                    )}
                   </div>
-
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
-          {/* Radiant Bans Bar */}
-          <div className="pt-2 border-t border-emerald-500/20 space-y-2">
+          {/* Radiant Bans Bar - Single line horizontal scrollable */}
+          <div className="pt-2 border-t border-emerald-500/20 space-y-1.5">
             <div className="flex items-center justify-between text-xs font-bold">
               <span className="text-slate-400 flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-red-400" />
@@ -502,20 +625,23 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2 min-h-[38px] p-2 bg-dota-bg/80 rounded-xl border border-dota-border">
+            <div className="flex items-center gap-1.5 h-11 min-h-[44px] max-h-11 overflow-x-auto custom-scrollbar p-1.5 bg-dota-bg/80 rounded-xl border border-dota-border">
               {radiantBanIds.map((banId, idx) => {
                 const hero = HERO_MAP.get(banId);
                 return (
                   <div 
                     key={`rad-ban-${banId}-${idx}`}
-                    className="flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-lg bg-red-950/60 border border-red-500/40 text-red-200 text-xs font-bold group"
+                    className="flex-shrink-0 flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-lg bg-red-950/60 border border-red-500/40 text-red-200 text-xs font-bold"
                   >
                     {hero && (
                       <img src={hero.avatarUrl} alt={hero.name} className="w-5 h-5 rounded-md object-cover grayscale" />
                     )}
                     <span className="line-through">{hero?.name || banId}</span>
                     <button
-                      onClick={() => handleRemoveHero('radiant', 'ban', idx)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveHero('radiant', 'ban', idx);
+                      }}
                       className="ml-1 text-red-400 hover:text-white"
                     >
                       ×
@@ -524,7 +650,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                 );
               })}
               {radiantBanIds.length === 0 && (
-                <span className="text-[11px] text-slate-500 italic py-1">No bans registered. Click + Add Ban to lock out enemy heroes.</span>
+                <span className="text-[11px] text-slate-500 italic px-2">No bans registered. Click + Add Ban to lock out enemy heroes.</span>
               )}
             </div>
           </div>
@@ -532,111 +658,140 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
         </div>
 
         {/* DIRE TEAM (DARKNESS) */}
-        <div className="bg-dota-panel rounded-3xl border-2 border-rose-500/30 p-4 sm:p-5 space-y-4 shadow-xl relative">
-          <div className="flex items-center justify-between border-b border-rose-500/20 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e]" />
-              <h2 className="font-dota font-black text-lg text-rose-300 tracking-wider">
-                THE DIRE
-              </h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-950/60 text-rose-400 border border-rose-500/30">
-                {direHeroIds.length} / 5 Picked
-              </span>
+        <div className="bg-dota-panel rounded-3xl border-2 border-rose-500/30 p-4 sm:p-5 space-y-3.5 shadow-xl relative min-h-[460px] flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between border-b border-rose-500/20 pb-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e]" />
+                <h2 className="font-dota font-black text-lg text-rose-300 tracking-wider">
+                  THE DIRE
+                </h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-950/60 text-rose-400 border border-rose-500/30">
+                  {direHeroIds.length} / 5 Picked
+                </span>
+              </div>
+              {userTeam === 'dire' && (
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                  <Crown className="w-3 h-3 text-amber-400" />
+                  Your Perspective
+                </span>
+              )}
             </div>
-            {userTeam === 'dire' && (
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-                <Crown className="w-3 h-3 text-amber-400" />
-                Your Perspective
-              </span>
-            )}
-          </div>
 
-          {/* 5 Pos Slots */}
-          <div className="space-y-2.5">
-            {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
-              const def = POSITION_DEFINITIONS[pos];
-              const heroId = direHeroIds[pos - 1];
-              const hero = heroId ? HERO_MAP.get(heroId) : null;
+            {/* 5 Pos Slots - Strict Fixed Height (h-16) to eliminate layout shift */}
+            <div className="space-y-2">
+              {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
+                const def = POSITION_DEFINITIONS[pos];
+                const heroId = direHeroIds[pos - 1];
+                const hero = heroId ? HERO_MAP.get(heroId) : null;
+                const isActiveTarget = activeTargetSlot.team === 'dire' && activeTargetSlot.pos === pos;
 
-              return (
-                <div 
-                  key={`dire-pos-${pos}`}
-                  className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all ${
-                    hero 
-                      ? 'bg-dota-card/90 border-rose-500/40 shadow-sm'
-                      : 'bg-dota-bg/60 border-dashed border-rose-500/30 hover:border-rose-500/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Pos Badge */}
-                    <div className="w-9 h-9 rounded-xl bg-slate-900 border border-rose-500/40 flex flex-col items-center justify-center flex-shrink-0">
-                      <span className="text-[9px] font-black uppercase text-rose-400 leading-none">POS</span>
-                      <span className="text-sm font-black text-white leading-none font-dota">{pos}</span>
+                return (
+                  <div 
+                    key={`dire-pos-${pos}`}
+                    onClick={() => {
+                      setActiveTargetSlot({ team: 'dire', pos });
+                      SoundEngine.playHover();
+                    }}
+                    className={`h-16 min-h-[64px] max-h-16 flex items-center justify-between px-3 py-1.5 rounded-2xl border transition-all cursor-pointer select-none ${
+                      isActiveTarget
+                        ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-1 ring-dota-gold/80'
+                        : hero 
+                          ? 'bg-dota-card/90 border-rose-500/40 hover:border-rose-400' 
+                          : 'bg-dota-bg/60 border-dashed border-rose-500/30 hover:border-rose-500/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      {/* Pos Badge */}
+                      <div className={`w-9 h-9 rounded-xl flex flex-col items-center justify-center flex-shrink-0 border transition-all ${
+                        isActiveTarget ? 'bg-amber-950/80 border-dota-gold text-amber-300' : 'bg-slate-900 border-rose-500/40 text-rose-400'
+                      }`}>
+                        <span className="text-[8px] font-black uppercase leading-none">POS</span>
+                        <span className="text-sm font-black leading-none font-dota">{pos}</span>
+                      </div>
+
+                      {hero ? (
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onSelectHero) onSelectHero(hero);
+                          }}
+                          className="flex items-center gap-2.5 group overflow-hidden"
+                          title="Click to view full hero guide"
+                        >
+                          <div className="w-11 h-11 rounded-xl overflow-hidden border border-rose-500/60 relative flex-shrink-0 group-hover:scale-105 transition-transform">
+                            <img src={hero.avatarUrl} alt={hero.name} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="truncate">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="font-dota font-bold text-sm text-slate-100 group-hover:text-rose-300 transition-colors truncate">
+                                {hero.name}
+                              </span>
+                              <span className={`text-[9px] font-bold px-1 py-0.2 rounded uppercase ${
+                                hero.attribute === 'str' ? 'bg-red-500/20 text-red-300' :
+                                hero.attribute === 'agi' ? 'bg-green-500/20 text-green-300' :
+                                hero.attribute === 'int' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'
+                              }`}>
+                                {hero.attribute}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-2 truncate">
+                              <span>{def.lane}</span>
+                              <span>•</span>
+                              <span className="text-rose-400 font-bold">{hero.winRate}% WR</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="truncate">
+                          <div className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                            <span>{def.name}</span>
+                            {isActiveTarget && (
+                              <span className="text-[9px] font-black text-amber-300 uppercase px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-500/40">
+                                Target Slot
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500">{def.lane} • Click hero below to pick</div>
+                        </div>
+                      )}
                     </div>
 
-                    {hero ? (
-                      <div 
-                        onClick={() => onSelectHero && onSelectHero(hero)}
-                        className="flex items-center gap-3 cursor-pointer group"
-                      >
-                        <div className="w-12 h-12 rounded-xl overflow-hidden border border-rose-500/60 relative flex-shrink-0 group-hover:scale-105 transition-transform">
-                          <img src={hero.avatarUrl} alt={hero.name} className="w-full h-full object-cover" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-dota font-bold text-sm text-slate-100 group-hover:text-rose-300 transition-colors">
-                              {hero.name}
-                            </span>
-                            <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase ${
-                              hero.attribute === 'str' ? 'bg-red-500/20 text-red-300' :
-                              hero.attribute === 'agi' ? 'bg-green-500/20 text-green-300' :
-                              hero.attribute === 'int' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'
-                            }`}>
-                              {hero.attribute}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-400 flex items-center gap-2">
-                            <span>{def.name} • {def.lane}</span>
-                            <span className="text-rose-400 font-bold">{hero.winRate}% WR</span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="text-xs font-bold text-slate-300">{def.name}</div>
-                        <div className="text-[11px] text-slate-500">{def.lane} • Vacant Slot</div>
-                      </div>
-                    )}
-                  </div>
+                    {/* Slot Actions */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {hero ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveHero('dire', 'pick', pos - 1);
+                          }}
+                          className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-red-950/60 text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-500/50 transition-all"
+                          title="Remove Hero"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenPicker('dire', 'pick', pos, pos - 1);
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-500/50 hover:border-rose-400 text-xs font-bold transition-all shadow-sm"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Search</span>
+                        </button>
+                      )}
+                    </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-1.5">
-                    {hero ? (
-                      <button
-                        onClick={() => handleRemoveHero('dire', 'pick', pos - 1)}
-                        className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-red-950/60 text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-500/50 transition-all"
-                        title="Remove Hero"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleOpenPicker('dire', 'pick', pos, pos - 1)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-500/50 hover:border-rose-400 text-xs font-bold transition-all shadow-sm"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Pick</span>
-                      </button>
-                    )}
                   </div>
-
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
-          {/* Dire Bans Bar */}
-          <div className="pt-2 border-t border-rose-500/20 space-y-2">
+          {/* Dire Bans Bar - Single line horizontal scrollable */}
+          <div className="pt-2 border-t border-rose-500/20 space-y-1.5">
             <div className="flex items-center justify-between text-xs font-bold">
               <span className="text-slate-400 flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-red-400" />
@@ -652,20 +807,23 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2 min-h-[38px] p-2 bg-dota-bg/80 rounded-xl border border-dota-border">
+            <div className="flex items-center gap-1.5 h-11 min-h-[44px] max-h-11 overflow-x-auto custom-scrollbar p-1.5 bg-dota-bg/80 rounded-xl border border-dota-border">
               {direBanIds.map((banId, idx) => {
                 const hero = HERO_MAP.get(banId);
                 return (
                   <div 
                     key={`dire-ban-${banId}-${idx}`}
-                    className="flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-lg bg-red-950/60 border border-red-500/40 text-red-200 text-xs font-bold group"
+                    className="flex-shrink-0 flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-lg bg-red-950/60 border border-red-500/40 text-red-200 text-xs font-bold"
                   >
                     {hero && (
                       <img src={hero.avatarUrl} alt={hero.name} className="w-5 h-5 rounded-md object-cover grayscale" />
                     )}
                     <span className="line-through">{hero?.name || banId}</span>
                     <button
-                      onClick={() => handleRemoveHero('dire', 'ban', idx)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveHero('dire', 'ban', idx);
+                      }}
                       className="ml-1 text-red-400 hover:text-white"
                     >
                       ×
@@ -674,7 +832,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                 );
               })}
               {direBanIds.length === 0 && (
-                <span className="text-[11px] text-slate-500 italic py-1">No bans registered. Click + Add Ban to input enemy bans.</span>
+                <span className="text-[11px] text-slate-500 italic px-2">No bans registered. Click + Add Ban to input enemy bans.</span>
               )}
             </div>
           </div>
@@ -684,13 +842,43 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       </div>
 
       {/* ========================================================= */}
-      {/* 3. PREDICTIVE ANALYSIS SECTION (TABS)                     */}
+      {/* 3. PREDICTIVE ANALYSIS & HERO SELECTION SECTION (TABS)    */}
       {/* ========================================================= */}
       <div className="bg-dota-panel rounded-3xl border-2 border-dota-border overflow-hidden shadow-2xl">
         
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs Bar */}
         <div className="flex items-center border-b border-dota-border bg-dota-card/50 overflow-x-auto p-1.5 gap-2">
           
+          <button
+            onClick={() => {
+              SoundEngine.playHover();
+              setActiveAnalysisTab('suggestions');
+            }}
+            className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+              activeAnalysisTab === 'suggestions'
+                ? 'bg-gradient-to-r from-emerald-500/25 to-teal-500/25 text-emerald-300 border border-emerald-500/60 shadow-dota-glow font-black'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
+            }`}
+          >
+            <Target className="w-4 h-4 text-emerald-400" />
+            <span>🎯 Optimal Picks & Counter Bans</span>
+          </button>
+
+          <button
+            onClick={() => {
+              SoundEngine.playHover();
+              setActiveAnalysisTab('arsenal');
+            }}
+            className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+              activeAnalysisTab === 'arsenal'
+                ? 'bg-gradient-to-r from-indigo-500/25 to-blue-500/25 text-indigo-300 border border-indigo-500/60 shadow-dota-mana font-black'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
+            }`}
+          >
+            <Grid className="w-4 h-4 text-indigo-400" />
+            <span>🎮 Hero Arsenal (Quick Picker)</span>
+          </button>
+
           <button
             onClick={() => {
               SoundEngine.playHover();
@@ -714,46 +902,316 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
           <button
             onClick={() => {
               SoundEngine.playHover();
-              setActiveAnalysisTab('suggestions');
-            }}
-            className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-              activeAnalysisTab === 'suggestions'
-                ? 'bg-gradient-to-r from-indigo-500/25 to-blue-500/25 text-indigo-300 border border-indigo-500/60 shadow-dota-mana font-black'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
-            }`}
-          >
-            <Target className="w-4 h-4 text-indigo-400" />
-            <span>🎯 AI Ban & Pick Suggestions</span>
-          </button>
-
-          <button
-            onClick={() => {
-              SoundEngine.playHover();
               setActiveAnalysisTab('tactical');
             }}
             className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
               activeAnalysisTab === 'tactical'
-                ? 'bg-gradient-to-r from-emerald-500/25 to-teal-500/25 text-emerald-300 border border-emerald-500/60 shadow-dota-glow font-black'
+                ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/25 text-cyan-300 border border-cyan-500/60 shadow font-black'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
             }`}
           >
-            <Swords className="w-4 h-4 text-emerald-400" />
-            <span>⚔️ Lane Matchups & Tactical Plan</span>
+            <Swords className="w-4 h-4 text-cyan-400" />
+            <span>⚔️ Lane Forecast & Strategy</span>
           </button>
 
         </div>
 
-        {/* TAB CONTENT */}
-        <div className="p-5 sm:p-7 space-y-6">
+        {/* TAB CONTENT - STABLE CONTAINERS WITH ZERO JUMP */}
+        <div className="p-5 sm:p-6 space-y-6">
 
           {/* ========================================================= */}
-          {/* TAB 1: BAN INTENT & PREDICTED LINEUP                      */}
+          {/* TAB 1: OPTIMAL PICKS (PLACED FIRST!) & COUNTER BANS       */}
+          {/* ========================================================= */}
+          {activeAnalysisTab === 'suggestions' && (
+            <div className="space-y-7 animate-fadeIn">
+              
+              {/* PICKS FIRST: Never gets pushed down by bans! */}
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300">
+                      <Target className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-dota font-bold text-lg text-slate-100 flex items-center gap-2">
+                        OPTIMAL PICKS FOR {userTeam.toUpperCase()}
+                        <span className="text-xs font-mono font-bold text-amber-300 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40">
+                          Targeting Pos {activeTargetSlot.pos}
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        1-Click pick immediately slots into your active target slot ({POSITION_DEFINITIONS[activeTargetSlot.pos].name})
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Position Filter Tabs */}
+                  <div className="flex items-center gap-1 bg-dota-bg p-1 rounded-xl border border-dota-border overflow-x-auto text-[11px]">
+                    <button
+                      onClick={() => setSuggestionRoleFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap ${
+                        suggestionRoleFilter === 'all'
+                          ? 'bg-dota-gold text-slate-950 shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      All Roles
+                    </button>
+                    {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => (
+                      <button
+                        key={`sugg-filter-${pos}`}
+                        onClick={() => {
+                          setSuggestionRoleFilter(pos);
+                          setActiveTargetSlot({ team: userTeam, pos });
+                        }}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap ${
+                          suggestionRoleFilter === pos || activeTargetSlot.pos === pos
+                            ? 'bg-dota-gold text-slate-950 shadow-sm'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Pos {pos}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Picks Grid - Stable min-h to prevent layout bounce */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[300px]">
+                  {analysis.suggestedPicks
+                    .filter((p) => suggestionRoleFilter === 'all' || p.pos === suggestionRoleFilter)
+                    .slice(0, 6)
+                    .map((pick, i) => (
+                      <div
+                        key={`pick-sugg-${pick.hero.id}-${i}`}
+                        className="p-4 rounded-2xl bg-dota-card border border-emerald-500/30 hover:border-emerald-500/60 transition-all space-y-3 shadow-md flex flex-col justify-between group"
+                      >
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                              {pick.roleName}
+                            </span>
+                            <div className="flex items-center gap-1 text-xs font-mono font-black text-amber-300">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                              <span>{pick.score}/100 Match</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <img src={pick.hero.avatarUrl} alt={pick.hero.name} className="w-12 h-12 rounded-xl object-cover border border-emerald-500/60 flex-shrink-0 group-hover:scale-105 transition-transform" />
+                            <div>
+                              <div className="font-dota font-bold text-sm text-slate-100">{pick.hero.name}</div>
+                              <div className="text-[11px] text-emerald-400 font-bold">{pick.winRate}% Win Rate</div>
+                            </div>
+                          </div>
+
+                          {/* Tactical Reasons */}
+                          <div className="space-y-1.5 text-[11px]">
+                            {pick.reasons.map((r, ri) => (
+                              <div key={ri} className="flex items-start gap-1.5 text-slate-300">
+                                <span className="text-emerald-400 font-bold">•</span>
+                                <span>{r}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+                          <button
+                            onClick={() => onSelectHero && onSelectHero(pick.hero)}
+                            className="text-xs text-slate-400 hover:text-white font-bold"
+                          >
+                            Inspect Build →
+                          </button>
+                          <button
+                            onClick={(e) => handlePickSuggested(e, pick.hero.id, pick.pos)}
+                            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition-all shadow-md active:scale-95"
+                          >
+                            Pick for {userTeam === 'radiant' ? 'Radiant' : 'Dire'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              {/* RECOMMENDED BANS */}
+              <div className="space-y-4 pt-5 border-t border-slate-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-dota font-bold text-lg text-slate-100">
+                        RECOMMENDED BANS FOR {userTeam.toUpperCase()}
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Counters to your drafted cores, enemy combo enablers, and telegraphed enemy picks
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {analysis.suggestedBans.map((ban, i) => (
+                    <div 
+                      key={`ban-sugg-${ban.hero.id}-${i}`}
+                      className="p-4 rounded-2xl bg-dota-card border border-red-500/30 hover:border-red-500/60 transition-all space-y-3 shadow-md flex flex-col justify-between"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                            ban.priority === 'CRITICAL' ? 'bg-red-950 text-red-300 border-red-500' :
+                            ban.priority === 'HIGH' ? 'bg-amber-950 text-amber-300 border-amber-500' :
+                            'bg-slate-900 text-slate-300 border-slate-700'
+                          }`}>
+                            {ban.priority} PRIORITY
+                          </span>
+                          <span className="text-[11px] font-mono text-slate-400">
+                            Impact: <strong className="text-amber-300">{ban.impactScore}/100</strong>
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <img src={ban.hero.avatarUrl} alt={ban.hero.name} className="w-12 h-12 rounded-xl object-cover border border-red-500/50 flex-shrink-0" />
+                          <div>
+                            <div className="font-dota font-bold text-sm text-slate-100">{ban.hero.name}</div>
+                            <div className="text-[10px] text-red-300 font-bold uppercase">{ban.category}</div>
+                          </div>
+                        </div>
+
+                        <p className="text-[11px] text-slate-300 leading-snug">
+                          {ban.reason}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400">{ban.hero.winRate}% Win Rate</span>
+                        <button
+                          onClick={(e) => handleBanHero(e, ban.hero.id)}
+                          className="px-3 py-1 rounded-lg bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-500/50 text-xs font-bold transition-all shadow-sm active:scale-95"
+                        >
+                          Ban This Hero
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* TAB 2: HERO ARSENAL (INLINE QUICK PICKER)                 */}
+          {/* ========================================================= */}
+          {activeAnalysisTab === 'arsenal' && (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div>
+                  <h3 className="font-dota font-bold text-lg text-slate-100 flex items-center gap-2">
+                    <span>1-CLICK HERO ARSENAL</span>
+                    <span className="text-xs font-mono font-bold text-indigo-300 px-2 py-0.5 rounded-md bg-indigo-500/20 border border-indigo-500/40">
+                      Target: {activeTargetSlot.team.toUpperCase()} Pos {activeTargetSlot.pos}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Click any hero to instantly draft into {activeTargetSlot.team.toUpperCase()} Pos {activeTargetSlot.pos} ({POSITION_DEFINITIONS[activeTargetSlot.pos].name})
+                  </p>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative w-52 sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search 128 heroes..."
+                      value={arsenalSearch}
+                      onChange={(e) => setArsenalSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 bg-dota-bg border border-dota-border rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-dota-gold"
+                    />
+                  </div>
+
+                  {/* Attribute pills */}
+                  <div className="flex items-center gap-1 bg-dota-bg p-1 rounded-xl border border-dota-border text-xs">
+                    {(['all', 'str', 'agi', 'int', 'all'] as (AttributeType | 'all')[]).slice(0, 4).map((attr, idx) => (
+                      <button
+                        key={`attr-arsenal-${idx}`}
+                        onClick={() => setArsenalAttr(attr)}
+                        className={`px-2 py-0.5 rounded-lg font-bold uppercase text-[11px] transition-all ${
+                          arsenalAttr === attr ? 'bg-dota-gold text-slate-950 font-black' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {attr === 'all' ? 'All' : attr}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Role pills */}
+                  <div className="flex items-center gap-1 bg-dota-bg p-1 rounded-xl border border-dota-border text-xs overflow-x-auto">
+                    {(['all', 'Carry', 'Mid', 'Offlane', 'Soft Support', 'Hard Support'] as (RoleType | 'all')[]).map((role, idx) => (
+                      <button
+                        key={`role-arsenal-${idx}`}
+                        onClick={() => setArsenalRole(role)}
+                        className={`px-2 py-0.5 rounded-lg font-bold uppercase text-[11px] transition-all whitespace-nowrap ${
+                          arsenalRole === role ? 'bg-indigo-500 text-white font-black' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {role === 'all' ? 'All' : role.replace(' Support', '')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Arsenal Grid Scrollable - Zero dropping down */}
+              <div className="max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                  {arsenalHeroes.map((hero) => {
+                    const isSelected = allSelectedIds.has(hero.id);
+
+                    return (
+                      <button
+                        key={`arsenal-hero-${hero.id}`}
+                        disabled={isSelected}
+                        onClick={(e) => handlePickFromArsenal(e, hero.id)}
+                        className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? 'opacity-30 cursor-not-allowed bg-slate-950 border-slate-900'
+                            : 'bg-dota-card hover:bg-slate-800 border-dota-border hover:border-dota-gold/70 hover:scale-[1.02] shadow-sm'
+                        }`}
+                        title={isSelected ? 'Already drafted or banned' : `Pick ${hero.name} for ${activeTargetSlot.team.toUpperCase()} Pos ${activeTargetSlot.pos}`}
+                      >
+                        <img src={hero.avatarUrl} alt={hero.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+                        <div className="truncate flex-1">
+                          <div className="font-dota font-bold text-xs text-slate-100 truncate">{hero.name}</div>
+                          <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                            <span className={`uppercase font-bold ${
+                              hero.attribute === 'str' ? 'text-red-400' :
+                              hero.attribute === 'agi' ? 'text-green-400' :
+                              hero.attribute === 'int' ? 'text-blue-400' : 'text-purple-400'
+                            }`}>{hero.attribute}</span>
+                            <span className="text-emerald-400 font-semibold">{hero.winRate}%</span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* TAB 3: BAN INTENT & PREDICTED LINEUP                      */}
           {/* ========================================================= */}
           {activeAnalysisTab === 'bans_intent' && (
-            <div className="space-y-8 animate-fadeIn">
+            <div className="space-y-7 animate-fadeIn">
               
               {/* Ban Intent Decryption Card */}
-              <div className="bg-gradient-to-br from-dota-card to-dota-bg rounded-2xl border-2 border-amber-500/30 p-5 sm:p-6 space-y-5 shadow-lg relative overflow-hidden">
+              <div className="bg-gradient-to-br from-dota-card to-dota-bg rounded-2xl border-2 border-amber-500/30 p-5 sm:p-6 space-y-4 shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
                 <div className="flex items-center justify-between">
@@ -850,7 +1308,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
               </div>
 
               {/* Lineup Missing Roles Prediction Card */}
-              <div className="bg-gradient-to-br from-dota-card to-dota-bg rounded-2xl border-2 border-rose-500/30 p-5 sm:p-6 space-y-5 shadow-lg">
+              <div className="bg-gradient-to-br from-dota-card to-dota-bg rounded-2xl border-2 border-rose-500/30 p-5 sm:p-6 space-y-4 shadow-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="p-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300">
@@ -929,11 +1387,12 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                           <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px]">
                             <span className="text-slate-400">Win Rate: <strong className="text-emerald-400">{pred.hero.winRate}%</strong></span>
                             <button
-                              onClick={() => {
-                                setDireHeroIds([...direHeroIds, pred.hero.id]);
-                                SoundEngine.playPick();
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                assignHeroToTeam('dire', pred.predictedPos, pred.hero.id);
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-500/40 font-bold transition-all"
+                              className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-500/40 font-bold transition-all active:scale-95"
                             >
                               Assign to Dire
                             </button>
@@ -954,202 +1413,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
           )}
 
           {/* ========================================================= */}
-          {/* TAB 2: AI BAN & PICK SUGGESTIONS                          */}
-          {/* ========================================================= */}
-          {activeAnalysisTab === 'suggestions' && (
-            <div className="space-y-8 animate-fadeIn">
-              
-              {/* SUGGESTED BANS */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300">
-                      <Lock className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-dota font-bold text-lg text-slate-100">
-                        RECOMMENDED BANS FOR {userTeam.toUpperCase()}
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Prioritizes heroes that hard-counter your drafted cores, disrupt enemy combos, or deny telegraphed picks
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {analysis.suggestedBans.map((ban, i) => (
-                    <div 
-                      key={`ban-sugg-${ban.hero.id}-${i}`}
-                      className="p-4 rounded-2xl bg-dota-card border border-red-500/30 hover:border-red-500/60 transition-all space-y-3 shadow-md flex flex-col justify-between"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                            ban.priority === 'CRITICAL' ? 'bg-red-950 text-red-300 border-red-500' :
-                            ban.priority === 'HIGH' ? 'bg-amber-950 text-amber-300 border-amber-500' :
-                            'bg-slate-900 text-slate-300 border-slate-700'
-                          }`}>
-                            {ban.priority} PRIORITY
-                          </span>
-                          <span className="text-[11px] font-mono text-slate-400">
-                            Impact: <strong className="text-amber-300">{ban.impactScore}/100</strong>
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <img src={ban.hero.avatarUrl} alt={ban.hero.name} className="w-12 h-12 rounded-xl object-cover border border-red-500/50 flex-shrink-0" />
-                          <div>
-                            <div className="font-dota font-bold text-sm text-slate-100">{ban.hero.name}</div>
-                            <div className="text-[10px] text-red-300 font-bold uppercase">{ban.category}</div>
-                          </div>
-                        </div>
-
-                        <p className="text-[11px] text-slate-300 leading-snug">
-                          {ban.reason}
-                        </p>
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                        <span className="text-[10px] text-slate-400">{ban.hero.winRate}% Win Rate</span>
-                        <button
-                          onClick={() => {
-                            if (userTeam === 'radiant') {
-                              if (!radiantBanIds.includes(ban.hero.id)) setRadiantBanIds([...radiantBanIds, ban.hero.id]);
-                            } else {
-                              if (!direBanIds.includes(ban.hero.id)) setDireBanIds([...direBanIds, ban.hero.id]);
-                            }
-                            SoundEngine.playPick();
-                          }}
-                          className="px-3 py-1 rounded-lg bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-500/50 text-xs font-bold transition-all shadow-sm"
-                        >
-                          Ban This Hero
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* SUGGESTED PICKS */}
-              <div className="space-y-4 pt-4 border-t border-dota-border">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300">
-                      <Target className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-dota font-bold text-lg text-slate-100">
-                        OPTIMAL PICKS FOR {userTeam.toUpperCase()}
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Highest value picks considering enemy counters, synergy with allies, and team balance
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Position Filter Tabs */}
-                  <div className="flex items-center gap-1 bg-dota-bg p-1 rounded-xl border border-dota-border overflow-x-auto text-[11px]">
-                    <button
-                      onClick={() => setSuggestionRoleFilter('all')}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap ${
-                        suggestionRoleFilter === 'all'
-                          ? 'bg-dota-gold text-slate-950 shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      All Roles
-                    </button>
-                    {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => (
-                      <button
-                        key={`sugg-filter-${pos}`}
-                        onClick={() => setSuggestionRoleFilter(pos)}
-                        className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap ${
-                          suggestionRoleFilter === pos
-                            ? 'bg-dota-gold text-slate-950 shadow-sm'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        Pos {pos}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Picks Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {analysis.suggestedPicks
-                    .filter((p) => suggestionRoleFilter === 'all' || p.pos === suggestionRoleFilter)
-                    .slice(0, 6)
-                    .map((pick, i) => (
-                      <div
-                        key={`pick-sugg-${pick.hero.id}-${i}`}
-                        className="p-4 rounded-2xl bg-dota-card border border-emerald-500/30 hover:border-emerald-500/60 transition-all space-y-3 shadow-md flex flex-col justify-between group"
-                      >
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-                              {pick.roleName}
-                            </span>
-                            <div className="flex items-center gap-1 text-xs font-mono font-black text-amber-300">
-                              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                              <span>{pick.score}/100 Match</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <img src={pick.hero.avatarUrl} alt={pick.hero.name} className="w-12 h-12 rounded-xl object-cover border border-emerald-500/60 flex-shrink-0 group-hover:scale-105 transition-transform" />
-                            <div>
-                              <div className="font-dota font-bold text-sm text-slate-100">{pick.hero.name}</div>
-                              <div className="text-[11px] text-emerald-400 font-bold">{pick.winRate}% Win Rate</div>
-                            </div>
-                          </div>
-
-                          {/* Tactical Reasons */}
-                          <div className="space-y-1.5 text-[11px]">
-                            {pick.reasons.map((r, ri) => (
-                              <div key={ri} className="flex items-start gap-1.5 text-slate-300">
-                                <span className="text-emerald-400 font-bold">•</span>
-                                <span>{r}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-                          <button
-                            onClick={() => onSelectHero && onSelectHero(pick.hero)}
-                            className="text-xs text-slate-400 hover:text-white font-bold"
-                          >
-                            Inspect Build →
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (userTeam === 'radiant') {
-                                if (radiantHeroIds.length < 5) setRadiantHeroIds([...radiantHeroIds, pick.hero.id]);
-                              } else {
-                                if (direHeroIds.length < 5) setDireHeroIds([...direHeroIds, pick.hero.id]);
-                              }
-                              SoundEngine.playPick();
-                            }}
-                            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs transition-all shadow-md"
-                          >
-                            Pick for {userTeam === 'radiant' ? 'Radiant' : 'Dire'}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* ========================================================= */}
-          {/* TAB 3: TACTICAL ADVANTAGE & LANE FORECAST                 */}
+          {/* TAB 4: TACTICAL ADVANTAGE & LANE FORECAST                 */}
           {/* ========================================================= */}
           {activeAnalysisTab === 'tactical' && (
-            <div className="space-y-8 animate-fadeIn">
+            <div className="space-y-7 animate-fadeIn">
               
               {/* Lane Forecast Cards */}
               <div className="space-y-4">
@@ -1373,7 +1640,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                     <button
                       key={`modal-hero-${hero.id}`}
                       disabled={isSelected}
-                      onClick={() => handleAssignHero(hero.id)}
+                      onClick={() => handleAssignHeroFromModal(hero.id)}
                       className={`flex items-center gap-2.5 p-2 rounded-xl border text-left transition-all ${
                         isSelected
                           ? 'opacity-35 cursor-not-allowed bg-slate-900 border-slate-800'
