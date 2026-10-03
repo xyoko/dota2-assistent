@@ -4,6 +4,7 @@ import { HEROES_DATA, HERO_MAP } from '../data/heroes';
 import { HeroData, AttributeType } from '../types/hero';
 import { 
   runPredictive5v5Analysis, 
+  suggestPicks,
   POSITION_DEFINITIONS, 
   PositionNumber, 
   Predictive5v5Analysis 
@@ -25,20 +26,24 @@ import {
   Crown, 
   Lock, 
   Trash2,
-  Crosshair
+  Crosshair,
+  Star
 } from 'lucide-react';
 
 interface PredictiveDraft5v5Props {
   onSelectHero?: (hero: HeroData) => void;
 }
 
-// Preset drafts for immediate 1-click testing
+// Dedicated 5-slot array: index 0 = Pos 1, 1 = Pos 2, 2 = Pos 3, 3 = Pos 4, 4 = Pos 5
+export type DedicatedSlots = [string | null, string | null, string | null, string | null, string | null];
+
+// Preset drafts with dedicated slot assignments
 interface PresetScenario {
   id: string;
   name: string;
   description: string;
-  radiantHeroIds: string[];
-  direHeroIds: string[];
+  radiantSlots: DedicatedSlots;
+  direSlots: DedicatedSlots;
   radiantBanIds: string[];
   direBanIds: string[];
 }
@@ -48,8 +53,8 @@ const PRESET_SCENARIOS: PresetScenario[] = [
     id: 'ban_telegraph_am',
     name: 'AM & Nyx Banned',
     description: 'Dire banned Anti-Mage and Nyx. Oracle decrypts incoming Medusa / Storm Spirit mana-shield core.',
-    radiantHeroIds: ['sven', 'storm_spirit', 'lion'],
-    direHeroIds: ['faceless_void', 'witch_doctor'],
+    radiantSlots: ['sven', 'storm_spirit', 'lion', null, null],
+    direSlots: ['faceless_void', null, null, null, 'witch_doctor'],
     radiantBanIds: ['pudge'],
     direBanIds: ['anti_mage', 'nyx_assassin']
   },
@@ -57,8 +62,8 @@ const PRESET_SCENARIOS: PresetScenario[] = [
     id: 'teamfight_clash',
     name: 'TI Wombo Combo',
     description: 'Classic 5v5 teamfight clash: Void + Witch Doctor vs Sven + Lion + Windranger.',
-    radiantHeroIds: ['sven', 'storm_spirit', 'lion', 'windranger'],
-    direHeroIds: ['faceless_void', 'witch_doctor', 'axe', 'phantom_assassin'],
+    radiantSlots: ['sven', 'storm_spirit', 'lion', 'windranger', null],
+    direSlots: ['faceless_void', null, 'axe', null, 'witch_doctor'],
     radiantBanIds: ['drow_ranger', 'pudge'],
     direBanIds: ['anti_mage', 'legion_commander']
   },
@@ -66,8 +71,8 @@ const PRESET_SCENARIOS: PresetScenario[] = [
     id: 'sustain_ban_aa',
     name: 'AA Banned (Sustain)',
     description: 'Dire banned Ancient Apparition. Oracle predicts high-regen Morphling / Huskar.',
-    radiantHeroIds: ['drow_ranger', 'witch_doctor'],
-    direHeroIds: ['axe'],
+    radiantSlots: ['drow_ranger', null, null, null, 'witch_doctor'],
+    direSlots: [null, null, 'axe', null, null],
     radiantBanIds: ['storm_spirit'],
     direBanIds: ['ancient_apparition', 'drow_ranger']
   },
@@ -75,17 +80,17 @@ const PRESET_SCENARIOS: PresetScenario[] = [
     id: 'blank_canvas',
     name: 'Clean Draft',
     description: 'Empty board for customized Captains Mode and ranked predictive analysis.',
-    radiantHeroIds: [],
-    direHeroIds: [],
+    radiantSlots: [null, null, null, null, null],
+    direSlots: [null, null, null, null, null],
     radiantBanIds: [],
     direBanIds: []
   }
 ];
 
 export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelectHero }) => {
-  // Radiant & Dire Picks (up to 5 heroes each)
-  const [radiantHeroIds, setRadiantHeroIds] = useState<string[]>(['sven', 'storm_spirit', 'lion']);
-  const [direHeroIds, setDireHeroIds] = useState<string[]>(['faceless_void', 'witch_doctor']);
+  // Dedicated 5 slots per team (Pos 1 = Safe Carry, Pos 2 = Mid, Pos 3 = Offlane, Pos 4 = Soft Support, Pos 5 = Hard Support)
+  const [radiantSlots, setRadiantSlots] = useState<DedicatedSlots>(['sven', 'storm_spirit', 'lion', null, null]);
+  const [direSlots, setDireSlots] = useState<DedicatedSlots>(['faceless_void', null, null, null, 'witch_doctor']);
 
   // Bans (up to 7 bans each)
   const [radiantBanIds, setRadiantBanIds] = useState<string[]>(['pudge']);
@@ -94,7 +99,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
   // Active Perspective: 'radiant' or 'dire'
   const [userTeam, setUserTeam] = useState<'radiant' | 'dire'>('radiant');
 
-  // Currently targeted slot for inline hero assignment
+  // Currently targeted dedicated slot for hero assignment
   const [activeTargetSlot, setActiveTargetSlot] = useState<{
     team: 'radiant' | 'dire';
     pos: PositionNumber;
@@ -103,7 +108,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
   // Mode for the inline selection pool: 'pick' or 'ban'
   const [activeTargetMode, setActiveTargetMode] = useState<'pick' | 'ban'>('pick');
 
-  // Inline Hero Pool search & filter states (like Draft Studio)
+  // Role filtering mode in hero pool: 'dedicated' (shows corresponding heroes first) or 'all'
+  const [heroPoolRoleFilter, setHeroPoolRoleFilter] = useState<'dedicated' | 'all'>('dedicated');
+
+  // Inline Hero Pool search & filter states
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [heroPoolAttr, setHeroPoolAttr] = useState<AttributeType | 'all'>('all');
 
@@ -113,61 +121,123 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
   // Pick suggestions filter by position
   const [suggestionRoleFilter, setSuggestionRoleFilter] = useState<PositionNumber | 'all'>('all');
 
-  // Search Modal state (identical to Draft Studio)
+  // Search Modal state
   const [modalTarget, setModalTarget] = useState<{
     team: 'radiant' | 'dire';
     type: 'pick' | 'ban';
     pos?: PositionNumber;
-    slotIndex?: number;
   } | null>(null);
 
   const [modalSearch, setModalSearch] = useState<string>('');
   const [modalAttr, setModalAttr] = useState<AttributeType | 'all'>('all');
+  const [modalRoleFilter, setModalRoleFilter] = useState<'dedicated' | 'all'>('dedicated');
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Run the Predictive Engine
+  // Dedicated role for active target slot
+  const targetDef = POSITION_DEFINITIONS[activeTargetSlot.pos];
+  const targetRole = targetDef.role;
+
+  // Run the Predictive Engine using dedicated slots
   const analysis: Predictive5v5Analysis = useMemo(() => {
     return runPredictive5v5Analysis(
-      radiantHeroIds,
-      direHeroIds,
+      radiantSlots,
+      direSlots,
       radiantBanIds,
       direBanIds
     );
-  }, [radiantHeroIds, direHeroIds, radiantBanIds, direBanIds]);
+  }, [radiantSlots, direSlots, radiantBanIds, direBanIds]);
 
   // Set of all selected hero IDs (picks and bans across both teams)
   const allSelectedIds = useMemo(() => {
-    return new Set([...radiantHeroIds, ...direHeroIds, ...radiantBanIds, ...direBanIds]);
-  }, [radiantHeroIds, direHeroIds, radiantBanIds, direBanIds]);
+    const picks = [...radiantSlots, ...direSlots].filter((id): id is string => Boolean(id));
+    return new Set([...picks, ...radiantBanIds, ...direBanIds]);
+  }, [radiantSlots, direSlots, radiantBanIds, direBanIds]);
+
+  // AI-recommended counter & synergy picks specifically for the targeted dedicated slot
+  const slotRecommendations = useMemo(() => {
+    if (activeTargetMode === 'ban') return [];
+
+    const myPicks = (activeTargetSlot.team === 'radiant' ? radiantSlots : direSlots)
+      .map((id) => (id ? HERO_MAP.get(id) : null))
+      .filter((h): h is HeroData => Boolean(h));
+
+    const enemyPicks = (activeTargetSlot.team === 'radiant' ? direSlots : radiantSlots)
+      .map((id) => (id ? HERO_MAP.get(id) : null))
+      .filter((h): h is HeroData => Boolean(h));
+
+    const allBans = [...radiantBanIds, ...direBanIds]
+      .map((id) => HERO_MAP.get(id))
+      .filter((h): h is HeroData => Boolean(h));
+
+    return suggestPicks(myPicks, enemyPicks, allBans, activeTargetSlot.pos);
+  }, [radiantSlots, direSlots, radiantBanIds, direBanIds, activeTargetSlot, activeTargetMode]);
+
+  // Recommendation score lookup map
+  const slotRecScoreMap = useMemo(() => {
+    const map = new Map<string, number>();
+    slotRecommendations.forEach((s) => map.set(s.hero.id, s.score));
+    return map;
+  }, [slotRecommendations]);
+
+  // Recommendations for the modal target slot
+  const modalTargetPos = modalTarget?.pos || activeTargetSlot.pos;
+  const modalTargetDef = POSITION_DEFINITIONS[modalTargetPos];
+  const modalTargetRole = modalTargetDef.role;
+
+  const modalRecommendations = useMemo(() => {
+    if (!modalTarget || modalTarget.type === 'ban') return [];
+
+    const myPicks = (modalTarget.team === 'radiant' ? radiantSlots : direSlots)
+      .map((id) => (id ? HERO_MAP.get(id) : null))
+      .filter((h): h is HeroData => Boolean(h));
+
+    const enemyPicks = (modalTarget.team === 'radiant' ? direSlots : radiantSlots)
+      .map((id) => (id ? HERO_MAP.get(id) : null))
+      .filter((h): h is HeroData => Boolean(h));
+
+    const allBans = [...radiantBanIds, ...direBanIds]
+      .map((id) => HERO_MAP.get(id))
+      .filter((h): h is HeroData => Boolean(h));
+
+    return suggestPicks(myPicks, enemyPicks, allBans, modalTargetPos);
+  }, [modalTarget, radiantSlots, direSlots, radiantBanIds, direBanIds, modalTargetPos]);
+
+  const modalRecScoreMap = useMemo(() => {
+    const map = new Map<string, number>();
+    modalRecommendations.forEach((s) => map.set(s.hero.id, s.score));
+    return map;
+  }, [modalRecommendations]);
 
   // Preset loading
   const handleLoadPreset = (preset: PresetScenario) => {
     SoundEngine.playPick();
-    setRadiantHeroIds(preset.radiantHeroIds);
-    setDireHeroIds(preset.direHeroIds);
-    setRadiantBanIds(preset.radiantBanIds);
-    setDireBanIds(preset.direBanIds);
-    setActiveTargetSlot({ 
-      team: 'radiant', 
-      pos: (Math.min(5, preset.radiantHeroIds.length + 1) as PositionNumber) 
-    });
+    setRadiantSlots([...preset.radiantSlots]);
+    setDireSlots([...preset.direSlots]);
+    setRadiantBanIds([...preset.radiantBanIds]);
+    setDireBanIds([...preset.direBanIds]);
+
+    // Focus on first vacant Radiant slot
+    const firstEmpty = ([1, 2, 3, 4, 5] as PositionNumber[]).find((p) => preset.radiantSlots[p - 1] === null) || 1;
+    setActiveTargetSlot({ team: 'radiant', pos: firstEmpty });
     setActiveTargetMode('pick');
+    setHeroPoolRoleFilter('dedicated');
   };
 
   // Clear draft
   const handleClearDraft = () => {
     SoundEngine.playHover();
-    setRadiantHeroIds([]);
-    setDireHeroIds([]);
+    setRadiantSlots([null, null, null, null, null]);
+    setDireSlots([null, null, null, null, null]);
     setRadiantBanIds([]);
     setDireBanIds([]);
     setActiveTargetSlot({ team: 'radiant', pos: 1 });
     setActiveTargetMode('pick');
+    setHeroPoolRoleFilter('dedicated');
   };
 
   // Open Search Modal (Draft Studio style)
-  const handleOpenSlotModal = (team: 'radiant' | 'dire', type: 'pick' | 'ban', pos?: PositionNumber, slotIndex?: number) => {
+  const handleOpenSlotModal = (team: 'radiant' | 'dire', type: 'pick' | 'ban', pos?: PositionNumber) => {
     SoundEngine.playHover();
     if (pos) {
       setActiveTargetSlot({ team, pos });
@@ -175,18 +245,18 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
     } else if (type === 'ban') {
       setActiveTargetMode('ban');
     }
-    setModalTarget({ team, type, pos, slotIndex });
+    setModalTarget({ team, type, pos });
     setModalSearch('');
     setModalAttr('all');
+    setModalRoleFilter('dedicated');
   };
 
-  // Core Hero Assignment Function (handles picks, bans, and swaps)
+  // Assign hero into dedicated slot (maintains fixed slot positions, no shifting!)
   const handleAssignHero = (
     team: 'radiant' | 'dire', 
     type: 'pick' | 'ban', 
     heroId: string, 
-    pos?: PositionNumber, 
-    slotIndex?: number
+    pos?: PositionNumber
   ) => {
     SoundEngine.playPick();
 
@@ -204,74 +274,77 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       return;
     }
 
-    // It's a pick
-    const currentHeroIds = team === 'radiant' ? [...radiantHeroIds] : [...direHeroIds];
-    const targetIdx = pos ? pos - 1 : (slotIndex !== undefined ? slotIndex : currentHeroIds.length);
-
-    const existingIdx = currentHeroIds.indexOf(heroId);
-    if (existingIdx !== -1 && existingIdx !== targetIdx) {
-      if (targetIdx < currentHeroIds.length) {
-        currentHeroIds[existingIdx] = currentHeroIds[targetIdx];
-        currentHeroIds[targetIdx] = heroId;
-      } else {
-        currentHeroIds.splice(existingIdx, 1);
-        currentHeroIds.push(heroId);
-      }
-    } else {
-      if (targetIdx < currentHeroIds.length) {
-        currentHeroIds[targetIdx] = heroId;
-      } else {
-        currentHeroIds.push(heroId);
-      }
-    }
+    // Pick into dedicated slot pos (1-5)
+    const targetPos = pos || activeTargetSlot.pos;
+    const slotIdx = targetPos - 1;
 
     if (team === 'radiant') {
-      setRadiantHeroIds(currentHeroIds);
-    } else {
-      setDireHeroIds(currentHeroIds);
-    }
+      const next: DedicatedSlots = [...radiantSlots];
+      // If hero already in another radiant slot, clear that slot
+      const existingIdx = next.indexOf(heroId);
+      if (existingIdx !== -1 && existingIdx !== slotIdx) {
+        next[existingIdx] = null;
+      }
+      next[slotIdx] = heroId;
+      setRadiantSlots(next);
 
-    // Auto-advance target to the next vacant position on the team
-    let nextPos: PositionNumber = 1;
-    for (let p = 1; p <= 5; p++) {
-      if (p > currentHeroIds.length) {
-        nextPos = p as PositionNumber;
-        break;
+      // Auto-advance to next empty dedicated position
+      const nextEmptyPos = ([1, 2, 3, 4, 5] as PositionNumber[]).find((p) => next[p - 1] === null);
+      if (nextEmptyPos) {
+        setActiveTargetSlot({ team: 'radiant', pos: nextEmptyPos });
+      }
+    } else {
+      const next: DedicatedSlots = [...direSlots];
+      const existingIdx = next.indexOf(heroId);
+      if (existingIdx !== -1 && existingIdx !== slotIdx) {
+        next[existingIdx] = null;
+      }
+      next[slotIdx] = heroId;
+      setDireSlots(next);
+
+      const nextEmptyPos = ([1, 2, 3, 4, 5] as PositionNumber[]).find((p) => next[p - 1] === null);
+      if (nextEmptyPos) {
+        setActiveTargetSlot({ team: 'dire', pos: nextEmptyPos });
       }
     }
-    setActiveTargetSlot({ team, pos: nextPos });
+
     setModalTarget(null);
   };
 
-  // Remove hero from pick or ban
-  const handleRemoveHero = (team: 'radiant' | 'dire', type: 'pick' | 'ban', index: number) => {
+  // Remove hero from dedicated slot or ban (does NOT shift other slots!)
+  const handleRemoveHero = (team: 'radiant' | 'dire', type: 'pick' | 'ban', posOrBanIdx: number) => {
     SoundEngine.playHover();
     if (type === 'pick') {
+      // posOrBanIdx is 1 to 5
+      const slotIdx = posOrBanIdx - 1;
       if (team === 'radiant') {
-        const next = [...radiantHeroIds];
-        next.splice(index, 1);
-        setRadiantHeroIds(next);
-        setActiveTargetSlot({ team: 'radiant', pos: (index + 1) as PositionNumber });
+        const next: DedicatedSlots = [...radiantSlots];
+        next[slotIdx] = null;
+        setRadiantSlots(next);
+        setActiveTargetSlot({ team: 'radiant', pos: posOrBanIdx as PositionNumber });
       } else {
-        const next = [...direHeroIds];
-        next.splice(index, 1);
-        setDireHeroIds(next);
-        setActiveTargetSlot({ team: 'dire', pos: (index + 1) as PositionNumber });
+        const next: DedicatedSlots = [...direSlots];
+        next[slotIdx] = null;
+        setDireSlots(next);
+        setActiveTargetSlot({ team: 'dire', pos: posOrBanIdx as PositionNumber });
       }
+      setActiveTargetMode('pick');
+      setHeroPoolRoleFilter('dedicated');
     } else {
+      // ban removal
       if (team === 'radiant') {
         const next = [...radiantBanIds];
-        next.splice(index, 1);
+        next.splice(posOrBanIdx, 1);
         setRadiantBanIds(next);
       } else {
         const next = [...direBanIds];
-        next.splice(index, 1);
+        next.splice(posOrBanIdx, 1);
         setDireBanIds(next);
       }
     }
   };
 
-  // 1-Click Quick Select from the Inline Hero Pool (Draft Studio style)
+  // 1-Click Quick Select from the Inline Hero Pool
   const handleQuickSelectHero = (heroId: string) => {
     if (activeTargetMode === 'ban') {
       handleAssignHero(activeTargetSlot.team, 'ban', heroId);
@@ -291,13 +364,19 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
     handleAssignHero(userTeam, 'ban', heroId);
   };
 
-  // Filter available heroes for inline pool (matching Draft Studio search logic)
+  // Available Heroes for Inline Hero Pool:
+  // Prioritizes and suggests corresponding heroes for the dedicated slot first!
   const availablePoolHeroes = useMemo(() => {
-    return HEROES_DATA.filter((hero) => {
+    const filtered = HEROES_DATA.filter((hero) => {
       // Attribute filter
       if (heroPoolAttr !== 'all' && hero.attribute !== heroPoolAttr) return false;
 
-      // Search query (names, titles, aliases, roles)
+      // Dedicated Role Filter: when in dedicated mode, filter to heroes matching the target slot's role
+      if (activeTargetMode === 'pick' && heroPoolRoleFilter === 'dedicated') {
+        if (!hero.roles.includes(targetRole)) return false;
+      }
+
+      // Live search query (name, title, aliases, roles)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const matchesName = hero.name.toLowerCase().includes(q);
@@ -308,12 +387,34 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       }
       return true;
     });
-  }, [searchQuery, heroPoolAttr]);
 
-  // Filter heroes for modal search (Draft Studio style)
+    // Sort to suggest corresponding heroes and AI recommendations FIRST:
+    return filtered.sort((a, b) => {
+      // 1. AI Recommended for this slot highest score first
+      const aScore = slotRecScoreMap.get(a.id) || 0;
+      const bScore = slotRecScoreMap.get(b.id) || 0;
+      if (aScore !== bScore) return bScore - aScore;
+
+      // 2. Matching dedicated role first
+      const aRoleMatch = a.roles.includes(targetRole) ? 1 : 0;
+      const bRoleMatch = b.roles.includes(targetRole) ? 1 : 0;
+      if (aRoleMatch !== bRoleMatch) return bRoleMatch - aRoleMatch;
+
+      // 3. Win rate descending
+      return b.winRate - a.winRate;
+    });
+  }, [searchQuery, heroPoolAttr, heroPoolRoleFilter, targetRole, activeTargetMode, slotRecScoreMap]);
+
+  // Filter heroes for modal search (Draft Studio style with dedicated hero suggestions first)
   const filteredModalHeroes = useMemo(() => {
-    return HEROES_DATA.filter((h) => {
+    const filtered = HEROES_DATA.filter((h) => {
       if (modalAttr !== 'all' && h.attribute !== modalAttr) return false;
+
+      // Role filter for modal
+      if (modalTarget?.type === 'pick' && modalRoleFilter === 'dedicated') {
+        if (!h.roles.includes(modalTargetRole)) return false;
+      }
+
       if (modalSearch.trim()) {
         const q = modalSearch.toLowerCase().trim();
         const matchesName = h.name.toLowerCase().includes(q);
@@ -324,7 +425,24 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       }
       return true;
     });
-  }, [modalSearch, modalAttr]);
+
+    return filtered.sort((a, b) => {
+      // 1. AI Recommended for modal slot
+      const aScore = modalRecScoreMap.get(a.id) || 0;
+      const bScore = modalRecScoreMap.get(b.id) || 0;
+      if (aScore !== bScore) return bScore - aScore;
+
+      // 2. Matching dedicated role
+      const aRoleMatch = a.roles.includes(modalTargetRole) ? 1 : 0;
+      const bRoleMatch = b.roles.includes(modalTargetRole) ? 1 : 0;
+      if (aRoleMatch !== bRoleMatch) return bRoleMatch - aRoleMatch;
+
+      return b.winRate - a.winRate;
+    });
+  }, [modalSearch, modalAttr, modalRoleFilter, modalTarget, modalTargetRole, modalRecScoreMap]);
+
+  const radiantPickCount = radiantSlots.filter(Boolean).length;
+  const direPickCount = direSlots.filter(Boolean).length;
 
   return (
     <div ref={containerRef} className="space-y-4 pb-12">
@@ -347,11 +465,11 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                 5v5 PREDICTIVE DRAFT ORACLE
               </h1>
               <span className="text-[9px] uppercase font-black px-1.5 py-0.2 rounded-full bg-indigo-500/25 text-indigo-200 border border-indigo-500/40">
-                AI Engine
+                Dedicated Slots
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Captains Mode 5v5 draft analysis with AI ban-intent decryption, telegraphed enemy picks, and role counter-synergy.
+              Each position (Pos 1–5) is a dedicated slot. Select any slot to view tailored counter-picks & matching heroes first.
             </p>
           </div>
         </div>
@@ -410,18 +528,18 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       </div>
 
       {/* ========================================================= */}
-      {/* 2. DRAFT BOARD SLOTS (DRAFT STUDIO STYLE CARDS)          */}
+      {/* 2. DRAFT BOARD - DEDICATED SLOTS (POS 1 TO 5 NEVER SHIFT) */}
       {/* ========================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
         
-        {/* RADIANT SIDE */}
+        {/* RADIANT SIDE - 5 DEDICATED SLOTS */}
         <div className="bg-dota-panel rounded-2xl border-2 border-emerald-500/40 p-2.5 sm:p-3 space-y-2 shadow-lg">
           <div className="flex items-center justify-between text-xs pb-1 border-b border-emerald-500/20">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
               <span className="font-dota font-black text-sm text-emerald-300 tracking-wider">THE RADIANT</span>
               <span className="text-[10px] text-emerald-400 font-bold px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-500/30">
-                {radiantHeroIds.length}/5 Picks
+                {radiantPickCount}/5 Dedicated Picks
               </span>
             </div>
             <button
@@ -436,18 +554,18 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
             </button>
           </div>
 
-          {/* 5 Radiant Slot Cards */}
+          {/* 5 Dedicated Radiant Slot Cards */}
           <div className="grid grid-cols-5 gap-1.5">
             {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
               const def = POSITION_DEFINITIONS[pos];
-              const heroId = radiantHeroIds[pos - 1];
+              const heroId = radiantSlots[pos - 1];
               const hero = heroId ? HERO_MAP.get(heroId) : null;
               const isTargeted = activeTargetSlot.team === 'radiant' && activeTargetSlot.pos === pos && activeTargetMode === 'pick';
 
               return (
                 <div
-                  key={`rad-pos-${pos}`}
-                  onClick={() => handleOpenSlotModal('radiant', 'pick', pos, pos - 1)}
+                  key={`rad-dedicated-pos-${pos}`}
+                  onClick={() => handleOpenSlotModal('radiant', 'pick', pos)}
                   className={`h-24 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
                     isTargeted 
                       ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-2 ring-dota-gold/80' 
@@ -455,9 +573,13 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                         ? 'bg-dota-card/95 border-emerald-500/50 hover:border-emerald-400 hover:scale-[1.02]' 
                         : 'bg-dota-bg/80 border-dashed border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/10'
                   }`}
-                  title={hero ? `${hero.name} (Radiant Pos ${pos}) - Click to search or change` : `Radiant Pos ${pos} - Click to search hero`}
+                  title={
+                    hero 
+                      ? `${hero.name} (Radiant ${def.name}) - Click to change` 
+                      : `Radiant ${def.name} (${def.role}) - Click to select suggested heroes`
+                  }
                 >
-                  {/* Top Bar: Pos & Remove */}
+                  {/* Top Bar: Dedicated Position & Role Tag */}
                   <div className="flex items-center justify-between text-[10px] leading-none">
                     <span className={`font-black uppercase px-1 py-0.2 rounded text-[8px] ${
                       isTargeted ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-emerald-400 border border-emerald-500/40'
@@ -468,10 +590,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleRemoveHero('radiant', 'pick', pos - 1);
+                          handleRemoveHero('radiant', 'pick', pos);
                         }}
                         className="p-0.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-950/60 leading-none transition-colors"
-                        title="Remove hero"
+                        title="Remove hero from this dedicated slot"
                       >
                         <Trash2 className="w-2.5 h-2.5" />
                       </button>
@@ -506,17 +628,17 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                       <div className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-emerald-500 group-hover:bg-emerald-500/20 flex items-center justify-center transition-all group-hover:scale-110">
                         <Plus className="w-3.5 h-3.5 text-emerald-400" />
                       </div>
-                      <span className="text-[9px] font-bold mt-1">Add Hero</span>
+                      <span className="text-[9px] font-bold mt-1 text-emerald-300">Add {def.role.split(' ')[0]}</span>
                     </div>
                   )}
 
-                  {/* Bottom: Role Label & Target Status */}
+                  {/* Bottom: Dedicated Role Label */}
                   <div className="text-[8px] text-slate-400 truncate flex items-center justify-between leading-none">
-                    <span className="truncate">{hero ? hero.roles[0].replace(' Support', ' Sup') : def.role.replace(' Support', ' Sup')}</span>
+                    <span className="truncate font-semibold text-slate-300">{def.role.replace(' Support', ' Sup')}</span>
                     {isTargeted ? (
                       <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>
                     ) : (
-                      <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Search</span>
+                      <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Suggest</span>
                     )}
                   </div>
                 </div>
@@ -550,14 +672,14 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
           </div>
         </div>
 
-        {/* DIRE SIDE */}
+        {/* DIRE SIDE - 5 DEDICATED SLOTS */}
         <div className="bg-dota-panel rounded-2xl border-2 border-rose-500/40 p-2.5 sm:p-3 space-y-2 shadow-lg">
           <div className="flex items-center justify-between text-xs pb-1 border-b border-rose-500/20">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]" />
               <span className="font-dota font-black text-sm text-rose-300 tracking-wider">THE DIRE</span>
               <span className="text-[10px] text-rose-400 font-bold px-1.5 py-0.2 rounded bg-rose-950 border border-rose-500/30">
-                {direHeroIds.length}/5 Picks
+                {direPickCount}/5 Dedicated Picks
               </span>
             </div>
             <button
@@ -572,18 +694,18 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
             </button>
           </div>
 
-          {/* 5 Dire Slot Cards */}
+          {/* 5 Dedicated Dire Slot Cards */}
           <div className="grid grid-cols-5 gap-1.5">
             {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
               const def = POSITION_DEFINITIONS[pos];
-              const heroId = direHeroIds[pos - 1];
+              const heroId = direSlots[pos - 1];
               const hero = heroId ? HERO_MAP.get(heroId) : null;
               const isTargeted = activeTargetSlot.team === 'dire' && activeTargetSlot.pos === pos && activeTargetMode === 'pick';
 
               return (
                 <div
-                  key={`dire-pos-${pos}`}
-                  onClick={() => handleOpenSlotModal('dire', 'pick', pos, pos - 1)}
+                  key={`dire-dedicated-pos-${pos}`}
+                  onClick={() => handleOpenSlotModal('dire', 'pick', pos)}
                   className={`h-24 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
                     isTargeted 
                       ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-2 ring-dota-gold/80' 
@@ -591,9 +713,13 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                         ? 'bg-dota-card/95 border-rose-500/50 hover:border-rose-400 hover:scale-[1.02]' 
                         : 'bg-dota-bg/80 border-dashed border-rose-500/30 hover:border-rose-500/60 hover:bg-rose-500/10'
                   }`}
-                  title={hero ? `${hero.name} (Dire Pos ${pos}) - Click to search or change` : `Dire Pos ${pos} - Click to search hero`}
+                  title={
+                    hero 
+                      ? `${hero.name} (Dire ${def.name}) - Click to change` 
+                      : `Dire ${def.name} (${def.role}) - Click to select suggested heroes`
+                  }
                 >
-                  {/* Top Bar: Pos & Remove */}
+                  {/* Top Bar: Dedicated Position & Role */}
                   <div className="flex items-center justify-between text-[10px] leading-none">
                     <span className={`font-black uppercase px-1 py-0.2 rounded text-[8px] ${
                       isTargeted ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-rose-400 border border-rose-500/40'
@@ -604,10 +730,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleRemoveHero('dire', 'pick', pos - 1);
+                          handleRemoveHero('dire', 'pick', pos);
                         }}
                         className="p-0.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-950/60 leading-none transition-colors"
-                        title="Remove hero"
+                        title="Remove hero from this dedicated slot"
                       >
                         <Trash2 className="w-2.5 h-2.5" />
                       </button>
@@ -642,17 +768,17 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                       <div className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-rose-500 group-hover:bg-rose-500/20 flex items-center justify-center transition-all group-hover:scale-110">
                         <Plus className="w-3.5 h-3.5 text-rose-400" />
                       </div>
-                      <span className="text-[9px] font-bold mt-1">Add Hero</span>
+                      <span className="text-[9px] font-bold mt-1 text-rose-300">Add {def.role.split(' ')[0]}</span>
                     </div>
                   )}
 
-                  {/* Bottom: Role Label & Target Status */}
+                  {/* Bottom: Dedicated Role Label */}
                   <div className="text-[8px] text-slate-400 truncate flex items-center justify-between leading-none">
-                    <span className="truncate">{hero ? hero.roles[0].replace(' Support', ' Sup') : def.role.replace(' Support', ' Sup')}</span>
+                    <span className="truncate font-semibold text-slate-300">{def.role.replace(' Support', ' Sup')}</span>
                     {isTargeted ? (
                       <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>
                     ) : (
-                      <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Search</span>
+                      <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Suggest</span>
                     )}
                   </div>
                 </div>
@@ -689,22 +815,22 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       </div>
 
       {/* ========================================================= */}
-      {/* 3. HERO SELECTION POOL (SEARCH & CLICK SELECT - DRAFT STUDIO STYLE) */}
+      {/* 3. DEDICATED HERO SELECTION POOL (SUGGESTS CORRESPONDING HEROES FIRST!) */}
       {/* ========================================================= */}
       <div className="bg-dota-panel border border-dota-border rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
         
-        {/* Header Bar: Active Target & Live Search & Filters */}
+        {/* Header Bar: Dedicated Target, Filter Tabs & Search */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           
-          {/* Left: Active Target Selector & Search Modal Button */}
+          {/* Left: Dedicated Target Info & Position Switcher */}
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-dota font-bold text-xs sm:text-sm text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-              <span>Hero Pool:</span>
+              <span>Dedicated Slot:</span>
             </h3>
 
             {/* Target Team & Slot Badge */}
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-dota-bg border border-dota-border text-xs shadow-inner">
-              <span className="text-slate-400 text-[11px]">Assigning:</span>
+              <span className="text-slate-400 text-[11px]">Filling:</span>
               <button
                 onClick={() => {
                   SoundEngine.playHover();
@@ -721,8 +847,8 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
               </button>
 
               {activeTargetMode === 'pick' ? (
-                <span className="text-dota-gold font-bold text-[11px]">
-                  Pos {activeTargetSlot.pos} ({POSITION_DEFINITIONS[activeTargetSlot.pos].name.split(' ')[0]})
+                <span className="text-dota-gold font-bold text-[11px] flex items-center gap-1">
+                  <span>Pos {activeTargetSlot.pos} ({targetRole})</span>
                 </span>
               ) : (
                 <span className="text-red-400 font-bold text-[11px]">Banning</span>
@@ -731,23 +857,33 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
 
             {/* Position 1 to 5 + Ban quick selector pills */}
             <div className="flex items-center gap-0.5 bg-dota-bg p-0.5 rounded-lg border border-dota-border text-[10px]">
-              {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => (
-                <button
-                  key={`quick-pos-${pos}`}
-                  onClick={() => {
-                    SoundEngine.playHover();
-                    setActiveTargetSlot((prev) => ({ ...prev, pos }));
-                    setActiveTargetMode('pick');
-                  }}
-                  className={`px-2 py-0.5 rounded font-bold transition-all ${
-                    activeTargetMode === 'pick' && activeTargetSlot.pos === pos
-                      ? 'bg-dota-gold text-slate-950 font-black shadow'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  P{pos}
-                </button>
-              ))}
+              {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
+                const isPosEmpty = activeTargetSlot.team === 'radiant' 
+                  ? radiantSlots[pos - 1] === null 
+                  : direSlots[pos - 1] === null;
+
+                return (
+                  <button
+                    key={`quick-pos-tab-${pos}`}
+                    onClick={() => {
+                      SoundEngine.playHover();
+                      setActiveTargetSlot((prev) => ({ ...prev, pos }));
+                      setActiveTargetMode('pick');
+                      setHeroPoolRoleFilter('dedicated');
+                    }}
+                    className={`px-2 py-0.5 rounded font-bold transition-all relative ${
+                      activeTargetMode === 'pick' && activeTargetSlot.pos === pos
+                        ? 'bg-dota-gold text-slate-950 font-black shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    P{pos}
+                    {isPosEmpty && (
+                      <span className="absolute -top-1 -right-0.5 w-1.5 h-1.5 rounded-full bg-amber-400" />
+                    )}
+                  </button>
+                );
+              })}
               <button
                 onClick={() => {
                   SoundEngine.playHover();
@@ -763,7 +899,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
               </button>
             </div>
 
-            {/* Draft Studio style "Search Modal" button */}
+            {/* Search Modal Button */}
             <button
               onClick={() => handleOpenSlotModal(
                 activeTargetSlot.team, 
@@ -771,16 +907,45 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                 activeTargetMode === 'pick' ? activeTargetSlot.pos : undefined
               )}
               className="px-2.5 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-600/70 text-xs font-bold text-amber-300 flex items-center gap-1.5 transition-all shadow-sm"
-              title="Open full-screen search and filter modal"
+              title="Open full-screen search and suggestion modal"
             >
               <Search className="w-3.5 h-3.5 text-amber-400" />
               <span>Search Modal</span>
             </button>
           </div>
 
-          {/* Right: Attribute Pills & Live Search Input */}
+          {/* Right: Corresponding Heroes Filter Toggle & Search Bar */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Attribute Filter Pills */}
+            
+            {/* Filter Toggle: Suggest Corresponding Role Heroes First */}
+            {activeTargetMode === 'pick' && (
+              <div className="flex items-center gap-1 bg-dota-bg p-0.5 rounded-lg border border-dota-border text-[10px]">
+                <button
+                  onClick={() => setHeroPoolRoleFilter('dedicated')}
+                  className={`px-2 py-0.5 rounded font-bold flex items-center gap-1 transition-all ${
+                    heroPoolRoleFilter === 'dedicated'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title={`Show heroes matching dedicated ${targetRole} role`}
+                >
+                  <Star className="w-2.5 h-2.5 fill-current" />
+                  <span>{targetRole} Only</span>
+                </button>
+                <button
+                  onClick={() => setHeroPoolRoleFilter('all')}
+                  className={`px-2 py-0.5 rounded font-bold transition-all ${
+                    heroPoolRoleFilter === 'all'
+                      ? 'bg-slate-700 text-white font-black shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  All Heroes
+                </button>
+              </div>
+            )}
+
+            {/* Attribute Pills */}
             <div className="flex items-center gap-0.5 bg-dota-bg p-0.5 rounded-lg border border-dota-border text-[10px]">
               {[
                 { id: 'all', label: 'ALL' },
@@ -790,7 +955,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                 { id: 'all_attr', label: 'UNI' },
               ].map((attr) => (
                 <button
-                  key={attr.id}
+                  key={`attr-filter-${attr.id}`}
                   onClick={() => setHeroPoolAttr(attr.id === 'all_attr' ? 'all' : attr.id as any)}
                   className={`px-2 py-0.5 rounded font-bold transition-all ${
                     (heroPoolAttr === attr.id || (attr.id === 'all_attr' && heroPoolAttr === 'all'))
@@ -803,12 +968,12 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
               ))}
             </div>
 
-            {/* Live Search Input (Draft Studio style) */}
-            <div className="relative w-full sm:w-60">
+            {/* Live Search Input */}
+            <div className="relative w-full sm:w-56">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search hero to add (e.g. Invoker, Carry)..."
+                placeholder={`Search ${targetRole} heroes...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-7 py-1.5 bg-dota-bg border border-dota-border rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-dota-gold"
@@ -826,28 +991,36 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
 
         </div>
 
-        {/* Hero Pool Grid / Chips (Fast Click-to-Select, exactly like Draft Studio!) */}
-        <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1 custom-scrollbar">
+        {/* Hero Pool Grid / Chips - Corresponding & Recommended Heroes Appear First! */}
+        <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-1 custom-scrollbar">
           {availablePoolHeroes.map((hero) => {
-            const isAlreadyPicked = allSelectedIds.has(hero.id);
+            const isAlreadyDrafted = allSelectedIds.has(hero.id);
             const isTargetRadiant = activeTargetSlot.team === 'radiant';
+            const recScore = slotRecScoreMap.get(hero.id);
+            const isRoleMatch = hero.roles.includes(targetRole);
 
             return (
               <button
                 key={`pool-hero-${hero.id}`}
                 onClick={() => handleQuickSelectHero(hero.id)}
-                disabled={isAlreadyPicked}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
-                  isAlreadyPicked
+                disabled={isAlreadyDrafted}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all relative ${
+                  isAlreadyDrafted
                     ? 'opacity-30 cursor-not-allowed bg-slate-900 border-slate-800 text-slate-500'
-                    : isTargetRadiant
-                      ? 'bg-dota-panelAlt hover:bg-emerald-950/70 border-slate-700 hover:border-emerald-500/70 text-slate-200 hover:text-white hover:scale-[1.02]'
-                      : 'bg-dota-panelAlt hover:bg-rose-950/70 border-slate-700 hover:border-rose-500/70 text-slate-200 hover:text-white hover:scale-[1.02]'
+                    : recScore
+                    ? 'bg-amber-950/40 border-amber-500/80 text-amber-200 hover:bg-amber-900/60 shadow-dota-glow hover:scale-[1.02]'
+                    : isRoleMatch
+                    ? (isTargetRadiant 
+                        ? 'bg-emerald-950/30 border-emerald-500/60 text-slate-200 hover:bg-emerald-900/50 hover:text-white hover:scale-[1.02]' 
+                        : 'bg-rose-950/30 border-rose-500/60 text-slate-200 hover:bg-rose-900/50 hover:text-white hover:scale-[1.02]')
+                    : 'bg-dota-panelAlt hover:bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:scale-[1.01]'
                 }`}
                 title={
-                  isAlreadyPicked 
-                    ? `${hero.name} (Already drafted/banned)` 
-                    : `${hero.name} (${hero.roles.join(', ')}) - Click to assign to ${activeTargetSlot.team.toUpperCase()} ${activeTargetMode === 'ban' ? 'Bans' : `Pos ${activeTargetSlot.pos}`}`
+                  isAlreadyDrafted 
+                    ? `${hero.name} (Already drafted or banned)` 
+                    : recScore
+                    ? `⭐ ${hero.name} (${recScore}% AI Match for Pos ${activeTargetSlot.pos}) - Click to assign`
+                    : `${hero.name} (${hero.roles.join(', ')}) - Click to assign to Pos ${activeTargetSlot.pos}`
                 }
               >
                 <img
@@ -856,6 +1029,11 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                   className="w-5 h-5 rounded object-cover flex-shrink-0"
                 />
                 <span className="truncate max-w-[110px]">{hero.name}</span>
+                {recScore && (
+                  <span className="text-[9px] font-mono font-black text-amber-300 px-1 rounded bg-amber-500/20">
+                    {recScore}%
+                  </span>
+                )}
                 <Plus className={`w-3 h-3 ml-0.5 ${
                   activeTargetMode === 'ban'
                     ? 'text-red-400'
@@ -969,6 +1147,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                           setSuggestionRoleFilter(pos);
                           setActiveTargetSlot({ team: userTeam, pos });
                           setActiveTargetMode('pick');
+                          setHeroPoolRoleFilter('dedicated');
                         }}
                         className={`px-2 py-0.5 rounded font-bold transition-all ${
                           suggestionRoleFilter === pos || activeTargetSlot.pos === pos
@@ -1028,7 +1207,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                             onClick={() => handlePickSuggested(pick.hero.id, pick.pos)}
                             className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[10px] shadow active:scale-95"
                           >
-                            Pick for {userTeam === 'radiant' ? 'Radiant' : 'Dire'}
+                            Pick for Pos {pick.pos}
                           </button>
                         </div>
                       </div>
@@ -1315,7 +1494,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
       </div>
 
       {/* ========================================================= */}
-      {/* 5. SEARCH & SELECT MODAL (EXACT DRAFT STUDIO PATTERN)     */}
+      {/* 5. SEARCH & SELECT MODAL (SUGGESTS CORRESPONDING HEROES FIRST!) */}
       {/* ========================================================= */}
       {modalTarget && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -1347,15 +1526,15 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                   <h3 className="font-dota font-bold text-base text-white flex items-center gap-2">
                     <span>
                       {modalTarget.type === 'pick'
-                        ? `Select Hero for ${modalTarget.team.toUpperCase()} Pos ${modalTarget.pos || 1} (${POSITION_DEFINITIONS[modalTarget.pos || 1]?.name || 'Pick'})`
+                        ? `Select Dedicated Slot: ${modalTarget.team.toUpperCase()} Pos ${modalTargetPos} (${modalTargetDef.name})`
                         : `Ban Hero for ${modalTarget.team.toUpperCase()}`
                       }
                     </span>
-                    {modalTarget.type === 'pick' && modalTarget.pos && (
+                    {modalTarget.type === 'pick' && (
                       (() => {
                         const existingId = modalTarget.team === 'radiant' 
-                          ? radiantHeroIds[modalTarget.pos - 1] 
-                          : direHeroIds[modalTarget.pos - 1];
+                          ? radiantSlots[modalTargetPos - 1] 
+                          : direSlots[modalTargetPos - 1];
                         return existingId ? (
                           <span className="text-xs font-sans px-2 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">
                             Replacing: {HERO_MAP.get(existingId)?.name}
@@ -1365,7 +1544,9 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                     )}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Search by hero name, alias, or role to assign into this draft slot
+                    {modalTarget.type === 'pick' 
+                      ? `Dedicated Role: ${modalTargetDef.role} (${modalTargetDef.lane}) • Suggesting corresponding heroes first`
+                      : 'Banning this hero will update predictive enemy intent'}
                   </p>
                 </div>
               </div>
@@ -1379,14 +1560,48 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
               </button>
             </div>
 
-            {/* Modal Filter Controls: Search Bar + Attribute Filters */}
+            {/* AI Top Recommended Picks Showcase (Specifically for this Dedicated Slot) */}
+            {modalTarget.type === 'pick' && modalRecommendations.length > 0 && (
+              <div className="p-3 bg-slate-950/80 border-b border-slate-800/80 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-dota font-bold text-amber-300 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    Top AI Counter-Picks for Pos {modalTargetPos} ({modalTargetRole}):
+                  </span>
+                  <span className="text-[10px] text-slate-400">Ranked by synergy & counter value</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {modalRecommendations.slice(0, 4).map((rec) => (
+                    <button
+                      key={`modal-rec-${rec.hero.id}`}
+                      onClick={() => handleAssignHero(modalTarget.team, 'pick', rec.hero.id, modalTargetPos)}
+                      className="p-2 rounded-xl bg-amber-950/30 hover:bg-amber-900/60 border border-amber-500/50 hover:border-amber-400 text-left transition-all group shadow-sm flex items-center gap-2"
+                    >
+                      <img src={rec.hero.avatarUrl} alt={rec.hero.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-amber-500/60" />
+                      <div className="truncate flex-1">
+                        <div className="font-bold text-xs text-amber-200 group-hover:text-white truncate">
+                          {rec.hero.name}
+                        </div>
+                        <div className="text-[10px] text-emerald-400 font-mono font-bold flex items-center justify-between">
+                          <span>{rec.score}% Match</span>
+                          <span className="text-[9px] text-slate-400">{rec.hero.winRate}%</span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Modal Filter Controls: Search Bar + Role & Attribute Filters */}
             <div className="p-4 bg-slate-950 border-b border-slate-800 space-y-3">
               <div className="relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   autoFocus
-                  placeholder="Search heroes by name, title, alias, or role (e.g. Anti-Mage, Magina, Carry, Stun)..."
+                  placeholder={`Search ${modalTargetRole} heroes (e.g. Anti-Mage, Magina, Carry, Stun)...`}
                   value={modalSearch}
                   onChange={(e) => setModalSearch(e.target.value)}
                   className={`w-full pl-10 pr-9 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none shadow-inner ${
@@ -1407,17 +1622,44 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                 )}
               </div>
 
-              {/* Attribute Filter Pills */}
-              <div className="flex flex-wrap gap-1.5">
+              {/* Filter Pills: Dedicated Role First, then Attribute Filters */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {modalTarget.type === 'pick' && (
+                  <>
+                    <button
+                      onClick={() => setModalRoleFilter('dedicated')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
+                        modalRoleFilter === 'dedicated'
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow'
+                          : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Star className="w-3 h-3 fill-current" />
+                      <span>{modalTargetRole} Only (Pos {modalTargetPos})</span>
+                    </button>
+                    <button
+                      onClick={() => setModalRoleFilter('all')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        modalRoleFilter === 'all'
+                          ? 'bg-slate-700 text-white font-black shadow'
+                          : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      All Roles
+                    </button>
+                    <span className="text-slate-700">|</span>
+                  </>
+                )}
+
                 {[
-                  { id: 'all', label: 'All Heroes' },
+                  { id: 'all', label: 'All Attributes' },
                   { id: 'str', label: 'Strength' },
                   { id: 'agi', label: 'Agility' },
                   { id: 'int', label: 'Intelligence' },
                   { id: 'all_attr', label: 'Universal' },
                 ].map((attr) => (
                   <button
-                    key={attr.id}
+                    key={`modal-attr-${attr.id}`}
                     onClick={() => setModalAttr(attr.id === 'all_attr' ? 'all' : attr.id as any)}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                       (modalAttr === attr.id || (attr.id === 'all_attr' && modalAttr === 'all'))
@@ -1435,15 +1677,17 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
               </div>
             </div>
 
-            {/* Modal Heroes Grid (Draft Studio exact style) */}
-            <div className="p-4 overflow-y-auto max-h-[50vh] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 custom-scrollbar">
+            {/* Modal Heroes Grid (Sorted by AI Recommendation & Dedicated Role First!) */}
+            <div className="p-4 overflow-y-auto max-h-[45vh] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 custom-scrollbar">
               {filteredModalHeroes.length > 0 ? (
                 filteredModalHeroes.map((h) => {
                   const isCurrentSlotHero = modalTarget.type === 'pick' && (
-                    (modalTarget.team === 'radiant' && modalTarget.pos && radiantHeroIds[modalTarget.pos - 1] === h.id) ||
-                    (modalTarget.team === 'dire' && modalTarget.pos && direHeroIds[modalTarget.pos - 1] === h.id)
+                    (modalTarget.team === 'radiant' && radiantSlots[modalTargetPos - 1] === h.id) ||
+                    (modalTarget.team === 'dire' && direSlots[modalTargetPos - 1] === h.id)
                   );
                   const isOtherSlotHero = allSelectedIds.has(h.id) && !isCurrentSlotHero;
+                  const recScore = modalRecScoreMap.get(h.id);
+                  const isRoleMatch = h.roles.includes(modalTargetRole);
 
                   return (
                     <div
@@ -1452,17 +1696,18 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                         modalTarget.team, 
                         modalTarget.type, 
                         h.id, 
-                        modalTarget.pos, 
-                        modalTarget.slotIndex
+                        modalTargetPos
                       )}
                       className={`group bg-dota-bg/90 hover:bg-slate-850 border rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all hover:scale-[1.01] shadow ${
                         isCurrentSlotHero
                           ? 'border-emerald-500 bg-emerald-950/30'
                           : isOtherSlotHero
                           ? 'border-slate-800 opacity-40 hover:opacity-100 hover:border-amber-500'
-                          : modalTarget.team === 'radiant'
-                          ? 'border-slate-800 hover:border-emerald-500/70'
-                          : 'border-slate-800 hover:border-rose-500/70'
+                          : recScore
+                          ? 'border-amber-500/80 bg-amber-950/20 hover:bg-amber-950/40 shadow-dota-glow'
+                          : isRoleMatch
+                          ? (modalTarget.team === 'radiant' ? 'border-emerald-500/50 hover:border-emerald-400' : 'border-rose-500/50 hover:border-rose-400')
+                          : 'border-slate-800 hover:border-slate-600'
                       }`}
                     >
                       <img
@@ -1479,10 +1724,15 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({ onSelect
                             {h.attribute}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="flex items-center justify-between gap-1 mt-0.5">
                           <span className="text-[11px] text-slate-400 truncate">
                             {h.roles.slice(0, 2).join(', ')}
                           </span>
+                          {recScore && (
+                            <span className="text-[10px] font-mono font-bold text-amber-300 px-1 rounded bg-amber-500/20">
+                              {recScore}% Match
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -741,7 +741,9 @@ export function suggestPicks(
  */
 export function calculateAdvantageAndWinConditions(
   radiantPicks: HeroData[],
-  direPicks: HeroData[]
+  direPicks: HeroData[],
+  radiantSlots?: (string | null)[],
+  direSlots?: (string | null)[]
 ): {
   radiantScore: number;
   direScore: number;
@@ -811,13 +813,30 @@ export function calculateAdvantageAndWinConditions(
     ? 'Radiant'
     : (direStats.scaling > radiantStats.scaling + 8 ? 'Dire' : 'Even');
 
-  // Lane Forecasts
+  // Lane Forecasts (dedicated positions: Safe = Pos 1 & 5, Mid = Pos 2, Offlane = Pos 3 & 4)
+  const radSafeHeroes = radiantSlots
+    ? [radiantSlots[0], radiantSlots[4]].map((id) => id ? HERO_MAP.get(id) : null).filter((h): h is HeroData => Boolean(h))
+    : radiantPicks.slice(0, 2);
+  const direOffHeroes = direSlots
+    ? [direSlots[2], direSlots[3]].map((id) => id ? HERO_MAP.get(id) : null).filter((h): h is HeroData => Boolean(h))
+    : direPicks.slice(2, 4);
+
+  const radMidHero = radiantSlots && radiantSlots[1] ? HERO_MAP.get(radiantSlots[1]) : (radiantPicks[1] || null);
+  const direMidHero = direSlots && direSlots[1] ? HERO_MAP.get(direSlots[1]) : (direPicks[1] || null);
+
+  const radOffHeroes = radiantSlots
+    ? [radiantSlots[2], radiantSlots[3]].map((id) => id ? HERO_MAP.get(id) : null).filter((h): h is HeroData => Boolean(h))
+    : radiantPicks.slice(2, 4);
+  const direSafeHeroes = direSlots
+    ? [direSlots[0], direSlots[4]].map((id) => id ? HERO_MAP.get(id) : null).filter((h): h is HeroData => Boolean(h))
+    : direPicks.slice(0, 2);
+
   const laneForecasts: LaneMatchupForecast[] = [
     {
       laneName: 'Radiant Safe Lane (Bottom) vs Dire Offlane (Top)',
       laneType: 'Radiant Safe vs Dire Off',
-      radiantHeroes: radiantPicks.slice(0, 2),
-      direHeroes: direPicks.slice(2, 4),
+      radiantHeroes: radSafeHeroes,
+      direHeroes: direOffHeroes,
       advantage: earlyAdvantage === 'Radiant' ? 'Radiant Favored' : (earlyAdvantage === 'Dire' ? 'Dire Favored' : 'Even'),
       confidence: 76,
       tacticalTip: 'Control creep equilibrium near Radiant tower. Block Dire large camp pull to prevent wave resets.'
@@ -825,8 +844,8 @@ export function calculateAdvantageAndWinConditions(
     {
       laneName: 'Mid Lane Contest (Pos 2 vs Pos 2)',
       laneType: 'Mid vs Mid',
-      radiantHeroes: radiantPicks.length > 1 ? [radiantPicks[1]] : [],
-      direHeroes: direPicks.length > 1 ? [direPicks[1]] : [],
+      radiantHeroes: radMidHero ? [radMidHero] : [],
+      direHeroes: direMidHero ? [direMidHero] : [],
       advantage: 'Even',
       confidence: 68,
       tacticalTip: 'Secure 6-minute power rune to dictate first rotation. Save glyph for mid tower defense.'
@@ -834,8 +853,8 @@ export function calculateAdvantageAndWinConditions(
     {
       laneName: 'Radiant Offlane (Top) vs Dire Safe Lane (Bottom)',
       laneType: 'Radiant Off vs Dire Safe',
-      radiantHeroes: radiantPicks.slice(2, 4),
-      direHeroes: direPicks.slice(0, 2),
+      radiantHeroes: radOffHeroes,
+      direHeroes: direSafeHeroes,
       advantage: earlyAdvantage === 'Dire' ? 'Dire Favored' : (earlyAdvantage === 'Radiant' ? 'Radiant Favored' : 'Even'),
       confidence: 74,
       tacticalTip: 'Pressure Dire carry’s last hits with aggressive trades. Force their support to deplete healing supplies.'
@@ -881,13 +900,13 @@ export function calculateAdvantageAndWinConditions(
  * 6. Master function combining all predictive draft components into a single coherent state.
  */
 export function runPredictive5v5Analysis(
-  radiantHeroIds: string[],
-  direHeroIds: string[],
+  radiantHeroIds: (string | null)[],
+  direHeroIds: (string | null)[],
   radiantBanIds: string[],
   direBanIds: string[]
 ): Predictive5v5Analysis {
-  const radiantPicks = radiantHeroIds.map((id) => HERO_MAP.get(id)).filter((h): h is HeroData => Boolean(h));
-  const direPicks = direHeroIds.map((id) => HERO_MAP.get(id)).filter((h): h is HeroData => Boolean(h));
+  const radiantPicks = radiantHeroIds.map((id) => id ? HERO_MAP.get(id) : null).filter((h): h is HeroData => Boolean(h));
+  const direPicks = direHeroIds.map((id) => id ? HERO_MAP.get(id) : null).filter((h): h is HeroData => Boolean(h));
   const radiantBans = radiantBanIds.map((id) => HERO_MAP.get(id)).filter((h): h is HeroData => Boolean(h));
   const direBans = direBanIds.map((id) => HERO_MAP.get(id)).filter((h): h is HeroData => Boolean(h));
   const allBans = [...radiantBans, ...direBans];
@@ -897,7 +916,7 @@ export function runPredictive5v5Analysis(
   const lineupPrediction = predictMissingLineup(direPicks, radiantPicks, direBans);
   const suggestedPicks = suggestPicks(radiantPicks, direPicks, allBans, 'all');
 
-  const advantageData = calculateAdvantageAndWinConditions(radiantPicks, direPicks);
+  const advantageData = calculateAdvantageAndWinConditions(radiantPicks, direPicks, radiantHeroIds, direHeroIds);
 
   return {
     radiantPicks,
