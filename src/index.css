@@ -71,5 +71,48 @@
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* SVG Grain Texture Overlay over Gradient */
+.grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.06'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* Glassmorphism Cards */
+.glass-card {
+  background: rgba(17, 24, 39, 0.68);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Low-contrast dark mode styling */
+.low-contrast-dark {
+  background-color: #0c101a;
+  color: #cbd5e1;
+}
+
+/* Button fade on hover */
+.btn-fade {
+  transition: opacity 0.2s ease, transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+.btn-fade:hover {
+  opacity: 0.85;
+}
+.btn-fade:active {
+  opacity: 0.75;
+}
+
+/* Cursor following ambient beam */
+.cursor-beam-glow {
+  background: radial-gradient(
+    650px circle at var(--mouse-x, 50%) var(--mouse-y, 30%),
+    rgba(147, 51, 234, 0.16),
+    rgba(59, 130, 246, 0.09) 35%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+

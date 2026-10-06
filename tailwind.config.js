@@ -29,7 +29,9 @@ export default {
       },
       fontFamily: {
         dota: ['Cinzel', 'Trajan Pro', 'Georgia', 'serif'],
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        grotesk: ['"Space Grotesk"', 'Inter', 'sans-serif'],
+        serif: ['"Instrument Serif"', 'Georgia', 'serif']
       },
       boxShadow: {
         'dota-glow': '0 0 15px rgba(229, 184, 105, 0.25)',

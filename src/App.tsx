@@ -20,8 +20,11 @@ const ItemCounterFinder = lazy(() => import('./components/ItemCounterFinder').th
 const MetaTierList = lazy(() => import('./components/MetaTierList').then(m => ({ default: m.MetaTierList })));
 const PatchNewsView = lazy(() => import('./components/PatchNewsView').then(m => ({ default: m.PatchNewsView })));
 const CustomNotesView = lazy(() => import('./components/CustomNotesView').then(m => ({ default: m.CustomNotesView })));
-const HeroBuildView = lazy(() => import('./components/HeroBuildView').then(m => ({ default: m.HeroBuildView })));
-const PictureInPictureHUD = lazy(() => import('./components/PictureInPictureHUD').then(m => ({ default: m.PictureInPictureHUD })));
+import { HeroBuildView } from './components/HeroBuildView';
+import { PictureInPictureHUD } from './components/PictureInPictureHUD';
+import { SaaSHeroSection } from './components/SaaSHeroSection';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
+import { LegalComplianceModal, LegalTabType } from './components/LegalComplianceModal';
 
 const ViewLoadingFallback = () => (
   <div className="w-full min-h-[420px] flex flex-col items-center justify-center p-12 bg-dota-panel/60 border border-dota-gold/30 rounded-3xl shadow-dota-glow space-y-4">
@@ -102,6 +105,15 @@ export const App: React.FC = () => {
 
   // Loaded draft scenario to pass to Draft Picker
   const [loadedEnemyDraft, setLoadedEnemyDraft] = useState<string[] | null>(null);
+
+  // Legal Compliance Center Modal State
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState<boolean>(false);
+  const [legalInitialTab, setLegalInitialTab] = useState<LegalTabType>('overview');
+
+  const handleOpenLegalModal = (tab: LegalTabType = 'overview') => {
+    setLegalInitialTab(tab);
+    setIsLegalModalOpen(true);
+  };
 
   const handleToggleFavorite = (heroId: string) => {
     StorageService.toggleFavorite(heroId);
@@ -223,6 +235,12 @@ export const App: React.FC = () => {
         {activeTab === 'heroes' && (
           <div className="space-y-6">
             
+            {/* Modern SaaS Showcase Section (Purple-to-Blue Gradient, Grain, 3 Icon Boxes, Emojis, Buzzwords, Em Dashes) */}
+            <SaaSHeroSection
+              onNavigateTab={setActiveTab}
+              onOpenLegal={() => handleOpenLegalModal('overview')}
+            />
+
             {/* Hero Filter Bar */}
             <HeroFilterBar
               selectedAttr={selectedAttr}
@@ -417,20 +435,115 @@ export const App: React.FC = () => {
         </button>
       )}
 
-      {/* Footer */}
-      <footer className="mt-12 bg-dota-panel/95 border-t-2 border-dota-border py-8 text-center text-xs text-slate-500 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 space-y-2">
-          <div className="flex items-center justify-center gap-2 text-slate-300 font-bold font-dota text-sm">
-            <span className="text-dota-gold">AEGIS FORGE</span> • Dota 2 Build & Counter Assistant
+      {/* Enhanced Footer with Legal Compliance, Business Details & Disclaimers */}
+      <footer className="mt-16 bg-slate-950/95 border-t border-purple-500/20 py-10 text-xs text-slate-400 relative z-10 font-sans">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          
+          {/* Brand & Mission Statement with Emojis & Em Dashes */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800/80 pb-6 text-center sm:text-left">
+            <div>
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-slate-100 font-bold font-grotesk text-base">
+                <span>🔮</span>
+                <span className="bg-gradient-to-r from-purple-300 via-indigo-200 to-sky-300 bg-clip-text text-transparent font-extrabold">
+                  AEGIS FORGE
+                </span>
+                <span className="text-purple-400">—</span>
+                <span className="text-slate-300 font-normal">Autonomous Dota 2 Tactical Companion</span>
+              </div>
+              <p className="text-[12px] text-slate-400 font-sans mt-1 max-w-xl">
+                Deterministic counter-drafting algorithms, real-time threat telemetry, and situational builds — 100% free, client-side, and privacy-first.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleOpenLegalModal('overview')}
+                className="px-3.5 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/40 text-purple-300 text-xs font-semibold flex items-center gap-1.5 transition-all btn-fade shadow-sm"
+              >
+                <span>⚖️</span>
+                <span>20-Point Compliance & Audit Hub</span>
+              </button>
+            </div>
           </div>
-          <p className="text-[11px] text-slate-400 font-sans">
-            Optimized for Patch 7.37d • Fast, Zero-Config Cloudflare Pages Hosting • 100% Client-Side Offline Ready
-          </p>
-          <p className="text-[10px] text-slate-600">
-            Dota 2 is a registered trademark of Valve Corporation. This assistant is an unofficial tactical companion tool.
-          </p>
+
+          {/* Legal Navigation Links (Items 1, 2, 3, 4, 13, 20) */}
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-2 text-xs">
+            <button
+              onClick={() => handleOpenLegalModal('privacy')}
+              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+            >
+              <span>🔒</span>
+              <span>Privacy Policy</span>
+            </button>
+            <button
+              onClick={() => handleOpenLegalModal('terms')}
+              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+            >
+              <span>📜</span>
+              <span>Terms of Service</span>
+            </button>
+            <button
+              onClick={() => handleOpenLegalModal('cookies')}
+              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+            >
+              <span>🍪</span>
+              <span>Cookie Policy</span>
+            </button>
+            <button
+              onClick={() => handleOpenLegalModal('refunds')}
+              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+            >
+              <span>💳</span>
+              <span>100% Free & Refund Policy</span>
+            </button>
+            <button
+              onClick={() => handleOpenLegalModal('accessibility')}
+              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+            >
+              <span>♿</span>
+              <span>Accessibility & Licenses</span>
+            </button>
+            <button
+              onClick={() => handleOpenLegalModal('privacy')}
+              className="text-red-400 hover:text-red-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+            >
+              <span>🗑️</span>
+              <span>Data Deletion Request</span>
+            </button>
+          </div>
+
+          {/* Business Details & Official Disclaimers (Items 10, 11, 12, 16, 17, 19) */}
+          <div className="pt-2 border-t border-slate-900 text-[11px] text-slate-500 space-y-1.5 leading-relaxed text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-slate-400">
+              <p>
+                <strong>Entity:</strong> AegisForge Tactical Open Source Collective • Wilmington, DE, USA • Inquiries: <a href="mailto:support@aegisforge.gg" className="text-purple-400 hover:underline">support@aegisforge.gg</a>
+              </p>
+              <p className="font-mono text-[10px]">
+                Audited: Zero Third-Party Trackers • 100% Client-Side Storage
+              </p>
+            </div>
+            <p>
+              Dota 2 and the Dota logo are registered trademarks of Valve Corporation. AegisForge is an unofficial tactical companion tool developed under the Valve Fan Content Policy.
+            </p>
+            <p className="text-[10px] text-slate-600">
+              Statistical Disclaimer: Matchup rankings and predictive counter win rates are heuristic models derived from Patch 7.37d high-bracket match statistics and do not constitute guaranteed in-game MMR performance.
+            </p>
+          </div>
+
         </div>
       </footer>
+
+      {/* Floating Cookie Consent Banner (GDPR / ePrivacy) */}
+      <CookieConsentBanner 
+        onOpenLegalTab={(tab) => handleOpenLegalModal(tab as LegalTabType)}
+      />
+
+      {/* 20-Point Legal Compliance & Consumer Protection Modal */}
+      <LegalComplianceModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        initialTab={legalInitialTab}
+      />
 
     </div>
   );
