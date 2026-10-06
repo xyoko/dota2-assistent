@@ -255,9 +255,9 @@ export const App: React.FC = () => {
               setSortBy={setSortBy}
             />
 
-            {/* Heroes Grid */}
+            {/* Heroes Grid — Official Dota 2 Portrait Card Layout */}
             {filteredHeroes.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-5">
                 {filteredHeroes.map((hero) => (
                   <HeroCard
                     key={hero.id}
