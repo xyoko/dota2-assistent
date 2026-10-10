@@ -267,15 +267,15 @@ export const HeroCard: React.FC<HeroCardProps> = ({
           </svg>
         </div>
 
-        {/* 3. POKEMON-CARDS-CSS HOLOGRAPHIC CHROMATIC FOIL SHEEN (Entering vs Leaving Transitions) */}
+        {/* 3. METALLIC DARK TONE LIGHT RAYS (Replacing colorful foil) */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            opacity: isHovered ? 0.75 : 0,
-            backgroundImage: `linear-gradient(115deg, transparent 0%, rgba(255, 0, 150, 0.22) 20%, rgba(0, 220, 255, 0.3) 40%, rgba(255, 230, 0, 0.3) 60%, rgba(168, 85, 247, 0.22) 80%, transparent 100%)`,
+            opacity: isHovered ? 0.8 : 0,
+            backgroundImage: `linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.15) 35%, rgba(255, 255, 255, 0.4) 45%, rgba(0, 0, 0, 0.6) 50%, rgba(255, 255, 255, 0.15) 55%, transparent 70%)`,
             backgroundPosition: `${tilt.foilX}% ${tilt.foilY}%`,
             backgroundSize: '240% 240%',
-            mixBlendMode: 'color-dodge',
+            mixBlendMode: 'overlay',
             transition: isHovered
               ? 'opacity 0.25s ease-out'
               : 'opacity 0.4s cubic-bezier(0.23, 1, 0.32, 1)'
@@ -295,7 +295,7 @@ export const HeroCard: React.FC<HeroCardProps> = ({
             mixBlendMode: 'overlay',
             transform: `translate(${(tilt.glareX - 50) / 2}%, ${(tilt.glareY - 50) / 2}%)`,
             transition: isHovered
-              ? 'opacity 0.2s ease-out, transform 0.15s ease-out'
+              ? 'opacity 0.2s ease-out'
               : 'opacity 0.38s cubic-bezier(0.23, 1, 0.32, 1)'
           }}
         />
