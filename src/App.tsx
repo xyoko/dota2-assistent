@@ -320,6 +320,8 @@ export const App: React.FC = () => {
           <Suspense fallback={<ViewLoadingFallback />}>
             <PredictiveDraft5v5
               onSelectHero={setSelectedHero}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
             />
           </Suspense>
         )}
