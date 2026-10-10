@@ -7,6 +7,7 @@ import { PipManager } from './services/pipManager';
 import { Navbar, ActiveTab } from './components/Navbar';
 import { HeroFilterBar } from './components/HeroFilterBar';
 import { HeroCard } from './components/HeroCard';
+import { NavigationSidebar } from './components/NavigationSidebar';
 import { AmbientParticles } from './components/AmbientParticles';
 import { Shield, Loader2, PictureInPicture } from 'lucide-react';
 
@@ -94,11 +95,21 @@ export const App: React.FC = () => {
   // Selected Hero for Detail Modal
   const [selectedHero, setSelectedHero] = useState<HeroData | null>(null);
 
-  // Picture-in-Picture & Mini HUD State
+  // Navigation Drawer Sidebar State (<LineSidebar /> from React Bits)
+  const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(false);
+
+  // Picture-in-Picture & Mini HUD State (Strictly limited to Hero Arsenal view)
   const [pipHero, setPipHero] = useState<HeroData>(HEROES_DATA[0]);
   const [isPipOpen, setIsPipOpen] = useState<boolean>(false);
   const [isNativePipActive, setIsNativePipActive] = useState<boolean>(false);
   const [pipContainer, setPipContainer] = useState<HTMLElement | null>(null);
+
+  // Restrict in-app floating PiP to Hero view only: auto-close floating overlay when navigating away
+  React.useEffect(() => {
+    if (activeTab !== 'heroes' && isPipOpen && !isNativePipActive) {
+      setIsPipOpen(false);
+    }
+  }, [activeTab, isPipOpen, isNativePipActive]);
   
   // Favorites State
   const [favorites, setFavorites] = useState<string[]>(() => StorageService.getFavorites());
@@ -228,6 +239,14 @@ export const App: React.FC = () => {
         onOpenPip={() => handleOpenPip()}
       />
 
+      {/* Interactive Line Navigator Sidebar Drawer (React Bits <LineSidebar />) */}
+      <NavigationSidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isOpen={isNavSidebarOpen}
+        setIsOpen={setIsNavSidebarOpen}
+      />
+
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
@@ -265,6 +284,7 @@ export const App: React.FC = () => {
                     isFavorite={favorites.includes(hero.id)}
                     onToggleFavorite={handleToggleFavorite}
                     onSelectHero={setSelectedHero}
+                    onOpenPip={(h) => handleOpenPip(h)}
                   />
                 ))}
               </div>
@@ -423,8 +443,8 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Floating PiP Quick Trigger Button when PiP is closed */}
-      {!isPipOpen && (
+      {/* Floating PiP Quick Trigger Button when PiP is closed — strictly available in Hero view */}
+      {activeTab === 'heroes' && !isPipOpen && (
         <button
           onClick={() => handleOpenPip()}
           className="fixed bottom-5 right-5 z-40 p-3 rounded-2xl bg-gradient-to-br from-amber-500 via-dota-gold to-yellow-600 text-slate-950 font-black shadow-dota-glow hover:scale-110 active:scale-95 transition-all flex items-center gap-2 border-2 border-amber-200 select-none group"

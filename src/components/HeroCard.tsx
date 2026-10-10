@@ -10,7 +10,8 @@ import {
   Crosshair, 
   Zap, 
   Target, 
-  Layers
+  Layers,
+  PictureInPicture
 } from 'lucide-react';
 import { 
   getDistinguishablePortraitCandidates, 
@@ -24,13 +25,15 @@ interface HeroCardProps {
   isFavorite: boolean;
   onToggleFavorite: (heroId: string) => void;
   onSelectHero: (hero: HeroData) => void;
+  onOpenPip?: (hero: HeroData) => void;
 }
 
 export const HeroCard: React.FC<HeroCardProps> = ({
   hero,
   isFavorite,
   onToggleFavorite,
-  onSelectHero
+  onSelectHero,
+  onOpenPip
 }) => {
   // Candidate distinguishable portraits with progressive fallback
   const candidates = useRef(getDistinguishablePortraitCandidates(hero.avatarUrl)).current;
@@ -150,7 +153,7 @@ export const HeroCard: React.FC<HeroCardProps> = ({
       style={{ perspective: '1000px' }}
       className="w-full select-none"
     >
-      {/* 3D Rotating Card Surface */}
+      {/* 3D Rotating Card Surface with Distinct Entering vs Leaving Transitions */}
       <div
         onClick={() => {
           SoundEngine.playPick();
@@ -161,11 +164,15 @@ export const HeroCard: React.FC<HeroCardProps> = ({
         onMouseLeave={handleMouseLeave}
         style={{
           transform: `rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale3d(${isHovered ? 1.04 : 1}, ${isHovered ? 1.04 : 1}, 1)`,
-          transition: isHovered ? 'transform 0.08s ease-out' : 'transform 0.45s cubic-bezier(0.23, 1, 0.32, 1)',
+          transition: isHovered
+            ? 'transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease'
+            : 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.45s ease, border-color 0.4s ease',
           transformStyle: 'preserve-3d',
           willChange: 'transform'
         }}
-        className={`group relative h-[320px] w-full rounded-2xl overflow-hidden border ${attrConfig.border} bg-slate-950 cursor-pointer shadow-xl transition-all duration-300 ${isHovered ? attrConfig.glow : ''}`}
+        className={`group relative h-[320px] w-full rounded-2xl overflow-hidden border ${attrConfig.border} bg-slate-950 cursor-pointer shadow-xl ${
+          isHovered ? attrConfig.glow : ''
+        }`}
       >
 
         {/* 1. HERO PORTRAIT (Fills Entire Card Similar to Official Dota 2 Web) */}
@@ -176,8 +183,13 @@ export const HeroCard: React.FC<HeroCardProps> = ({
             loading="lazy"
             decoding="async"
             onError={handleImageError}
-            className={`w-full h-full object-cover object-top transition-transform duration-700 ease-out ${
-              isHovered ? 'scale-110 brightness-105' : 'scale-100'
+            style={{
+              transition: isHovered
+                ? 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease'
+                : 'transform 0.65s cubic-bezier(0.23, 1, 0.32, 1), filter 0.5s ease'
+            }}
+            className={`w-full h-full object-cover object-top ${
+              isHovered ? 'scale-110 brightness-105' : 'scale-100 brightness-100'
             }`}
           />
         </div>
@@ -186,13 +198,16 @@ export const HeroCard: React.FC<HeroCardProps> = ({
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent pointer-events-none" />
 
-        {/* 2. DOTA'S OFFICIAL LOGO METALLIC ENGRAVING PATTERN (Small, covers card, appears ONLY on hover) */}
+        {/* 2. DOTA'S OFFICIAL LOGO METALLIC ENGRAVING PATTERN (Small, covers card, appears ONLY on hover with entering/leaving transition) */}
         <div 
-          className={`absolute inset-0 pointer-events-none transition-opacity duration-300 overflow-hidden ${
-            isHovered ? 'opacity-85' : 'opacity-0 pointer-events-none'
-          }`}
+          className="absolute inset-0 pointer-events-none overflow-hidden"
           style={{
-            mixBlendMode: 'color-dodge'
+            mixBlendMode: 'color-dodge',
+            opacity: isHovered ? 0.85 : 0,
+            transform: isHovered ? 'scale(1)' : 'scale(0.96)',
+            transition: isHovered
+              ? 'opacity 0.28s ease-out, transform 0.32s ease-out'
+              : 'opacity 0.42s cubic-bezier(0.23, 1, 0.32, 1), transform 0.45s cubic-bezier(0.23, 1, 0.32, 1)'
           }}
         >
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -252,29 +267,35 @@ export const HeroCard: React.FC<HeroCardProps> = ({
           </svg>
         </div>
 
-        {/* 3. POKEMON-CARDS-CSS HOLOGRAPHIC CHROMATIC FOIL SHEEN */}
+        {/* 3. POKEMON-CARDS-CSS HOLOGRAPHIC CHROMATIC FOIL SHEEN (Entering vs Leaving Transitions) */}
         <div
-          className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+          className="absolute inset-0 pointer-events-none"
           style={{
             opacity: isHovered ? 0.75 : 0,
             backgroundImage: `linear-gradient(115deg, transparent 0%, rgba(255, 0, 150, 0.22) 20%, rgba(0, 220, 255, 0.3) 40%, rgba(255, 230, 0, 0.3) 60%, rgba(168, 85, 247, 0.22) 80%, transparent 100%)`,
             backgroundPosition: `${tilt.foilX}% ${tilt.foilY}%`,
             backgroundSize: '240% 240%',
-            mixBlendMode: 'color-dodge'
+            mixBlendMode: 'color-dodge',
+            transition: isHovered
+              ? 'opacity 0.25s ease-out'
+              : 'opacity 0.4s cubic-bezier(0.23, 1, 0.32, 1)'
           }}
         />
 
-        {/* 4. POKEMON-CARDS-CSS DYNAMIC HOLOGRAPHIC SPOTLIGHT GLARE */}
+        {/* 4. POKEMON-CARDS-CSS DYNAMIC HOLOGRAPHIC SPOTLIGHT GLARE (Entering vs Leaving Transitions) */}
         <div
-          className="absolute inset-0 pointer-events-none transition-opacity duration-200"
+          className="absolute inset-0 pointer-events-none"
           style={{
             opacity: isHovered ? 0.65 : 0,
             background: `radial-gradient(circle at ${tilt.glareX}% ${tilt.glareY}%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.18) 30%, transparent 70%)`,
-            mixBlendMode: 'overlay'
+            mixBlendMode: 'overlay',
+            transition: isHovered
+              ? 'opacity 0.2s ease-out'
+              : 'opacity 0.38s cubic-bezier(0.23, 1, 0.32, 1)'
           }}
         />
 
-        {/* Top Floating Controls (Favorite Star & Meta Badge) */}
+        {/* Top Floating Controls (Meta Badge, Direct PiP Launcher & Favorite Star) */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-20 pointer-events-auto">
           {/* Meta Tier Badge */}
           {isMeta ? (
@@ -291,26 +312,53 @@ export const HeroCard: React.FC<HeroCardProps> = ({
             </div>
           )}
 
-          {/* Favorite Star Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite(hero.id);
-              SoundEngine.playHover();
-            }}
-            className="p-1.5 rounded-full bg-black/75 hover:bg-black border border-white/20 text-slate-300 hover:text-amber-400 transition-colors backdrop-blur-md shadow-md btn-fade"
-            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-            aria-label={`Favorite ${hero.name}`}
-          >
-            <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-amber-400 text-amber-400' : ''}`} />
-          </button>
+          {/* Action buttons (Direct PiP Trigger + Favorite Star) */}
+          <div className="flex items-center gap-1.5">
+            {onOpenPip && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  SoundEngine.playPick();
+                  onOpenPip(hero);
+                }}
+                className={`p-1.5 rounded-full bg-black/75 hover:bg-amber-500/25 border border-white/20 hover:border-amber-400/80 text-slate-300 hover:text-amber-300 transition-all backdrop-blur-md shadow-md ${
+                  isHovered ? 'opacity-100 scale-100' : 'opacity-80 scale-95'
+                }`}
+                title={`Launch ${hero.name} Picture-in-Picture Mini HUD`}
+                aria-label={`Open PiP Mini HUD for ${hero.name}`}
+              >
+                <PictureInPicture className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Favorite Star Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(hero.id);
+                SoundEngine.playHover();
+              }}
+              className="p-1.5 rounded-full bg-black/75 hover:bg-black border border-white/20 text-slate-300 hover:text-amber-400 transition-colors backdrop-blur-md shadow-md btn-fade"
+              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              aria-label={`Favorite ${hero.name}`}
+            >
+              <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-amber-400 text-amber-400' : ''}`} />
+            </button>
+          </div>
         </div>
 
-        {/* RESTING STATE BOTTOM OVERLAY: Similar to Official Dota 2 Web (Name + Attribute Gem) */}
+        {/* RESTING STATE BOTTOM OVERLAY: Similar to Official Dota 2 Web (Name + Attribute Gem with Entering/Leaving Transition) */}
         <div 
-          className={`absolute bottom-0 inset-x-0 p-3 z-10 transition-all duration-300 ${
-            isHovered ? 'opacity-0 translate-y-3 pointer-events-none' : 'opacity-100 translate-y-0'
+          className={`absolute bottom-0 inset-x-0 p-3 z-10 ${
+            isHovered ? 'pointer-events-none' : 'pointer-events-auto'
           }`}
+          style={{
+            opacity: isHovered ? 0 : 1,
+            transform: isHovered ? 'translateY(12px)' : 'translateY(0)',
+            transition: isHovered
+              ? 'opacity 0.2s ease-out, transform 0.22s ease-out'
+              : 'opacity 0.35s cubic-bezier(0.23, 1, 0.32, 1), transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)'
+          }}
         >
           <div className="flex items-center gap-2">
             {/* Primary Attribute Gem */}
@@ -330,20 +378,43 @@ export const HeroCard: React.FC<HeroCardProps> = ({
           </div>
         </div>
 
-        {/* 5. HOVER EFFECT TACTICAL HUD: Showing Damage Type (dmgtype), Difficulty (diff type), Attack Type & Roles */}
+        {/* 5. HOVER EFFECT TACTICAL HUD: Showing Damage Type (dmgtype), Difficulty (diff type), Attack Type, Roles & PiP HUD Shortcut */}
         <div 
-          className={`absolute inset-x-0 bottom-0 p-3.5 z-20 transition-all duration-300 bg-slate-950/90 backdrop-blur-md border-t border-white/15 space-y-2 text-xs font-sans ${
-            isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+          className={`absolute inset-x-0 bottom-0 p-3.5 z-20 bg-slate-950/90 backdrop-blur-md border-t border-white/15 space-y-2 text-xs font-sans ${
+            isHovered ? 'pointer-events-auto' : 'pointer-events-none'
           }`}
+          style={{
+            opacity: isHovered ? 1 : 0,
+            transform: isHovered ? 'translateY(0)' : 'translateY(16px)',
+            transition: isHovered
+              ? 'opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+              : 'opacity 0.25s ease-in, transform 0.32s cubic-bezier(0.23, 1, 0.32, 1)'
+          }}
         >
-          {/* Header on Hover: Name & Primary Attribute Short Tag */}
+          {/* Header on Hover: Name & Primary Attribute Short Tag & Direct PiP Link */}
           <div className="flex items-center justify-between gap-1.5">
             <h3 className="font-dota font-black text-sm text-amber-300 tracking-wide truncate">
               {hero.name}
             </h3>
-            <span className="text-[10px] font-mono font-bold text-slate-300 bg-black/60 px-1.5 py-0.2 rounded border border-white/10 uppercase">
-              {attrConfig.short}
-            </span>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {onOpenPip && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    SoundEngine.playPick();
+                    onOpenPip(hero);
+                  }}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/35 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold tracking-wide transition-colors"
+                  title={`Open Mini HUD for ${hero.name}`}
+                >
+                  <PictureInPicture className="w-3 h-3 text-amber-400" />
+                  <span>PiP</span>
+                </button>
+              )}
+              <span className="text-[10px] font-mono font-bold text-slate-300 bg-black/60 px-1.5 py-0.2 rounded border border-white/10 uppercase">
+                {attrConfig.short}
+              </span>
+            </div>
           </div>
 
           {/* Row 1: Damage Type (dmgtype) & Difficulty Type (diff type) */}

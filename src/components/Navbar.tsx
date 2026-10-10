@@ -227,21 +227,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Notes</span>
             </button>
 
-            {/* Picture-in-Picture Mini HUD Trigger Button */}
-            <button
-              onClick={() => {
-                SoundEngine.playPick();
-                onOpenPip();
-              }}
-              className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-dota-gold/15 hover:bg-dota-gold/25 border border-dota-gold/50 text-dota-gold shadow-dota-glow transition-all whitespace-nowrap group"
-              title="Open Picture-in-Picture Mini HUD (Keyboard shortcut: Alt+P)"
-            >
-              <PictureInPicture className="w-4 h-4 text-dota-gold" />
-              <span className="hidden xl:inline">PiP HUD</span>
-              <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-black/60 rounded border border-dota-gold/40 text-amber-300">
-                Alt+P
-              </kbd>
-            </button>
+            {/* Picture-in-Picture Mini HUD Trigger Button — Only available in Hero view */}
+            {activeTab === 'heroes' && (
+              <button
+                onClick={() => {
+                  SoundEngine.playPick();
+                  onOpenPip();
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-dota-gold/15 hover:bg-dota-gold/25 border border-dota-gold/50 text-dota-gold shadow-dota-glow transition-all whitespace-nowrap group"
+                title="Open Picture-in-Picture Mini HUD (Keyboard shortcut: Alt+P)"
+              >
+                <PictureInPicture className="w-4 h-4 text-dota-gold" />
+                <span className="hidden xl:inline">PiP HUD</span>
+                <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-black/60 rounded border border-dota-gold/40 text-amber-300">
+                  Alt+P
+                </kbd>
+              </button>
+            )}
 
             {/* Sound Mute/Unmute Toggle */}
             <button
