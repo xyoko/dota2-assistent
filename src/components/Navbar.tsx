@@ -2,19 +2,10 @@ import React, { useState } from 'react';
 import { SoundEngine } from '../services/soundFx';
 import { 
   Shield, 
-  Swords, 
-  Crosshair, 
-  TrendingUp, 
-  BookOpen, 
   Search,
-  Sparkles,
-  ArrowRightLeft,
   Volume2,
   VolumeX,
-  FlaskConical,
-  Newspaper,
-  PictureInPicture,
-  BrainCircuit
+  PictureInPicture
 } from 'lucide-react';
 
 export type ActiveTab = 'heroes' | 'predictive' | 'draft' | 'arena' | 'sandbox' | 'interactions' | 'counters' | 'meta' | 'patches' | 'notes';
@@ -95,138 +86,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* Navigation Tabs */}
-          <nav className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-1">
-            <button
-              onClick={() => handleNavClick('heroes')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-                activeTab === 'heroes'
-                  ? 'bg-dota-gold/20 text-dota-gold border border-dota-gold/60 shadow-dota-glow font-black'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
-              }`}
-            >
-              <Swords className="w-4 h-4" />
-              <span>Hero Arsenal</span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('predictive')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all relative whitespace-nowrap ${
-                activeTab === 'predictive'
-                  ? 'bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 text-amber-300 border border-amber-500/70 shadow-dota-glow font-black'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
-              }`}
-            >
-              <BrainCircuit className="w-4 h-4 text-amber-400" />
-              <span>5v5 Predictive</span>
-              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full bg-gradient-to-r from-indigo-500/50 to-purple-500/50 text-indigo-200 border border-indigo-400/50 shadow-sm animate-pulse">
-                Oracle
-              </span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('draft')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all relative whitespace-nowrap ${
-                activeTab === 'draft'
-                  ? 'bg-dota-red/25 text-red-300 border border-dota-red/60 shadow-dota-crimson font-black'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
-              }`}
-            >
-              <Crosshair className="w-4 h-4" />
-              <span>Draft Studio</span>
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-              </span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('arena')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-                activeTab === 'arena'
-                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/60 shadow-dota-crimson font-black'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
-              }`}
-            >
-              <Swords className="w-4 h-4 text-rose-400" />
-              <span>1v1 Arena</span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('sandbox')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-                activeTab === 'sandbox'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/60 shadow-dota-glow font-black'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
-              }`}
-            >
-              <FlaskConical className="w-4 h-4 text-emerald-400" />
-              <span>Build Lab</span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('interactions')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-                activeTab === 'interactions'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/60 shadow-dota-glow font-black'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
-              }`}
-            >
-              <ArrowRightLeft className="w-4 h-4 text-amber-400" />
-              <span>Hero ↔ Item</span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('counters')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-                activeTab === 'counters'
-                  ? 'bg-blue-500/20 text-dota-int border border-dota-int/60 shadow-dota-mana font-black'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Item Matrix</span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('meta')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-                activeTab === 'meta'
-                  ? 'bg-green-500/20 text-dota-agi border border-dota-agi/60 font-black'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
-              <span>Season Meta</span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('patches')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap relative ${
-                activeTab === 'patches'
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/60 shadow font-black'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
-              }`}
-            >
-              <Newspaper className="w-4 h-4 text-cyan-400" />
-              <span>Patch & Fixes</span>
-              <span className="text-[9px] font-mono px-1 rounded bg-cyan-500/30 text-cyan-200 border border-cyan-500/40">
-                7.37d
-              </span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('notes')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-                activeTab === 'notes'
-                  ? 'bg-purple-500/20 text-dota-uni border border-dota-uni/60 font-black'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Notes</span>
-            </button>
-
+          {/* Active View Quick Indicator & Controls */}
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Picture-in-Picture Mini HUD Trigger Button — Only available in Hero view */}
             {activeTab === 'heroes' && (
               <button
@@ -234,12 +95,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   SoundEngine.playPick();
                   onOpenPip();
                 }}
-                className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-dota-gold/15 hover:bg-dota-gold/25 border border-dota-gold/50 text-dota-gold shadow-dota-glow transition-all whitespace-nowrap group"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-dota-gold/15 hover:bg-dota-gold/25 border border-dota-gold/50 text-dota-gold shadow-dota-glow transition-all whitespace-nowrap group"
                 title="Open Picture-in-Picture Mini HUD (Keyboard shortcut: Alt+P)"
               >
                 <PictureInPicture className="w-4 h-4 text-dota-gold" />
-                <span className="hidden xl:inline">PiP HUD</span>
-                <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-black/60 rounded border border-dota-gold/40 text-amber-300">
+                <span className="hidden sm:inline font-mono">PiP HUD</span>
+                <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-black/60 rounded border border-dota-gold/40 text-amber-300">
                   Alt+P
                 </kbd>
               </button>
@@ -248,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Sound Mute/Unmute Toggle */}
             <button
               onClick={handleToggleSound}
-              className={`p-2 rounded-xl border transition-all ${
+              className={`p-2.5 rounded-xl border transition-all ${
                 soundEnabled
                   ? 'bg-amber-500/20 border-amber-500/60 text-amber-400 shadow-dota-glow'
                   : 'bg-slate-800 border-slate-700 text-slate-500'
@@ -257,7 +118,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
-          </nav>
+          </div>
         </div>
 
         {/* Mobile Search Bar */}

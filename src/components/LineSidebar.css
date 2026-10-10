@@ -1,91 +1,160 @@
 .line-sidebar {
   --accent-color: #a855f7;
-  --text-color: #c4c4c4;
-  --marker-color: #6c6c6c;
-  --marker-length: 60px;
-  --marker-gap: 0px;
-  --tick-scale: 0.5;
-  --max-shift: 30px;
-  --item-gap: 20px;
-  --font-size: 1.1rem;
-  --smoothing: 100ms;
+  --text-color: #94a3b8;
+  --marker-color: #64748b;
+  --marker-length: 36px;
+  --marker-gap: 8px;
+  --max-shift: 24px;
+  --item-gap: 16px;
+  --font-size: 0.95rem;
+  --smoothing: 90ms;
 
   position: relative;
   display: flex;
   justify-content: flex-start;
-}
-
-.line-sidebar--markers {
-  padding-left: calc(var(--marker-length) + var(--marker-gap));
+  width: 100%;
 }
 
 .line-sidebar__list {
   list-style: none;
   margin: 0;
-  padding: 1rem 0;
+  padding: 0.75rem 0;
   display: flex;
   flex-direction: column;
   gap: var(--item-gap);
+  width: 100%;
 }
 
-/* --effect (0..1) is driven per item by a rAF lerp in JS, so every derived
-   property below reads the same continuously-animating value and stays in
-   step, with no CSS transitions to stagger. */
+/* Base item with fixed layout slot */
 .line-sidebar__item {
   position: relative;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding-left: calc(var(--marker-length) + var(--marker-gap));
+  user-select: none;
 }
 
 /* Widen the pointer target so items react a touch before the cursor arrives */
 .line-sidebar__item::before {
   content: '';
   position: absolute;
-  inset: -6px -48px;
+  inset: -6px -24px;
 }
 
+/* Official Dota Icon replaces the old horizontal line */
+.line-sidebar__dota-icon {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: var(--marker-length);
+  height: var(--marker-length);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%) scale(calc(0.92 + var(--effect, 0) * 0.32));
+  transform-origin: center center;
+  color: color-mix(in srgb, var(--accent-color) calc(var(--effect, 0) * 100%), var(--marker-color));
+  transition: color 0.18s ease, filter 0.18s ease;
+  flex-shrink: 0;
+}
+
+.line-sidebar__dota-icon svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.18s ease;
+}
+
+/* Active Item Glowing Official Dota Icon */
+.line-sidebar__item[aria-current="true"] .line-sidebar__dota-icon {
+  color: var(--accent-color);
+  filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.75)) drop-shadow(0 0 4px #c084fc);
+}
+
+.line-sidebar__item[aria-current="true"] .line-sidebar__dota-icon svg {
+  transform: scale(1.1);
+}
+
+/* Label & Shift */
 .line-sidebar__label {
   position: relative;
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
+  gap: 0.5rem;
   font-size: var(--font-size);
-  line-height: 1.2;
+  line-height: 1.25;
   color: color-mix(in srgb, var(--accent-color) calc(var(--effect, 0) * 100%), var(--text-color));
   transform: translateX(calc(var(--effect, 0) * var(--max-shift)));
+  transition: color 0.15s ease;
+  white-space: nowrap;
+}
+
+.line-sidebar__item[aria-current="true"] .line-sidebar__label {
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .line-sidebar__index {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  margin-right: 0.6rem;
-  font-size: 0.85em;
-  opacity: calc(0.55 + var(--effect, 0) * 0.45);
+  font-size: 0.8em;
+  opacity: calc(0.5 + var(--effect, 0) * 0.5);
+  color: #94a3b8;
 }
 
-.line-sidebar__marker {
-  position: absolute;
-  top: 50%;
-  left: calc(-1 * var(--marker-length) - var(--marker-gap));
-  height: 1px;
-  width: var(--marker-length);
-  background-color: color-mix(in srgb, var(--accent-color) calc(var(--effect, 0) * 100%), var(--marker-color));
-  transform-origin: left center;
-  transform: translateY(-50%) scaleX(calc(0.7 + var(--effect, 0) * 0.5));
+.line-sidebar__item[aria-current="true"] .line-sidebar__index {
+  color: var(--accent-color);
+  font-weight: 800;
+  opacity: 1;
 }
 
-/* Short static tick centered in the gap between two menu items */
-.line-sidebar--markers .line-sidebar__item:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  top: calc(100% + var(--item-gap) / 2);
-  left: calc(-1 * var(--marker-length) - var(--marker-gap));
-  height: 1px;
-  width: calc(var(--marker-length) * var(--tick-scale));
-  background-color: var(--marker-color);
-  opacity: 0.5;
-  transform: translateY(-50%);
+.line-sidebar__text {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.01em;
 }
 
-/* When enabled, the in-between ticks grow with cursor proximity too */
-.line-sidebar--scale-tick .line-sidebar__item:not(:last-child)::after {
-  transform-origin: left center;
-  transform: translateY(-50%) scaleX(calc(0.7 + var(--effect, 0) * 0.6));
+.line-sidebar__badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(168, 85, 247, 0.18);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: #e9d5ff;
+  letter-spacing: 0.05em;
+}
+
+.line-sidebar__item[aria-current="true"] .line-sidebar__badge {
+  background: rgba(168, 85, 247, 0.35);
+  border-color: rgba(168, 85, 247, 0.7);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+}
+
+/* RESTING VS HOVER VISIBILITY:
+   When resting (isHovered = false), ONLY the active section stays visible.
+   When hovered (isHovered = true), all other sections appear smoothly.
+   Crucially, the placement does NOT change because every item occupies
+   its exact identical layout slot in the list! */
+.line-sidebar--resting .line-sidebar__item:not([aria-current="true"]) {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s;
+}
+
+.line-sidebar--resting .line-sidebar__item[aria-current="true"] {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.line-sidebar--hovered .line-sidebar__item {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s;
 }

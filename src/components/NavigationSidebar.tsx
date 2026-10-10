@@ -1,61 +1,152 @@
 'use client';
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { ActiveTab } from './Navbar';
-import { LineSidebar } from './LineSidebar';
+import { LineSidebar, LineSidebarItem } from './LineSidebar';
 import { SoundEngine } from '../services/soundFx';
 import { 
-  PanelLeftClose, 
-  PanelLeftOpen, 
-  X, 
-  Compass, 
-  Shield, 
-  Sparkles 
+  DotaOfficialLogoIcon,
+  DotaAegisIcon,
+  DotaCrossedBladesIcon,
+  DotaDuelArenaIcon,
+  DotaAghanimScepterIcon,
+  DotaSynergyVortexIcon,
+  DotaDivineRapierIcon,
+  DotaImmortalRankIcon,
+  DotaPatchScrollIcon,
+  DotaTacticalNotesIcon
+} from '../utils/dotaIcons';
+import { 
+  Sparkles
 } from 'lucide-react';
 
 interface NavigationSidebarProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
+  isOpen?: boolean;
+  setIsOpen?: (isOpen: boolean) => void;
 }
 
-interface TabMapping {
+interface NavSectionDef {
   tab: ActiveTab;
   label: string;
   badge?: string;
   description: string;
+  icon: React.ReactNode;
 }
 
-const TAB_MAPPINGS: TabMapping[] = [
-  { tab: 'heroes', label: 'Hero Arsenal', badge: 'Official', description: 'Interactive 3D foil portraits & tactical HUD' },
-  { tab: 'predictive', label: '5v5 Predictive Oracle', badge: 'AI', description: 'Real-time lineup win predictor & ban engine' },
-  { tab: 'draft', label: 'Draft Studio', badge: 'Live', description: 'Counter-pick matrix & threat analyzer' },
-  { tab: 'arena', label: '1v1 Matchup Arena', description: 'Head-to-head combat telemetry' },
-  { tab: 'sandbox', label: 'Build Lab & Sandbox', description: 'Custom theorycrafting item engine' },
-  { tab: 'interactions', label: 'Hero ↔ Item Synergies', description: 'Counter & synergy breakdowns' },
-  { tab: 'counters', label: 'Item Matrix', description: 'Situational active item response' },
-  { tab: 'meta', label: 'Season Meta Tier List', badge: '7.37d', description: 'High-MMR win rate tiers & shifts' },
-  { tab: 'patches', label: 'Patch News & Fixes', badge: '7.37d', description: 'Recent updates & balance notes' },
-  { tab: 'notes', label: 'Tactical Notes & Drafts', description: 'Saved lineups and player notes' }
+const NAV_SECTIONS: NavSectionDef[] = [
+  { 
+    tab: 'heroes', 
+    label: 'Hero Arsenal', 
+    badge: 'Official', 
+    description: 'Interactive 3D foil portraits & tactical HUD',
+    icon: <DotaOfficialLogoIcon size={20} />
+  },
+  { 
+    tab: 'predictive', 
+    label: '5v5 Predictive Oracle', 
+    badge: 'Oracle', 
+    description: 'Role-isolated counter picks, targeted bans & win probability',
+    icon: <DotaAegisIcon size={20} />
+  },
+  { 
+    tab: 'draft', 
+    label: 'Draft Studio', 
+    badge: 'Live', 
+    description: 'Counter-pick matrix & threat analyzer',
+    icon: <DotaCrossedBladesIcon size={20} />
+  },
+  { 
+    tab: 'arena', 
+    label: '1v1 Matchup Arena', 
+    description: 'Head-to-head combat telemetry & armor stats',
+    icon: <DotaDuelArenaIcon size={20} />
+  },
+  { 
+    tab: 'sandbox', 
+    label: 'Build Lab & Sandbox', 
+    description: 'Custom theorycrafting item engine & inventory simulator',
+    icon: <DotaAghanimScepterIcon size={20} />
+  },
+  { 
+    tab: 'interactions', 
+    label: 'Hero ↔ Item Synergies', 
+    description: 'Counter & synergy breakdowns with item cooldowns',
+    icon: <DotaSynergyVortexIcon size={20} />
+  },
+  { 
+    tab: 'counters', 
+    label: 'Item Matrix', 
+    description: 'Situational active item response & dispel timing',
+    icon: <DotaDivineRapierIcon size={20} />
+  },
+  { 
+    tab: 'meta', 
+    label: 'Season Meta Tier List', 
+    badge: '7.37d', 
+    description: 'High-MMR win rate tiers & lane dominance shifts',
+    icon: <DotaImmortalRankIcon size={20} />
+  },
+  { 
+    tab: 'patches', 
+    label: 'Patch News & Fixes', 
+    badge: '7.37d', 
+    description: 'Recent balance notes, changes & bug patches',
+    icon: <DotaPatchScrollIcon size={20} />
+  },
+  { 
+    tab: 'notes', 
+    label: 'Tactical Notes & Drafts', 
+    description: 'Saved lineups, player notes & team strategies',
+    icon: <DotaTacticalNotesIcon size={20} />
+  }
 ];
 
 export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
   activeTab,
-  setActiveTab,
-  isOpen,
-  setIsOpen
+  setActiveTab
 }) => {
-  const activeIndex = Math.max(0, TAB_MAPPINGS.findIndex((m) => m.tab === activeTab));
+  const [isHovered, setIsHovered] = useState<boolean>(false);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Escape key handler to close drawer
+  const activeIndex = Math.max(0, NAV_SECTIONS.findIndex((s) => s.tab === activeTab));
+  const activeSection = NAV_SECTIONS[activeIndex] || NAV_SECTIONS[0];
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    // Subtle 140ms grace period so moving near edges doesn't flicker
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovered(false);
+    }, 140);
+  };
+
+  const handleItemClick = (index: number) => {
+    const target = NAV_SECTIONS[index];
+    if (target) {
+      SoundEngine.playPick();
+      setActiveTab(target.tab);
+    }
+  };
+
+  // Close on Escape key
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
+      if (e.key === 'Escape') {
+        setIsHovered(false);
       }
     },
-    [isOpen, setIsOpen]
+    []
   );
 
   useEffect(() => {
@@ -63,147 +154,113 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  const handleItemClick = (index: number) => {
-    const target = TAB_MAPPINGS[index];
-    if (target) {
-      SoundEngine.playHover();
-      setActiveTab(target.tab);
-      // Auto close drawer after selection on mobile, or keep open if desktop
-      if (window.innerWidth < 1024) {
-        setIsOpen(false);
-      }
-    }
-  };
+  const lineSidebarItems: LineSidebarItem[] = NAV_SECTIONS.map((s) => ({
+    label: s.label,
+    icon: s.icon,
+    badge: s.badge,
+    description: s.description
+  }));
 
   return (
     <>
-      {/* Floating Edge Toggle Button (when drawer is closed) */}
-      <button
-        onClick={() => {
-          SoundEngine.playHover();
-          setIsOpen(!isOpen);
-        }}
-        className={`fixed left-3 top-20 sm:top-24 z-40 p-2.5 sm:p-3 rounded-2xl border transition-all duration-300 flex items-center gap-2 group backdrop-blur-xl shadow-xl ${
-          isOpen
-            ? 'bg-purple-950/80 border-purple-500/60 text-purple-300 shadow-[0_0_20px_rgba(168,85,247,0.35)]'
-            : 'bg-slate-950/80 border-purple-500/30 text-slate-300 hover:text-white hover:border-purple-400 hover:bg-slate-900 shadow-[0_0_15px_rgba(0,0,0,0.6)]'
-        }`}
-        title={isOpen ? 'Close Navigator (Esc)' : 'Open Interactive Line Navigator'}
-        aria-label="Toggle navigation drawer"
-      >
-        {isOpen ? (
-          <PanelLeftClose className="w-5 h-5 text-purple-400 transition-transform group-hover:scale-110" />
-        ) : (
-          <PanelLeftOpen className="w-5 h-5 text-purple-400 transition-transform group-hover:scale-110" />
-        )}
-        <span className="hidden md:inline font-mono text-[11px] font-bold uppercase tracking-wider text-purple-300">
-          {isOpen ? 'Close' : 'Nav'}
-        </span>
-      </button>
-
-      {/* Backdrop Dimmer */}
+      {/* 1. Left Edge Trigger Zone: Auto pops up nav when cursor approaches left side */}
       <div
-        className={`fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${
-          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setIsOpen(false)}
+        className="fixed left-0 top-16 bottom-0 w-8 z-40 pointer-events-auto"
+        onMouseEnter={handleMouseEnter}
         aria-hidden="true"
       />
 
-      {/* Sliding Glassmorphic Navigation Drawer */}
+      {/* 2. Docked Left Line Navigator Panel */}
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 w-80 sm:w-96 max-w-[90vw] bg-slate-950/95 backdrop-blur-2xl border-r border-purple-500/30 shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col justify-between transition-transform duration-300 ease-out transform ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`fixed left-2 sm:left-4 top-20 sm:top-24 z-40 transition-all duration-300 ease-out flex flex-col justify-between ${
+          isHovered
+            ? 'w-80 sm:w-88 max-w-[92vw] bg-slate-950/95 backdrop-blur-2xl border-2 border-purple-500/40 shadow-[0_0_40px_rgba(168,85,247,0.35)] rounded-2xl py-4 px-4'
+            : 'w-72 sm:w-80 bg-slate-950/60 backdrop-blur-md border border-purple-500/25 shadow-lg rounded-2xl py-4 px-4 pointer-events-auto'
         }`}
-        aria-label="Application Navigator"
+        aria-label="Tactical Navigation Dock"
       >
-        {/* Top Header */}
-        <div className="p-5 border-b border-purple-500/20 flex items-center justify-between bg-gradient-to-r from-purple-950/40 via-slate-950/50 to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 via-indigo-700 to-slate-900 border border-purple-400/50 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-              <Compass className="w-5 h-5 text-purple-200" />
+        {/* Subtle Background Shimmer Gradient */}
+        <div
+          className={`absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-300 bg-gradient-to-br from-purple-900/15 via-transparent to-blue-900/15 ${
+            isHovered ? 'opacity-100' : 'opacity-40'
+          }`}
+        />
+
+        {/* Top Header Card */}
+        <div className="relative z-10 pb-3 border-b border-purple-500/20 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 via-indigo-700 to-slate-950 border border-purple-400/50 flex items-center justify-center shadow-[0_0_12px_rgba(168,85,247,0.4)]">
+              <span className="text-sm">🧭</span>
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-dota font-bold text-sm tracking-wide bg-gradient-to-r from-purple-300 via-pink-200 to-cyan-300 bg-clip-text text-transparent">
+                <span className="font-dota font-bold text-xs tracking-wider bg-gradient-to-r from-purple-200 via-pink-200 to-cyan-200 bg-clip-text text-transparent">
                   NAVIGATOR
                 </span>
-                <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 uppercase">
-                  Pro
+                <span className="text-[8px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 uppercase">
+                  Dota HUD
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-sans">
-                Interactive Line Proximity Engine
+              <p className="text-[10px] text-slate-400 font-sans leading-none mt-0.5">
+                {isHovered ? 'Interactive Proximity Rail' : 'Hover to expand all views'}
               </p>
             </div>
           </div>
 
-          <button
-            onClick={() => setIsOpen(false)}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-purple-900/30 border border-transparent hover:border-purple-500/30 transition-all"
-            title="Close Navigator"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="text-[9px] font-mono text-purple-400/80 font-bold">
+            {isHovered ? '10 Views' : `Active: 0${activeIndex + 1}`}
+          </div>
         </div>
 
-        {/* Sidebar Middle Content with React Bits <LineSidebar /> */}
-        <div className="flex-1 overflow-y-auto px-5 py-6">
-          <div className="mb-4 text-[10px] font-mono uppercase tracking-widest text-slate-400 flex items-center justify-between">
-            <span>Views & Modules</span>
-            <span className="text-purple-400 font-bold">{TAB_MAPPINGS.length} Sections</span>
-          </div>
-
+        {/* Middle Line Navigation with Official Dota Icons & Fixed Layout Slots */}
+        <div className="relative z-10 py-2 overflow-hidden">
           <LineSidebar
-            items={TAB_MAPPINGS.map((m) => m.label)}
+            items={lineSidebarItems}
             accentColor="#C084FC"
             textColor="#94a3b8"
             markerColor="#64748b"
             showIndex={true}
-            showMarker={true}
-            proximityRadius={90}
-            maxShift={26}
+            proximityRadius={80}
+            maxShift={20}
             falloff="smooth"
-            markerLength={46}
-            markerGap={4}
-            tickScale={0.45}
-            scaleTick={true}
-            itemGap={18}
-            fontSize={0.98}
-            smoothing={90}
+            markerLength={32}
+            markerGap={8}
+            itemGap={14}
+            fontSize={0.92}
+            smoothing={85}
             activeIndex={activeIndex}
+            isHovered={isHovered}
             onItemClick={handleItemClick}
             className="w-full"
           />
-
-          {/* Current Selection Information Card */}
-          <div className="mt-8 p-3.5 rounded-2xl bg-gradient-to-br from-purple-950/40 to-slate-900/60 border border-purple-500/20 text-xs space-y-1.5">
-            <div className="flex items-center gap-1.5 text-purple-300 font-bold font-sans">
-              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-              <span>Active View:</span>
-              <span className="text-white font-dota ml-1">{TAB_MAPPINGS[activeIndex]?.label}</span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
-              {TAB_MAPPINGS[activeIndex]?.description}
-            </p>
-          </div>
         </div>
 
-        {/* Bottom Drawer Footer */}
-        <div className="p-4 border-t border-purple-500/20 bg-slate-950/90 flex items-center justify-between text-[11px] text-slate-400 font-mono">
-          <div className="flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5 text-purple-400" />
-            <span>Patch 7.37d</span>
+        {/* Bottom Status Card */}
+        <div
+          className={`relative z-10 pt-3 border-t border-purple-500/20 transition-all duration-300 text-xs ${
+            isHovered ? 'opacity-100 max-h-24' : 'opacity-80 max-h-16'
+          }`}
+        >
+          <div className="p-2.5 rounded-xl bg-purple-950/30 border border-purple-500/20 space-y-1">
+            <div className="flex items-center justify-between text-[11px]">
+              <div className="flex items-center gap-1 text-purple-300 font-bold">
+                <Sparkles className="w-3 h-3 text-purple-400" />
+                <span className="text-white font-dota">{activeSection.label}</span>
+              </div>
+              <span className="text-[9px] font-mono text-purple-300/80">Patch 7.37d</span>
+            </div>
+            {isHovered && (
+              <p className="text-[10px] text-slate-400 font-sans leading-tight">
+                {activeSection.description}
+              </p>
+            )}
           </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="px-3 py-1 rounded-lg bg-purple-900/30 hover:bg-purple-900/60 text-purple-300 border border-purple-500/40 text-[10px] uppercase font-bold transition-all"
-          >
-            Hide Drawer
-          </button>
         </div>
       </aside>
     </>
   );
 };
+
+export default NavigationSidebar;

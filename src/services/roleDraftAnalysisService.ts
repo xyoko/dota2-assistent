@@ -155,7 +155,7 @@ export function getRolePickSuggestions(
     .map((id) => HERO_MAP.get(id))
     .filter((h): h is HeroData => Boolean(h));
 
-  const isFirstPickSituation = allOpponentHeroes.length === 0;
+  const isFirstPickSituation = !opponentHero;
 
   // Filter hero roster to ONLY heroes matching this role
   const roleCandidates = HEROES_DATA.filter((candidate) => {
@@ -177,58 +177,34 @@ export function getRolePickSuggestions(
       reasons.push('★ Marked as a Favorite Hero in your personal repertoire');
     }
 
-    if (!isFirstPickSituation && allOpponentHeroes.length > 0) {
-      // SCENARIO A: Opponent has picked heroes -> Evaluate counter-picks
-      if (opponentHero) {
-        // Direct role matchup counter
-        const counterMatch = candidate.strongAgainst?.find((s) => s.heroId === opponentHero.id);
-        if (counterMatch) {
-          score += 28;
-          matchupTarget = {
-            hero: opponentHero,
-            relation: 'counters_direct_lane',
-            note: counterMatch.reason
-          };
-          reasons.push(`Directly counters Opponent ${opponentHero.name} (${counterMatch.reason})`);
-        }
-
-        const weakMatch = candidate.weakAgainst?.find((w) => w.heroId === opponentHero.id);
-        if (weakMatch) {
-          score -= 22;
-          reasons.push(`Vulnerable to Opponent ${opponentHero.name} (${weakMatch.reason})`);
-        }
+    if (opponentHero) {
+      // SCENARIO A: Opponent has picked their hero for this specific role -> Evaluate targeted counter-picks
+      const counterMatch = candidate.strongAgainst?.find((s) => s.heroId === opponentHero.id);
+      if (counterMatch) {
+        score += 28;
+        matchupTarget = {
+          hero: opponentHero,
+          relation: 'counters_direct_lane',
+          note: counterMatch.reason
+        };
+        reasons.push(`Directly counters Opponent ${opponentHero.name} (${counterMatch.reason})`);
       }
 
-      // Counter against any picked opponent heroes across other roles
-      allOpponentHeroes.forEach((opp) => {
-        if (opp.id === opponentHero?.id) return;
-        const sa = candidate.strongAgainst?.find((s) => s.heroId === opp.id);
-        if (sa) {
-          score += 15;
-          if (!matchupTarget) {
-            matchupTarget = {
-              hero: opp,
-              relation: 'counters_opponent',
-              note: sa.reason
-            };
-          }
-          reasons.push(`Counters Opponent's ${opp.name} (${sa.reason})`);
-        }
-
-        const wa = candidate.weakAgainst?.find((w) => w.heroId === opp.id);
-        if (wa) {
-          score -= 15;
-        }
-      });
+      const weakMatch = candidate.weakAgainst?.find((w) => w.heroId === opponentHero.id);
+      if (weakMatch) {
+        score -= 22;
+        reasons.push(`Vulnerable to Opponent ${opponentHero.name} (${weakMatch.reason})`);
+      }
     } else {
-      // SCENARIO B: Allied team has first pick (opponent hasn't picked yet)
+      // SCENARIO B: Opponent has NOT chosen a hero for this role (e.g. Allied team has first pick or drafting role blind)
+      // Per specification: do not counter non-existent role picks; show optimal first picks
       score += 15; // Base first pick stability
-      reasons.push(`Optimal blind first-pick with resilient lane independence`);
+      reasons.push(`Optimal blind first-pick for ${roleDef.name} with resilient lane independence`);
 
-      // Safe blind-pick bonus: Low complexity or fewer hard counter vulnerabilities
+      // Safe blind-pick bonus: Low complexity or flexible toolkit
       if (candidate.complexity === 1 || candidate.complexity === 2) {
         score += 8;
-        reasons.push('Flexible pick with hard-to-counter general toolkit');
+        reasons.push('Versatile hero with hard-to-exploit baseline toolkit');
       }
     }
 
@@ -322,10 +298,6 @@ export function getRoleBanSuggestions(
     .map((id) => HERO_MAP.get(id))
     .filter((h): h is HeroData => Boolean(h));
 
-  const allOpponentHeroes = opponentSlots
-    .filter((id): id is string => Boolean(id))
-    .map((id) => HERO_MAP.get(id))
-    .filter((h): h is HeroData => Boolean(h));
 
   // Role candidate heroes that can be banned
   const roleCandidates = HEROES_DATA.filter((candidate) => {
@@ -373,18 +345,15 @@ export function getRoleBanSuggestions(
       }
     }
 
-    // 2. Disrupt Opponent Combo: Check if candidate combos with opponent's picks
-    if (!isAllyThreat && allOpponentHeroes.length > 0) {
-      for (const opp of allOpponentHeroes) {
-        const combosWithOpp = candidate.synergies?.find((s) => s.heroId === opp.id);
-        if (combosWithOpp) {
-          impactScore += 28;
-          priority = 'HIGH';
-          category = 'Denies Opponent Combo';
-          reason = `Prevents Opponent pairing with ${opp.name} (${combosWithOpp.reason})`;
-          targetOpponentHero = opp;
-          break;
-        }
+    // 2. Disrupt Opponent Combo: Check if candidate combos with opponent's role hero
+    if (!isAllyThreat && opponentRoleHero) {
+      const combosWithOppRole = candidate.synergies?.find((s) => s.heroId === opponentRoleHero.id);
+      if (combosWithOppRole) {
+        impactScore += 32;
+        priority = 'HIGH';
+        category = 'Denies Opponent Combo';
+        reason = `Prevents Opponent pairing with ${opponentRoleHero.name} (${combosWithOppRole.reason})`;
+        targetOpponentHero = opponentRoleHero;
       }
     }
 

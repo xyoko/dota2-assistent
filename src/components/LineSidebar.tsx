@@ -11,63 +11,52 @@ const FALLOFF_CURVES: Record<FalloffCurve, (p: number) => number> = {
   sharp: (p: number) => p * p * p
 };
 
-export const DEFAULT_SIDEBAR_ITEMS = [
-  'Overview',
-  'Components',
-  'Animations',
-  'Backgrounds',
-  'Showcase',
-  'Playground',
-  'Templates',
-  'Changelog',
-  'Community',
-  'Resources',
-  'Documentation',
-  'Support'
-];
+export interface LineSidebarItem {
+  label: string;
+  id?: string;
+  icon?: React.ReactNode;
+  badge?: string;
+  description?: string;
+}
 
 export interface LineSidebarProps {
-  items?: string[];
+  items: Array<LineSidebarItem | string>;
   accentColor?: string;
   textColor?: string;
   markerColor?: string;
   showIndex?: boolean;
-  showMarker?: boolean;
   proximityRadius?: number;
   maxShift?: number;
   falloff?: FalloffCurve;
   markerLength?: number;
   markerGap?: number;
-  tickScale?: number;
-  scaleTick?: boolean;
   itemGap?: number;
   fontSize?: number;
   smoothing?: number;
   defaultActive?: number | null;
   activeIndex?: number | null;
+  isHovered?: boolean;
   onItemClick?: (index: number, label: string) => void;
   className?: string;
 }
 
 export const LineSidebar: React.FC<LineSidebarProps> = ({
-  items = DEFAULT_SIDEBAR_ITEMS,
-  accentColor = '#A855F7',
-  textColor = '#c4c4c4',
-  markerColor = '#6c6c6c',
+  items,
+  accentColor = '#C084FC',
+  textColor = '#94a3b8',
+  markerColor = '#64748b',
   showIndex = true,
-  showMarker = true,
-  proximityRadius = 100,
-  maxShift = 30,
+  proximityRadius = 85,
+  maxShift = 24,
   falloff = 'smooth',
-  markerLength = 60,
-  markerGap = 0,
-  tickScale = 0.5,
-  scaleTick = true,
-  itemGap = 20,
-  fontSize = 1.1,
-  smoothing = 100,
+  markerLength = 36,
+  markerGap = 8,
+  itemGap = 16,
+  fontSize = 0.95,
+  smoothing = 90,
   defaultActive = null,
   activeIndex: controlledActiveIndex,
+  isHovered = false,
   onItemClick,
   className = ''
 }) => {
@@ -88,9 +77,7 @@ export const LineSidebar: React.FC<LineSidebarProps> = ({
   activeRef.current = activeIndex;
   smoothingRef.current = smoothing;
 
-  // Single rAF loop that eases every item's --effect toward its target using
-  // frame-rate independent exponential smoothing, so color, shift and scale
-  // all move together without staggering CSS transitions.
+  // Frame-rate independent exponential smoothing rAF loop
   const runFrame = useCallback((now: number) => {
     const dt = Math.min((now - lastRef.current) / 1000, 0.05);
     lastRef.current = now;
@@ -119,7 +106,6 @@ export const LineSidebar: React.FC<LineSidebarProps> = ({
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current);
     }
-
     lastRef.current = performance.now();
     rafRef.current = requestAnimationFrame(runFrame);
   }, [runFrame]);
@@ -159,7 +145,7 @@ export const LineSidebar: React.FC<LineSidebarProps> = ({
 
   useEffect(() => {
     startLoop();
-  }, [activeIndex, startLoop]);
+  }, [activeIndex, isHovered, startLoop]);
 
   useEffect(
     () => () => {
@@ -171,8 +157,8 @@ export const LineSidebar: React.FC<LineSidebarProps> = ({
 
   return (
     <nav
-      className={`line-sidebar${showMarker ? ' line-sidebar--markers' : ''}${
-        scaleTick ? ' line-sidebar--scale-tick' : ''
+      className={`line-sidebar ${
+        isHovered ? 'line-sidebar--hovered' : 'line-sidebar--resting'
       }${className ? ` ${className}` : ''}`}
       style={{
         '--accent-color': accentColor,
@@ -180,7 +166,6 @@ export const LineSidebar: React.FC<LineSidebarProps> = ({
         '--marker-color': markerColor,
         '--marker-length': `${markerLength}px`,
         '--marker-gap': `${markerGap}px`,
-        '--tick-scale': tickScale,
         '--max-shift': `${maxShift}px`,
         '--item-gap': `${itemGap}px`,
         '--font-size': `${fontSize}rem`,
@@ -193,27 +178,42 @@ export const LineSidebar: React.FC<LineSidebarProps> = ({
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
       >
-        {items.map((label, index) => (
-          <li
-            key={`${label}-${index}`}
-            ref={(el) => {
-              itemRefs.current[index] = el;
-            }}
-            className="line-sidebar__item"
-            aria-current={activeIndex === index ? 'true' : undefined}
-            onClick={() => handleClick(index, label)}
-          >
-            {showMarker && <span className="line-sidebar__marker" aria-hidden="true" />}
-            <span className="line-sidebar__label">
-              {showIndex && (
-                <span className="line-sidebar__index">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-              )}
-              <span className="line-sidebar__text">{label}</span>
-            </span>
-          </li>
-        ))}
+        {items.map((rawItem, index) => {
+          const item: LineSidebarItem =
+            typeof rawItem === 'string' ? { label: rawItem } : rawItem;
+          const isActive = activeIndex === index;
+
+          return (
+            <li
+              key={`${item.label}-${index}`}
+              ref={(el) => {
+                itemRefs.current[index] = el;
+              }}
+              className="line-sidebar__item"
+              aria-current={isActive ? 'true' : undefined}
+              onClick={() => handleClick(index, item.label)}
+              title={item.description || item.label}
+            >
+              {/* Official Dota Icon replaces the old line */}
+              <span className="line-sidebar__dota-icon" aria-hidden="true">
+                {item.icon}
+              </span>
+
+              {/* Label & Details */}
+              <span className="line-sidebar__label">
+                {showIndex && (
+                  <span className="line-sidebar__index">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                )}
+                <span className="line-sidebar__text">{item.label}</span>
+                {item.badge && (
+                  <span className="line-sidebar__badge">{item.badge}</span>
+                )}
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );
