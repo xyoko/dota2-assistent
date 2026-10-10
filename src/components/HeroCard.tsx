@@ -186,51 +186,70 @@ export const HeroCard: React.FC<HeroCardProps> = ({
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent pointer-events-none" />
 
-        {/* 2. DOTA'S OFFICIAL LOGO METALLIC ENGRAVING (Appears & Gleams on Light Change) */}
+        {/* 2. DOTA'S OFFICIAL LOGO METALLIC ENGRAVING PATTERN (Small, covers card, appears ONLY on hover) */}
         <div 
-          className="absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-500 overflow-hidden"
-          style={{ opacity: isHovered ? 0.95 : 0.25 }}
+          className={`absolute inset-0 pointer-events-none transition-opacity duration-300 overflow-hidden ${
+            isHovered ? 'opacity-85' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{
+            mixBlendMode: 'color-dodge'
+          }}
         >
-          <div className="relative w-32 h-32 sm:w-36 sm:h-36">
-            {/* Base Metallic Embossed Watermark */}
-            <svg 
-              viewBox="0 0 24 24" 
-              className="w-full h-full text-amber-500/20 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]"
-              fill="currentColor"
-            >
-              <path d={DOTA_LOGO_PATH} />
-            </svg>
-
-            {/* Specular Light-Reactive Metallic Reflection Foil Sheen */}
-            {isHovered && (
-              <svg
-                viewBox="0 0 24 24"
-                className="absolute inset-0 w-full h-full"
-                style={{
-                  mixBlendMode: 'color-dodge',
-                  filter: 'drop-shadow(0 0 10px rgba(255, 215, 0, 0.75))'
-                }}
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              {/* Dynamic metallic light reflection gradient responding to light angle */}
+              <linearGradient 
+                id={`dota-metallic-tile-${hero.id}`} 
+                x1="0%" 
+                y1="0%" 
+                x2="100%" 
+                y2="100%" 
+                gradientTransform={`rotate(${tilt.lightAngle + 90})`}
               >
-                <defs>
-                  <linearGradient 
-                    id={`dota-metallic-${hero.id}`} 
-                    x1="0%" 
-                    y1="0%" 
-                    x2="100%" 
-                    y2="100%" 
-                    gradientTransform={`rotate(${tilt.lightAngle + 90})`}
-                  >
-                    <stop offset="0%" stopColor="transparent" />
-                    <stop offset="30%" stopColor="rgba(255, 215, 0, 0.15)" />
-                    <stop offset="50%" stopColor="rgba(255, 245, 220, 0.95)" />
-                    <stop offset="70%" stopColor="rgba(255, 215, 0, 0.15)" />
-                    <stop offset="100%" stopColor="transparent" />
-                  </linearGradient>
-                </defs>
-                <path d={DOTA_LOGO_PATH} fill={`url(#dota-metallic-${hero.id})`} />
-              </svg>
-            )}
-          </div>
+                <stop offset="0%" stopColor="rgba(255, 215, 0, 0.08)" />
+                <stop offset="35%" stopColor="rgba(255, 215, 0, 0.3)" />
+                <stop offset="50%" stopColor="rgba(255, 250, 230, 0.95)" />
+                <stop offset="65%" stopColor="rgba(255, 215, 0, 0.3)" />
+                <stop offset="100%" stopColor="rgba(255, 215, 0, 0.08)" />
+              </linearGradient>
+
+              {/* Repeating Pattern of Small Dota 2 Metallic Engravings covering the hero card */}
+              <pattern 
+                id={`dota-pattern-${hero.id}`} 
+                width="52" 
+                height="52" 
+                patternUnits="userSpaceOnUse"
+                patternTransform="rotate(18)"
+              >
+                {/* 1st Small Engraved Symbol (16px) with Embossed Shadow */}
+                <path 
+                  d={DOTA_LOGO_PATH} 
+                  transform="translate(6, 6) scale(0.68)" 
+                  fill="rgba(0, 0, 0, 0.75)" 
+                />
+                <path 
+                  d={DOTA_LOGO_PATH} 
+                  transform="translate(5, 5) scale(0.68)" 
+                  fill={`url(#dota-metallic-tile-${hero.id})`} 
+                />
+
+                {/* 2nd Staggered Small Engraved Symbol (16px) with Embossed Shadow */}
+                <path 
+                  d={DOTA_LOGO_PATH} 
+                  transform="translate(32, 32) scale(0.68)" 
+                  fill="rgba(0, 0, 0, 0.75)" 
+                />
+                <path 
+                  d={DOTA_LOGO_PATH} 
+                  transform="translate(31, 31) scale(0.68)" 
+                  fill={`url(#dota-metallic-tile-${hero.id})`} 
+                />
+              </pattern>
+            </defs>
+
+            {/* Pattern Fill Covering the Entire Card */}
+            <rect width="100%" height="100%" fill={`url(#dota-pattern-${hero.id})`} />
+          </svg>
         </div>
 
         {/* 3. POKEMON-CARDS-CSS HOLOGRAPHIC CHROMATIC FOIL SHEEN */}
