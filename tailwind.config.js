@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      spacing: {
+        '88': '22rem',
+      },
       colors: {
         dota: {
           bg: '#0a0d14',

@@ -176,8 +176,8 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
         onMouseLeave={handleMouseLeave}
         className={`fixed left-2 sm:left-4 top-20 sm:top-24 z-40 transition-all duration-300 ease-out flex flex-col justify-between ${
           isHovered
-            ? 'w-80 sm:w-88 max-w-[92vw] bg-slate-950/95 backdrop-blur-2xl border-2 border-purple-500/40 shadow-[0_0_40px_rgba(168,85,247,0.35)] rounded-2xl py-4 px-4'
-            : 'w-72 sm:w-80 bg-slate-950/60 backdrop-blur-md border border-purple-500/25 shadow-lg rounded-2xl py-4 px-4 pointer-events-auto'
+            ? 'w-80 sm:w-88 max-w-[92vw] bg-slate-950/95 backdrop-blur-2xl border-2 border-purple-500/40 shadow-[0_0_40px_rgba(168,85,247,0.35)] rounded-2xl py-4 px-4 translate-x-0 opacity-100 pointer-events-auto'
+            : 'w-80 sm:w-88 max-w-[92vw] bg-slate-950/60 backdrop-blur-md border border-purple-500/25 shadow-lg rounded-2xl py-4 px-4 -translate-x-[110%] opacity-0 pointer-events-none'
         }`}
         aria-label="Tactical Navigation Dock"
       >
@@ -215,15 +215,15 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
         </div>
 
         {/* Middle Line Navigation with Official Dota Icons & Fixed Layout Slots */}
-        <div className="relative z-10 py-2 overflow-hidden">
+        <div className="relative z-10 py-2">
           <LineSidebar
             items={lineSidebarItems}
             accentColor="#C084FC"
             textColor="#94a3b8"
             markerColor="#64748b"
             showIndex={true}
-            proximityRadius={80}
-            maxShift={20}
+            proximityRadius={35}
+            maxShift={0}
             falloff="smooth"
             markerLength={32}
             markerGap={8}

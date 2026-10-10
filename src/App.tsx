@@ -104,12 +104,7 @@ export const App: React.FC = () => {
   const [isNativePipActive, setIsNativePipActive] = useState<boolean>(false);
   const [pipContainer, setPipContainer] = useState<HTMLElement | null>(null);
 
-  // Restrict in-app floating PiP to Hero view only: auto-close floating overlay when navigating away
-  React.useEffect(() => {
-    if (activeTab !== 'heroes' && isPipOpen && !isNativePipActive) {
-      setIsPipOpen(false);
-    }
-  }, [activeTab, isPipOpen, isNativePipActive]);
+  // Allow in-app floating PiP to remain open across all views
   
   // Favorites State
   const [favorites, setFavorites] = useState<string[]>(() => StorageService.getFavorites());
@@ -232,7 +227,6 @@ export const App: React.FC = () => {
 
       {/* Navigation Header */}
       <Navbar
-        activeTab={activeTab}
         setActiveTab={setActiveTab}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -248,7 +242,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className="relative z-10 flex-1 max-w-7xl xl:max-w-[1550px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:pl-88 py-6">
+      <main className="relative z-10 flex-1 max-w-7xl xl:max-w-[1550px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* VIEW 1: HERO BUILDS & GUIDE */}
         {activeTab === 'heroes' && (

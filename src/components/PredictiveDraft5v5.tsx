@@ -29,8 +29,7 @@ import {
   Crown, 
   Lock, 
   Trash2,
-  Star,
-  AlertTriangle
+    AlertTriangle
 } from 'lucide-react';
 
 export type DedicatedSlots = [string | null, string | null, string | null, string | null, string | null];
@@ -78,12 +77,9 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
   const [activeTargetMode, setActiveTargetMode] = useState<'pick' | 'ban'>('pick');
 
   // Role filtering mode in hero pool: 'dedicated' (shows corresponding heroes first) or 'all'
-  const [heroPoolRoleFilter, setHeroPoolRoleFilter] = useState<'dedicated' | 'all'>('dedicated');
-
+  
   // Inline Hero Pool search & filter states
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [heroPoolAttr, setHeroPoolAttr] = useState<AttributeType | 'all'>('all');
-
+    
   // Sub-tab view for analysis: 'picks' | 'bans' | 'intent' | 'lanes'
   const [activeAnalysisTab, setActiveAnalysisTab] = useState<'picks' | 'bans' | 'intent' | 'lanes'>('picks');
 
@@ -101,9 +97,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Dedicated role for active target slot
-  const targetDef = POSITION_DEFINITIONS[activeTargetSlot.pos];
-  const targetRole = targetDef.role;
-
+    
   // Run the Predictive Engine using dedicated slots
   const analysis: Predictive5v5Analysis = useMemo(() => {
     return runPredictive5v5Analysis(
@@ -126,31 +120,9 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
   }, [allyBanIds, opponentBanIds]);
 
   // AI-recommended counter & synergy picks specifically for the targeted dedicated slot
-  const slotRecommendations = useMemo(() => {
-    if (activeTargetMode === 'ban') return [];
-
-    const myPicks = (activeTargetSlot.team === 'allies' ? allySlots : opponentSlots)
-      .map((id) => (id ? HERO_MAP.get(id) : null))
-      .filter((h): h is HeroData => Boolean(h));
-
-    const enemyPicks = (activeTargetSlot.team === 'allies' ? opponentSlots : allySlots)
-      .map((id) => (id ? HERO_MAP.get(id) : null))
-      .filter((h): h is HeroData => Boolean(h));
-
-    const allBans = allBanIds
-      .map((id) => HERO_MAP.get(id))
-      .filter((h): h is HeroData => Boolean(h));
-
-    return suggestPicks(myPicks, enemyPicks, allBans, activeTargetSlot.pos);
-  }, [allySlots, opponentSlots, allBanIds, activeTargetSlot, activeTargetMode]);
-
+  
   // Recommendation score lookup map
-  const slotRecScoreMap = useMemo(() => {
-    const map = new Map<string, number>();
-    slotRecommendations.forEach((s) => map.set(s.hero.id, s.score));
-    return map;
-  }, [slotRecommendations]);
-
+  
   // Recommendations for the modal target slot
   const modalTargetPos = modalTarget?.pos || activeTargetSlot.pos;
   const modalTargetDef = POSITION_DEFINITIONS[modalTargetPos];
@@ -189,8 +161,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
     setOpponentBanIds([]);
     setActiveTargetSlot({ team: 'allies', pos: 1 });
     setActiveTargetMode('pick');
-    setHeroPoolRoleFilter('dedicated');
-  };
+      };
 
   // Open Search Modal (Draft Studio style)
   const handleOpenSlotModal = (team: 'allies' | 'opponents', type: 'pick' | 'ban', pos?: PositionNumber) => {
@@ -284,8 +255,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
         setActiveTargetSlot({ team: 'opponents', pos: posOrBanIdx as PositionNumber });
       }
       setActiveTargetMode('pick');
-      setHeroPoolRoleFilter('dedicated');
-    } else {
+          } else {
       // ban removal
       if (team === 'allies') {
         const next = [...allyBanIds];
@@ -299,59 +269,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
     }
   };
 
-  // 1-Click Quick Select from the Inline Hero Pool
-  const handleQuickSelectHero = (heroId: string) => {
-    if (activeTargetMode === 'ban') {
-      handleAssignHero(activeTargetSlot.team, 'ban', heroId);
-    } else {
-      handleAssignHero(activeTargetSlot.team, 'pick', heroId, activeTargetSlot.pos);
-    }
-  };
-
-  // Available Heroes for Inline Hero Pool:
-  const availablePoolHeroes = useMemo(() => {
-    const filtered = HEROES_DATA.filter((hero) => {
-      // Exclude already drafted or banned heroes
-      if (allSelectedIds.has(hero.id)) return false;
-
-      // Attribute filter
-      if (heroPoolAttr !== 'all' && hero.attribute !== heroPoolAttr) return false;
-
-      // Dedicated Role Filter: when in dedicated mode, filter to heroes matching the target slot's role
-      if (activeTargetMode === 'pick' && heroPoolRoleFilter === 'dedicated') {
-        if (!hero.roles.includes(targetRole)) return false;
-      }
-
-      // Live search query (name, title, aliases, roles)
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesName = hero.name.toLowerCase().includes(q);
-        const matchesTitle = hero.title.toLowerCase().includes(q);
-        const matchesAlias = hero.aliases?.some((a) => a.toLowerCase().includes(q));
-        const matchesRole = hero.roles?.some((r) => r.toLowerCase().includes(q));
-        if (!matchesName && !matchesTitle && !matchesAlias && !matchesRole) return false;
-      }
-      return true;
-    });
-
-    // Sort: Favorites and high AI recommendations FIRST
-    return filtered.sort((a, b) => {
-      const aFav = favorites.includes(a.id) ? 1 : 0;
-      const bFav = favorites.includes(b.id) ? 1 : 0;
-      if (aFav !== bFav) return bFav - aFav;
-
-      const aScore = slotRecScoreMap.get(a.id) || 0;
-      const bScore = slotRecScoreMap.get(b.id) || 0;
-      if (aScore !== bScore) return bScore - aScore;
-
-      const aRoleMatch = a.roles.includes(targetRole) ? 1 : 0;
-      const bRoleMatch = b.roles.includes(targetRole) ? 1 : 0;
-      if (aRoleMatch !== bRoleMatch) return bRoleMatch - aRoleMatch;
-
-      return b.winRate - a.winRate;
-    });
-  }, [searchQuery, heroPoolAttr, heroPoolRoleFilter, targetRole, activeTargetMode, slotRecScoreMap, allSelectedIds, favorites]);
-
+  
   // Filter heroes for modal search
   const filteredModalHeroes = useMemo(() => {
     const filtered = HEROES_DATA.filter((h) => {
@@ -734,228 +652,6 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
               </button>
             )}
           </div>
-        </div>
-
-      </div>
-
-      {/* ========================================================= */}
-      {/* 3. DEDICATED HERO SELECTION POOL                          */}
-      {/* ========================================================= */}
-      <div className="bg-dota-panel border border-dota-border rounded-2xl p-3 sm:p-4 shadow-xl space-y-3">
-        
-        {/* Header Bar: Dedicated Target, Filter Tabs & Search */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          
-          {/* Left: Dedicated Target Info & Team Switcher */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-dota font-bold text-xs sm:text-sm text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-              <span>Dedicated Slot:</span>
-            </h3>
-
-            {/* Target Team & Slot Badge */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-dota-bg border border-dota-border text-xs shadow-inner">
-              <span className="text-slate-400 text-[11px]">Filling:</span>
-              <button
-                onClick={() => {
-                  SoundEngine.playHover();
-                  setActiveTargetSlot((prev) => ({ ...prev, team: prev.team === 'allies' ? 'opponents' : 'allies' }));
-                }}
-                className={`font-black text-[11px] px-2 py-0.5 rounded transition-all ${
-                  activeTargetSlot.team === 'allies' 
-                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-900' 
-                    : 'bg-rose-950 text-rose-300 border border-rose-500/50 hover:bg-rose-900'
-                }`}
-                title="Click to toggle Allies vs Opponents"
-              >
-                {activeTargetSlot.team === 'allies' ? 'ALLIES' : 'OPPONENTS'}
-              </button>
-
-              {activeTargetMode === 'pick' ? (
-                <span className="text-dota-gold font-bold text-[11px] flex items-center gap-1">
-                  <span>Pos {activeTargetSlot.pos} ({targetDef.name})</span>
-                </span>
-              ) : (
-                <span className="text-red-400 font-bold text-[11px]">Ban Slot</span>
-              )}
-            </div>
-
-            {/* Position Selector Buttons */}
-            <div className="flex items-center gap-0.5 bg-dota-bg p-0.5 rounded-lg border border-dota-border text-[10px]">
-              {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => (
-                <button
-                  key={`quick-pos-select-${pos}`}
-                  onClick={() => {
-                    SoundEngine.playHover();
-                    setActiveTargetSlot((prev) => ({ ...prev, pos }));
-                    setActiveTargetMode('pick');
-                    setHeroPoolRoleFilter('dedicated');
-                  }}
-                  className={`px-1.5 py-0.5 rounded font-mono font-bold transition-all ${
-                    activeTargetMode === 'pick' && activeTargetSlot.pos === pos
-                      ? 'bg-dota-gold text-slate-950 font-black'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  P{pos}
-                </button>
-              ))}
-
-              <button
-                onClick={() => {
-                  SoundEngine.playHover();
-                  setActiveTargetMode('ban');
-                }}
-                className={`px-2 py-0.5 rounded font-bold transition-all ${
-                  activeTargetMode === 'ban'
-                    ? 'bg-red-600 text-white font-black'
-                    : 'text-slate-400 hover:text-red-300'
-                }`}
-              >
-                Ban
-              </button>
-            </div>
-
-            {/* Search Modal Button */}
-            <button
-              onClick={() => handleOpenSlotModal(
-                activeTargetSlot.team, 
-                activeTargetMode, 
-                activeTargetMode === 'pick' ? activeTargetSlot.pos : undefined
-              )}
-              className="px-2.5 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-600/70 text-xs font-bold text-amber-300 flex items-center gap-1.5 transition-all shadow-sm"
-              title="Open full-screen search and suggestion modal"
-            >
-              <Search className="w-3.5 h-3.5 text-amber-400" />
-              <span>Search Modal</span>
-            </button>
-          </div>
-
-          {/* Right: Corresponding Heroes Filter Toggle & Search Bar */}
-          <div className="flex items-center gap-2 flex-wrap">
-            
-            {/* Filter Toggle: Suggest Corresponding Role Heroes First */}
-            {activeTargetMode === 'pick' && (
-              <div className="flex items-center gap-1 bg-dota-bg p-0.5 rounded-lg border border-dota-border text-[10px]">
-                <button
-                  onClick={() => setHeroPoolRoleFilter('dedicated')}
-                  className={`px-2 py-0.5 rounded font-bold flex items-center gap-1 transition-all ${
-                    heroPoolRoleFilter === 'dedicated'
-                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title={`Show heroes matching dedicated ${targetRole} role`}
-                >
-                  <Star className="w-2.5 h-2.5 fill-current" />
-                  <span>{targetRole} Only</span>
-                </button>
-                <button
-                  onClick={() => setHeroPoolRoleFilter('all')}
-                  className={`px-2 py-0.5 rounded font-bold transition-all ${
-                    heroPoolRoleFilter === 'all'
-                      ? 'bg-slate-700 text-white font-black shadow'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  All Heroes
-                </button>
-              </div>
-            )}
-
-            {/* Attribute Pills */}
-            <div className="flex items-center gap-0.5 bg-dota-bg p-0.5 rounded-lg border border-dota-border text-[10px]">
-              {[
-                { id: 'all', label: 'ALL' },
-                { id: 'str', label: 'STR' },
-                { id: 'agi', label: 'AGI' },
-                { id: 'int', label: 'INT' },
-                { id: 'all_attr', label: 'UNI' },
-              ].map((attr) => (
-                <button
-                  key={`attr-filter-${attr.id}`}
-                  onClick={() => setHeroPoolAttr(attr.id === 'all_attr' ? 'all' : attr.id as any)}
-                  className={`px-2 py-0.5 rounded font-bold transition-all ${
-                    (heroPoolAttr === attr.id || (attr.id === 'all_attr' && heroPoolAttr === 'all'))
-                      ? 'bg-dota-gold text-slate-950 font-black shadow'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {attr.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Live Search Input */}
-            <div className="relative w-full sm:w-56">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder={`Search ${targetRole} heroes...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-7 py-1.5 bg-dota-bg border border-dota-border rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-dota-gold"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-
-        </div>
-
-        {/* Hero Pool Grid / Chips */}
-        <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-1 custom-scrollbar">
-          {availablePoolHeroes.map((hero) => {
-            const isTargetAllies = activeTargetSlot.team === 'allies';
-            const recScore = slotRecScoreMap.get(hero.id);
-            const isRoleMatch = hero.roles.includes(targetRole);
-            const isFav = favorites.includes(hero.id);
-
-            return (
-              <button
-                key={`pool-hero-${hero.id}`}
-                onClick={() => handleQuickSelectHero(hero.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all relative ${
-                  isFav
-                    ? 'bg-amber-950/40 border-amber-500/80 text-amber-200 hover:bg-amber-900/60 shadow-dota-glow hover:scale-[1.02]'
-                    : recScore
-                    ? 'bg-emerald-950/40 border-emerald-500/80 text-emerald-200 hover:bg-emerald-900/60 shadow hover:scale-[1.02]'
-                    : isRoleMatch
-                    ? (isTargetAllies 
-                        ? 'bg-emerald-950/30 border-emerald-500/60 text-slate-200 hover:bg-emerald-900/50 hover:text-white hover:scale-[1.02]' 
-                        : 'bg-rose-950/30 border-rose-500/60 text-slate-200 hover:bg-rose-900/50 hover:text-white hover:scale-[1.02]')
-                    : 'bg-dota-panelAlt hover:bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:scale-[1.01]'
-                }`}
-                title={`${hero.name} (${hero.roles.join(', ')}) - Click to assign`}
-              >
-                <img
-                  src={hero.avatarUrl}
-                  alt={hero.name}
-                  className="w-5 h-5 rounded object-cover flex-shrink-0"
-                />
-                <span className="truncate max-w-[110px]">{hero.name}</span>
-                {isFav && (
-                  <span className="text-[10px] text-amber-400">★</span>
-                )}
-                {recScore && (
-                  <span className="text-[9px] font-mono font-black text-emerald-300 px-1 rounded bg-emerald-500/20">
-                    {recScore}%
-                  </span>
-                )}
-                <Plus className={`w-3 h-3 ml-0.5 ${
-                  activeTargetMode === 'ban'
-                    ? 'text-red-400'
-                    : isTargetAllies
-                    ? 'text-emerald-400'
-                    : 'text-rose-400'
-                }`} />
-              </button>
-            );
-          })}
         </div>
 
       </div>

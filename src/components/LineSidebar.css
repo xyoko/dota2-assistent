@@ -69,7 +69,8 @@
 /* Active Item Glowing Official Dota Icon */
 .line-sidebar__item[aria-current="true"] .line-sidebar__dota-icon {
   color: var(--accent-color);
-  filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.75)) drop-shadow(0 0 4px #c084fc);
+  /* Minimal drop shadow following the shape of the icon */
+  filter: drop-shadow(0 0 6px var(--accent-color));
 }
 
 .line-sidebar__item[aria-current="true"] .line-sidebar__dota-icon svg {
@@ -135,26 +136,34 @@
 
 /* RESTING VS HOVER VISIBILITY:
    When resting (isHovered = false), ONLY the active section stays visible.
-   When hovered (isHovered = true), all other sections appear smoothly.
-   Crucially, the placement does NOT change because every item occupies
-   its exact identical layout slot in the list! */
-.line-sidebar--resting .line-sidebar__item:not([aria-current="true"]) {
-  opacity: 0;
+   When hovered (isHovered = true), other sections appear smoothly from the side 
+   based on cursor proximity (--effect). */
+
+/* Non-active items default state: hidden and shifted left */
+.line-sidebar__item:not([aria-current="true"]) {
+  opacity: calc(var(--effect, 0) * 2.5);
+  transform: translateX(calc((var(--effect, 0) * 20px) - 20px));
   pointer-events: none;
+}
+
+/* Active item is always fully visible */
+.line-sidebar__item[aria-current="true"] {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* When resting, force non-active items to be hidden */
+.line-sidebar--resting .line-sidebar__item:not([aria-current="true"]) {
+  opacity: 0 !important;
   visibility: hidden;
-  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.line-sidebar--resting .line-sidebar__item[aria-current="true"] {
-  opacity: 1;
-  pointer-events: auto;
-  visibility: visible;
-  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
+/* When hovered, enable pointer events so proximity works, visibility naturally follows --effect */
 .line-sidebar--hovered .line-sidebar__item {
-  opacity: 1;
   pointer-events: auto;
   visibility: visible;
-  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s;
+  transition: opacity 0.1s ease-out, visibility 0.1s, transform 0.1s ease-out;
 }
+

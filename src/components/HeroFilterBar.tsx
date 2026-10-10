@@ -28,7 +28,7 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = ({
   setSortBy
 }) => {
   return (
-    <div className="bg-dota-panel border border-dota-border rounded-xl p-4 mb-6 shadow-xl space-y-3.5">
+    <div className="glass-card border border-purple-500/25 rounded-2xl p-4 mb-6 shadow-[0_8px_30px_rgba(168,85,247,0.1)] space-y-3.5">
       
       {/* Top Row: Attribute Filters + Roles */}
       <div className="flex flex-wrap items-center justify-between gap-3">

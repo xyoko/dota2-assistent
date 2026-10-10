@@ -236,27 +236,27 @@ export const HeroCard: React.FC<HeroCardProps> = ({
                 patternUnits="userSpaceOnUse"
                 patternTransform="rotate(18)"
               >
-                {/* 1st Small Engraved Symbol (16px) with Embossed Shadow */}
+                {/* 1st Small Engraved Symbol (19px) with Embossed Shadow */}
                 <path 
                   d={DOTA_LOGO_PATH} 
-                  transform="translate(6, 6) scale(0.68)" 
+                  transform="translate(6, 6) scale(0.81)" 
                   fill="rgba(0, 0, 0, 0.75)" 
                 />
                 <path 
                   d={DOTA_LOGO_PATH} 
-                  transform="translate(5, 5) scale(0.68)" 
+                  transform="translate(5, 5) scale(0.81)" 
                   fill={`url(#dota-metallic-tile-${hero.id})`} 
                 />
 
-                {/* 2nd Staggered Small Engraved Symbol (16px) with Embossed Shadow */}
+                {/* 2nd Staggered Small Engraved Symbol (19px) with Embossed Shadow */}
                 <path 
                   d={DOTA_LOGO_PATH} 
-                  transform="translate(32, 32) scale(0.68)" 
+                  transform="translate(32, 32) scale(0.81)" 
                   fill="rgba(0, 0, 0, 0.75)" 
                 />
                 <path 
                   d={DOTA_LOGO_PATH} 
-                  transform="translate(31, 31) scale(0.68)" 
+                  transform="translate(31, 31) scale(0.81)" 
                   fill={`url(#dota-metallic-tile-${hero.id})`} 
                 />
               </pattern>
@@ -284,13 +284,18 @@ export const HeroCard: React.FC<HeroCardProps> = ({
 
         {/* 4. POKEMON-CARDS-CSS DYNAMIC HOLOGRAPHIC SPOTLIGHT GLARE (Entering vs Leaving Transitions) */}
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute pointer-events-none rounded-full"
           style={{
+            width: '200%',
+            height: '200%',
+            left: '-50%',
+            top: '-50%',
             opacity: isHovered ? 0.65 : 0,
-            background: `radial-gradient(circle at ${tilt.glareX}% ${tilt.glareY}%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.18) 30%, transparent 70%)`,
+            background: `radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.18) 30%, transparent 70%)`,
             mixBlendMode: 'overlay',
+            transform: `translate(${(tilt.glareX - 50) / 2}%, ${(tilt.glareY - 50) / 2}%)`,
             transition: isHovered
-              ? 'opacity 0.2s ease-out'
+              ? 'opacity 0.2s ease-out, transform 0.15s ease-out'
               : 'opacity 0.38s cubic-bezier(0.23, 1, 0.32, 1)'
           }}
         />
@@ -298,17 +303,13 @@ export const HeroCard: React.FC<HeroCardProps> = ({
         {/* Top Floating Controls (Meta Badge, Direct PiP Launcher & Favorite Star) */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-20 pointer-events-auto">
           {/* Meta Tier Badge */}
-          {isMeta ? (
+          {isMeta && (
             <div 
               className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/25 border border-amber-500/80 text-amber-300 font-black text-[10px] tracking-wide uppercase backdrop-blur-md shadow-[0_0_12px_rgba(245,158,11,0.4)]"
               title={`Meta Tier ${metaTier} in Patch 7.37d`}
             >
               <Flame className="w-3 h-3 text-amber-400 fill-amber-400" />
               <span>{metaTier} Tier</span>
-            </div>
-          ) : (
-            <div className="px-2 py-0.5 rounded-md bg-black/60 border border-white/10 text-slate-400 font-mono text-[9px] uppercase backdrop-blur-md">
-              {hero.winRate}% WR
             </div>
           )}
 
@@ -380,7 +381,7 @@ export const HeroCard: React.FC<HeroCardProps> = ({
 
         {/* 5. HOVER EFFECT TACTICAL HUD: Showing Damage Type (dmgtype), Difficulty (diff type), Attack Type, Roles & PiP HUD Shortcut */}
         <div 
-          className={`absolute inset-x-0 bottom-0 p-3.5 z-20 bg-slate-950/90 backdrop-blur-md border-t border-white/15 space-y-2 text-xs font-sans ${
+          className={`absolute inset-x-0 bottom-0 p-3.5 z-20 bg-black/40 backdrop-blur-md border-t border-white/15 space-y-2 text-xs font-sans ${
             isHovered ? 'pointer-events-auto' : 'pointer-events-none'
           }`}
           style={{
