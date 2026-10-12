@@ -1,31 +1,31 @@
 import React, { useState, useMemo, useCallback, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
-import { HEROES_DATA, HERO_MAP } from './data/heroes';
-import { HeroData, AttributeType, RoleType, AttackType } from './types/hero';
-import { StorageService } from './services/storageService';
-import { PipManager } from './services/pipManager';
-import { Navbar, ActiveTab } from './components/Navbar';
-import { HeroFilterBar } from './components/HeroFilterBar';
-import { HeroCard } from './components/HeroCard';
-import { NavigationSidebar } from './components/NavigationSidebar';
-import { AmbientParticles } from './components/AmbientParticles';
+import { HEROES_DATA, HERO_MAP } from './entities/hero';
+import { HeroData, AttributeType, RoleType, AttackType } from './entities/hero';
+import { StorageService } from './shared/bi';
+import { PipManager } from './features/pip-hud';
+import { Navbar, ActiveTab } from './widgets/navbar';
+import { HeroFilterBar } from './features/hero-filters';
+import { HeroCard } from './entities/hero';
+// import { NavigationSidebar } from './widgets/navigation-sidebar';
+import { AmbientParticles } from './widgets/ambient-particles';
 import { Shield, Loader2, PictureInPicture } from 'lucide-react';
 
 // Lazy-loaded heavy views for sub-100ms instant initial page load
-const PredictiveDraft5v5 = lazy(() => import('./components/PredictiveDraft5v5').then(m => ({ default: m.PredictiveDraft5v5 })));
-const DraftCounterPicker = lazy(() => import('./components/DraftCounterPicker').then(m => ({ default: m.DraftCounterPicker })));
-const MatchupArena = lazy(() => import('./components/MatchupArena').then(m => ({ default: m.MatchupArena })));
-const BuildSandbox = lazy(() => import('./components/BuildSandbox').then(m => ({ default: m.BuildSandbox })));
-const HeroItemInteractions = lazy(() => import('./components/HeroItemInteractions').then(m => ({ default: m.HeroItemInteractions })));
-const ItemCounterFinder = lazy(() => import('./components/ItemCounterFinder').then(m => ({ default: m.ItemCounterFinder })));
-const MetaTierList = lazy(() => import('./components/MetaTierList').then(m => ({ default: m.MetaTierList })));
-const PatchNewsView = lazy(() => import('./components/PatchNewsView').then(m => ({ default: m.PatchNewsView })));
-const CustomNotesView = lazy(() => import('./components/CustomNotesView').then(m => ({ default: m.CustomNotesView })));
-import { Home } from './components/Home';
-import { HeroBuildView } from './components/HeroBuildView';
-import { PictureInPictureHUD } from './components/PictureInPictureHUD';
-import { CookieConsentBanner } from './components/CookieConsentBanner';
-import { LegalComplianceModal, LegalTabType } from './components/LegalComplianceModal';
+const PredictiveDraft5v5 = lazy(() => import('./pages/predictive').then(m => ({ default: m.PredictiveDraft5v5 })));
+const DraftCounterPicker = lazy(() => import('./pages/draft').then(m => ({ default: m.DraftCounterPicker })));
+const MatchupArena = lazy(() => import('./pages/arena').then(m => ({ default: m.MatchupArena })));
+const BuildSandbox = lazy(() => import('./pages/sandbox').then(m => ({ default: m.BuildSandbox })));
+const HeroItemInteractions = lazy(() => import('./pages/interactions').then(m => ({ default: m.HeroItemInteractions })));
+const ItemCounterFinder = lazy(() => import('./pages/item-counter').then(m => ({ default: m.ItemCounterFinder })));
+const MetaTierList = lazy(() => import('./pages/meta').then(m => ({ default: m.MetaTierList })));
+const PatchNewsView = lazy(() => import('./pages/patches').then(m => ({ default: m.PatchNewsView })));
+const CustomNotesView = lazy(() => import('./pages/notes').then(m => ({ default: m.CustomNotesView })));
+import { Home } from './pages/home';
+import { HeroBuildView } from './features/hero-build';
+import { PictureInPictureHUD } from './features/pip-hud';
+import { CookieConsentBanner } from './widgets/legal-compliance-modal';
+import { LegalComplianceModal, LegalTabType } from './widgets/legal-compliance-modal';
 
 const ViewLoadingFallback = () => (
   <div className="w-full min-h-[420px] flex flex-col items-center justify-center p-12 bg-dota-panel/60 border border-dota-gold/30 rounded-3xl shadow-dota-glow space-y-4">
@@ -95,8 +95,8 @@ export const App: React.FC = () => {
   // Selected Hero for Detail Modal
   const [selectedHero, setSelectedHero] = useState<HeroData | null>(null);
 
-  // Navigation Drawer Sidebar State (<LineSidebar /> from React Bits)
-  const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(false);
+  // Navigation Drawer Sidebar State (<LineSidebar /> from React Bits) - disabled for now
+  // const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(false);
 
   // Picture-in-Picture & Mini HUD State (Strictly limited to Hero Arsenal view)
   const [pipHero, setPipHero] = useState<HeroData>(HEROES_DATA[0]);
@@ -245,13 +245,15 @@ export const App: React.FC = () => {
         onOpenPip={handleOpenPip}
       />
 
-      {/* Interactive Line Navigator Sidebar Drawer (React Bits <LineSidebar />) */}
+      {/* Interactive Line Navigator Sidebar Drawer (React Bits <LineSidebar />) - disabled for now */}
+      {/* 
       <NavigationSidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isOpen={isNavSidebarOpen}
         setIsOpen={setIsNavSidebarOpen}
-      />
+      /> 
+      */}
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-7xl xl:max-w-[1550px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">

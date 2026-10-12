@@ -18,10 +18,14 @@ export default defineConfig({
           if (id.includes('node_modules/lucide-react/')) {
             return 'vendor-icons';
           }
-          if (id.includes('/src/data/heroes.ts')) {
+          if (id.includes('/src/data/heroes.ts') || id.includes('/entities/hero/bi/heroes.ts')) {
             return 'data-heroes';
           }
-          if (id.includes('/src/data/items.ts') || id.includes('/src/data/counterMatrix.ts') || id.includes('/src/data/heroItemInteractions.ts')) {
+          if (
+            id.includes('/src/data/items.ts') || id.includes('/entities/item/bi/items.ts') ||
+            id.includes('/src/data/counterMatrix.ts') || id.includes('/entities/counter/bi/counterMatrix.ts') ||
+            id.includes('/src/data/heroItemInteractions.ts') || id.includes('/entities/counter/bi/heroItemInteractions.ts')
+          ) {
             return 'data-interactions';
           }
         }
