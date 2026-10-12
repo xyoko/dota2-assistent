@@ -142,7 +142,6 @@
 /* Non-active items default state: hidden and shifted left */
 .line-sidebar__item:not([aria-current="true"]) {
   opacity: calc(var(--effect, 0) * 2.5);
-  transform: translateX(calc((var(--effect, 0) * 20px) - 20px));
   pointer-events: none;
 }
 

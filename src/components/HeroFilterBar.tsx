@@ -15,7 +15,7 @@ interface HeroFilterBarProps {
   setSortBy: (sort: 'winRate' | 'name' | 'complexity') => void;
 }
 
-export const HeroFilterBar: React.FC<HeroFilterBarProps> = ({
+export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
   selectedAttr,
   setSelectedAttr,
   selectedRole,
@@ -158,4 +158,4 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = ({
 
     </div>
   );
-};
+});

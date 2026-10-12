@@ -41,6 +41,20 @@ export default {
         'dota-crimson': '0 0 20px rgba(231, 76, 60, 0.35)',
         'dota-mana': '0 0 20px rgba(0, 210, 255, 0.35)',
         'dota-panel': '0 8px 32px 0 rgba(0, 0, 0, 0.6)'
+      },
+      keyframes: {
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        fadeInLeft: {
+          '0%': { opacity: '0', transform: 'translateX(-20px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        }
+      },
+      animation: {
+        fadeInUp: 'fadeInUp 0.8s ease-out forwards',
+        fadeInLeft: 'fadeInLeft 0.8s ease-out forwards',
       }
     },
   },

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Suspense, lazy } from 'react';
+import React, { useState, useMemo, useCallback, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { HEROES_DATA, HERO_MAP } from './data/heroes';
 import { HeroData, AttributeType, RoleType, AttackType } from './types/hero';
@@ -21,9 +21,9 @@ const ItemCounterFinder = lazy(() => import('./components/ItemCounterFinder').th
 const MetaTierList = lazy(() => import('./components/MetaTierList').then(m => ({ default: m.MetaTierList })));
 const PatchNewsView = lazy(() => import('./components/PatchNewsView').then(m => ({ default: m.PatchNewsView })));
 const CustomNotesView = lazy(() => import('./components/CustomNotesView').then(m => ({ default: m.CustomNotesView })));
+import { Home } from './components/Home';
 import { HeroBuildView } from './components/HeroBuildView';
 import { PictureInPictureHUD } from './components/PictureInPictureHUD';
-import { SaaSHeroSection } from './components/SaaSHeroSection';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { LegalComplianceModal, LegalTabType } from './components/LegalComplianceModal';
 
@@ -49,7 +49,7 @@ export const App: React.FC = () => {
   const getInitialTab = (): ActiveTab => {
     try {
       const hash = window.location.hash.replace('#', '');
-      const validTabs: ActiveTab[] = ['heroes', 'predictive', 'draft', 'arena', 'sandbox', 'interactions', 'counters', 'meta', 'patches', 'notes'];
+      const validTabs: ActiveTab[] = ['home', 'heroes', 'predictive', 'draft', 'arena', 'sandbox', 'interactions', 'counters', 'meta', 'patches', 'notes'];
       if (validTabs.includes(hash as ActiveTab)) {
         return hash as ActiveTab;
       }
@@ -59,22 +59,22 @@ export const App: React.FC = () => {
         return tabParam as ActiveTab;
       }
     } catch {}
-    return 'heroes';
+    return 'home';
   };
 
   const [activeTab, setActiveTabState] = useState<ActiveTab>(getInitialTab);
 
-  const setActiveTab = (tab: ActiveTab) => {
+  const setActiveTab = React.useCallback((tab: ActiveTab) => {
     setActiveTabState(tab);
     try {
       window.location.hash = tab;
     } catch {}
-  };
+  }, []);
 
   React.useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      const validTabs: ActiveTab[] = ['heroes', 'predictive', 'draft', 'arena', 'sandbox', 'interactions', 'counters', 'meta', 'patches', 'notes'];
+      const validTabs: ActiveTab[] = ['home', 'heroes', 'predictive', 'draft', 'arena', 'sandbox', 'interactions', 'counters', 'meta', 'patches', 'notes'];
       if (validTabs.includes(hash as ActiveTab)) {
         setActiveTabState(hash as ActiveTab);
       }
@@ -116,19 +116,30 @@ export const App: React.FC = () => {
   const [isLegalModalOpen, setIsLegalModalOpen] = useState<boolean>(false);
   const [legalInitialTab, setLegalInitialTab] = useState<LegalTabType>('overview');
 
-  const handleOpenLegalModal = (tab: LegalTabType = 'overview') => {
+  const handleOpenLegalModal = React.useCallback((tab: LegalTabType = 'overview') => {
     setLegalInitialTab(tab);
     setIsLegalModalOpen(true);
-  };
+  }, []);
 
-  const handleToggleFavorite = (heroId: string) => {
+  const handleToggleFavorite = useCallback((heroId: string) => {
     StorageService.toggleFavorite(heroId);
     setFavorites(StorageService.getFavorites());
-  };
+  }, []);
+
+  const handleCloseHeroModal = React.useCallback(() => setSelectedHero(null), []);
+  const handleSelectOtherHero = React.useCallback((id: string) => {
+    const nextHero = HERO_MAP.get(id);
+    if (nextHero) setSelectedHero(nextHero);
+  }, []);
+
+  const selectedHeroRef = React.useRef(selectedHero);
+  React.useEffect(() => {
+    selectedHeroRef.current = selectedHero;
+  }, [selectedHero]);
 
   // Launch Picture-in-Picture (Native Document PiP or In-App Floating Overlay)
-  const handleOpenPip = async (targetHero?: HeroData) => {
-    const heroToUse = targetHero || selectedHero || HEROES_DATA[0];
+  const handleOpenPip = useCallback(async (targetHero?: HeroData) => {
+    const heroToUse = targetHero || selectedHeroRef.current || HEROES_DATA[0];
     setPipHero(heroToUse);
 
     if (PipManager.isSupported()) {
@@ -153,16 +164,16 @@ export const App: React.FC = () => {
     // Fallback: Floating overlay inside the main web page
     setIsNativePipActive(false);
     setIsPipOpen(true);
-  };
+  }, []);
 
-  const handleClosePip = () => {
+  const handleClosePip = useCallback(() => {
     if (isNativePipActive) {
       PipManager.closeDocumentPip();
     }
     setIsNativePipActive(false);
     setIsPipOpen(false);
     setPipContainer(null);
-  };
+  }, [isNativePipActive]);
 
   // Global Keyboard Shortcut: Alt+P (or Option+P) to toggle Picture-in-Picture Mini HUD
   React.useEffect(() => {
@@ -222,15 +233,16 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen relative flex flex-col selection:bg-dota-red selection:text-white overflow-x-hidden">
       
-      {/* Floating Ambient Particles Engine */}
-      <AmbientParticles />
+      {/* Floating Ambient Particles Engine (paused on Home to eliminate background redraw lag) */}
+      {activeTab !== 'home' && <AmbientParticles />}
 
       {/* Navigation Header */}
       <Navbar
+        activeTab={activeTab}
         setActiveTab={setActiveTab}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        onOpenPip={() => handleOpenPip()}
+        onOpenPip={handleOpenPip}
       />
 
       {/* Interactive Line Navigator Sidebar Drawer (React Bits <LineSidebar />) */}
@@ -244,15 +256,21 @@ export const App: React.FC = () => {
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-7xl xl:max-w-[1550px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
+        
+        {/* VIEW 0: HOME / COMMAND CENTER */}
+        {activeTab === 'home' && (
+          <Home 
+            onNavigateTab={setActiveTab} 
+            onSelectHero={setSelectedHero}
+          />
+        )}
+
         {/* VIEW 1: HERO BUILDS & GUIDE */}
         {activeTab === 'heroes' && (
           <div className="space-y-6">
             
             {/* Modern SaaS Showcase Section (Purple-to-Blue Gradient, Grain, 3 Icon Boxes, Emojis, Buzzwords, Em Dashes) */}
-            <SaaSHeroSection
-              onNavigateTab={setActiveTab}
-              onOpenLegal={() => handleOpenLegalModal('overview')}
-            />
+            
 
             {/* Hero Filter Bar */}
             <HeroFilterBar
@@ -278,7 +296,7 @@ export const App: React.FC = () => {
                     isFavorite={favorites.includes(hero.id)}
                     onToggleFavorite={handleToggleFavorite}
                     onSelectHero={setSelectedHero}
-                    onOpenPip={(h) => handleOpenPip(h)}
+                    onOpenPip={handleOpenPip}
                   />
                 ))}
               </div>
@@ -402,14 +420,11 @@ export const App: React.FC = () => {
         <Suspense fallback={<ViewLoadingFallback />}>
           <HeroBuildView
             hero={selectedHero}
-            onClose={() => setSelectedHero(null)}
+            onClose={handleCloseHeroModal}
             isFavorite={favorites.includes(selectedHero.id)}
             onToggleFavorite={handleToggleFavorite}
-            onOpenPip={(hero) => handleOpenPip(hero)}
-            onSelectOtherHero={(id) => {
-              const nextHero = HERO_MAP.get(id);
-              if (nextHero) setSelectedHero(nextHero);
-            }}
+            onOpenPip={handleOpenPip}
+            onSelectOtherHero={handleSelectOtherHero}
           />
         </Suspense>
       )}
@@ -551,7 +566,7 @@ export const App: React.FC = () => {
 
       {/* Floating Cookie Consent Banner (GDPR / ePrivacy) */}
       <CookieConsentBanner 
-        onOpenLegalTab={(tab) => handleOpenLegalModal(tab as LegalTabType)}
+        onOpenLegalTab={handleOpenLegalModal as (tab: string) => void}
       />
 
       {/* 20-Point Legal Compliance & Consumer Protection Modal */}

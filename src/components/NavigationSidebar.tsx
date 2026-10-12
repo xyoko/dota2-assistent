@@ -36,6 +36,13 @@ interface NavSectionDef {
 }
 
 const NAV_SECTIONS: NavSectionDef[] = [
+  {
+    tab: 'home',
+    label: 'Command Center',
+    badge: 'Home',
+    description: 'AegisForge Overview & Featured Avatar',
+    icon: <Sparkles size={20} />
+  },
   { 
     tab: 'heroes', 
     label: 'Hero Arsenal', 
@@ -103,7 +110,7 @@ const NAV_SECTIONS: NavSectionDef[] = [
   }
 ];
 
-export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
+export const NavigationSidebar: React.FC<NavigationSidebarProps> = React.memo(({
   activeTab,
   setActiveTab
 }) => {
@@ -125,10 +132,9 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
     }
-    // Subtle 140ms grace period so moving near edges doesn't flicker
     hoverTimeoutRef.current = setTimeout(() => {
       setIsHovered(false);
-    }, 140);
+    }, 250);
   };
 
   const handleItemClick = (index: number) => {
@@ -154,12 +160,12 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  const lineSidebarItems: LineSidebarItem[] = NAV_SECTIONS.map((s) => ({
+  const lineSidebarItems: LineSidebarItem[] = React.useMemo(() => NAV_SECTIONS.map((s) => ({
     label: s.label,
     icon: s.icon,
     badge: s.badge,
     description: s.description
-  }));
+  })), []);
 
   return (
     <>
@@ -176,8 +182,8 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
         onMouseLeave={handleMouseLeave}
         className={`fixed left-2 sm:left-4 top-20 sm:top-24 z-40 transition-all duration-300 ease-out flex flex-col justify-between ${
           isHovered
-            ? 'w-80 sm:w-88 max-w-[92vw] bg-slate-950/95 backdrop-blur-2xl border-2 border-purple-500/40 shadow-[0_0_40px_rgba(168,85,247,0.35)] rounded-2xl py-4 px-4 translate-x-0 opacity-100 pointer-events-auto'
-            : 'w-80 sm:w-88 max-w-[92vw] bg-slate-950/60 backdrop-blur-md border border-purple-500/25 shadow-lg rounded-2xl py-4 px-4 -translate-x-[110%] opacity-0 pointer-events-none'
+            ? 'w-80 sm:w-88 max-w-[92vw] bg-slate-950 border-2 border-purple-500/40 shadow-[0_0_30px_rgba(168,85,247,0.3)] rounded-2xl py-4 px-4 translate-x-0 opacity-100 pointer-events-auto'
+            : 'w-80 sm:w-88 max-w-[92vw] bg-slate-950/90 border border-purple-500/25 shadow-lg rounded-2xl py-4 px-4 -translate-x-[110%] opacity-0 pointer-events-none'
         }`}
         aria-label="Tactical Navigation Dock"
       >
@@ -261,6 +267,6 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
       </aside>
     </>
   );
-};
+});
 
 export default NavigationSidebar;

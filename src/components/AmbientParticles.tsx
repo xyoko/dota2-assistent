@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-export const AmbientParticles: React.FC = () => {
+export const AmbientParticles: React.FC = React.memo(() => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -134,4 +134,4 @@ export const AmbientParticles: React.FC = () => {
       className="fixed inset-0 pointer-events-none z-0 opacity-50 will-change-transform"
     />
   );
-};
+});

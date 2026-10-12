@@ -16,16 +16,18 @@ export function getDistinguishablePortraitCandidates(avatarUrl: string): string[
   if (avatarUrl.includes('/dota_react/heroes/')) {
     const filename = avatarUrl.split('/').pop()?.replace('.png', '') || '';
     if (filename) {
-      // 1. Classic vertical card portrait (235x272)
-      candidates.push(`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/heroes/${filename}_vert.jpg`);
+      // 1. Ultra High-Res Render (often transparent, huge resolution)
+      candidates.push(`https://cdn.cloudflare.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders/${filename}.png`);
       // 2. High-res crop portrait (400x250)
       candidates.push(`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/crops/${filename}.png`);
+      // 3. Classic vertical card portrait (235x272)
+      candidates.push(`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/heroes/${filename}_vert.jpg`);
     }
   }
 
-  // 3. Original avatar URL
+  // 4. Original avatar URL
   candidates.push(avatarUrl);
-  // 4. Universal fallback
+  // 5. Universal fallback
   candidates.push('https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png');
 
   return candidates;
