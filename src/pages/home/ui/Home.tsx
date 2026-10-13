@@ -30,21 +30,21 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-slate-950 overflow-hidden w-full">
+    <div className="relative min-h-screen bg-[#120f17] overflow-hidden w-full">
       {/* Background WebGPU ShapeWaves Animation */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <ShapeWaves
           maskImage={`${import.meta.env.BASE_URL}dota2.svg`}
           fontFamily={'Geist, "Geist Sans", system-ui, sans-serif'}
           fontWeight={500}
           textSize={0.6}
           shapes="mixed"
-          cellSize={11}
+          cellSize={10}
           dotSize={0.75}
           color="#880808"
           hoverColor="#ffffff"
-          backgroundColor="#020617"
-          speed={0.9}
+          backgroundColor="#120f17"
+          speed={1}
           scale={1}
           contrast={1}
           brightness={0.4}
@@ -52,17 +52,17 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
           direction={0}
           fade={0.25}
           interactive
-          splashRadius={42}
-          splashStrength={0.45}
+          splashRadius={40}
+          splashStrength={0.4}
           glow={0.35}
           intro
           introDuration={1.6}
           paused={false}
           onError={(error: unknown) => console.warn('ShapeWaves background fallback notice:', error)}
         />
-        {/* Soft radial and linear vignettes ensuring typography and hero stand out */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-transparent to-slate-950 pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-slate-950/30 to-slate-950/80 pointer-events-none" />
+        {/* Soft atmospheric gradient vignettes for readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#120f17]/50 via-transparent to-[#120f17]/70 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-[#120f17]/20 to-[#120f17]/60 pointer-events-none" />
       </div>
       <div className="relative z-10 w-full pt-16 lg:pt-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12">
         {/* Left Content Area */}
@@ -145,7 +145,7 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
           </span>
         </div>
         
-        <div style={{ width: '100%', height: '806px', position: 'relative', marginTop: '2rem' }}>
+        <div className="relative w-full h-[806px] mt-8 rounded-3xl overflow-hidden bg-slate-900/10 backdrop-blur-[2px] border border-white/5 shadow-2xl">
           <DomeGallery 
             images={domeImages}
             onSelectHero={setMainHero} 
@@ -160,6 +160,7 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
             autoRotate={true}
             autoRotationSpeed={3.5}
             pauseOnHover={false}
+            overlayBlurColor="transparent"
           />
         </div>
       </div>

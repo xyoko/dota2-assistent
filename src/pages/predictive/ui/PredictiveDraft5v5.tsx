@@ -1049,7 +1049,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                     </h3>
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Gemini 3.8 Flash Online
+                      Gemini 4 / 3.8 Flash Online
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400">
