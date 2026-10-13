@@ -1,0 +1,19 @@
+{
+  "name": "shape-waves-demo",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vgpu/wgsl": "^0.6.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vgpu": "^0.6.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

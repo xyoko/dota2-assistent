@@ -38,7 +38,10 @@ const DEFAULTS = {
   maxVerticalRotationDeg: 40,
   dragSensitivity: 20,
   enlargeTransitionMs: 300,
-  segments: 35
+  segments: 35,
+  autoRotate: true,
+  autoRotationSpeed: 3.5, // degrees per second
+  pauseOnHover: false
 };
 
 const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
@@ -130,7 +133,10 @@ export default function DomeGallery({
   grayscale = false,
   tileInset = '20px',
   onSelectHero,
-  onOpenHeroDetails
+  onOpenHeroDetails,
+  autoRotate = DEFAULTS.autoRotate,
+  autoRotationSpeed = DEFAULTS.autoRotationSpeed,
+  pauseOnHover = DEFAULTS.pauseOnHover
 }) {
   const rootRef = useRef(null);
   const mainRef = useRef(null);
@@ -151,6 +157,8 @@ export default function DomeGallery({
   const openingRef = useRef(false);
   const openStartedAtRef = useRef(0);
   const lastDragEndAt = useRef(0);
+  const isHoveredRef = useRef(false);
+  const lastTimeRef = useRef(0);
 
   const scrollLockedRef = useRef(false);
   const _lockScroll = useCallback(() => {
@@ -286,10 +294,12 @@ export default function DomeGallery({
         vY *= frictionMul;
         if (Math.abs(vX) < stopThreshold && Math.abs(vY) < stopThreshold) {
           inertiaRAF.current = null;
+          lastTimeRef.current = performance.now();
           return;
         }
         if (++frames > maxFrames) {
           inertiaRAF.current = null;
+          lastTimeRef.current = performance.now();
           return;
         }
         const nextX = clamp(rotationRef.current.x - vY / 200, -maxVerticalRotationDeg, maxVerticalRotationDeg);
@@ -341,6 +351,7 @@ export default function DomeGallery({
         }
         if (last) {
           draggingRef.current = false;
+          lastTimeRef.current = performance.now();
           if (dragRafRef.current) {
             cancelAnimationFrame(dragRafRef.current);
             dragRafRef.current = null;
@@ -399,6 +410,7 @@ export default function DomeGallery({
       originalTilePositionRef.current = null;
       focusedElRef.current = null;
       openingRef.current = false;
+      lastTimeRef.current = performance.now();
     };
 
     overlay.addEventListener('transitionend', cleanup, { once: true });
@@ -583,6 +595,53 @@ export default function DomeGallery({
   );
 
   useEffect(() => {
+    if (!autoRotate) return;
+
+    let autoRotateRaf = null;
+    lastTimeRef.current = performance.now();
+
+    const loop = (now) => {
+      const deltaMs = lastTimeRef.current ? now - lastTimeRef.current : 16.67;
+      lastTimeRef.current = now;
+
+      // Cap delta time to 100ms max to prevent jumps when tab is hidden or during lag spikes
+      const dt = Math.min(Math.max(deltaMs, 0), 100) / 1000;
+
+      const canAutoRotate =
+        !draggingRef.current &&
+        !inertiaRAF.current &&
+        !openingRef.current &&
+        !focusedElRef.current &&
+        (!pauseOnHover || !isHoveredRef.current) &&
+        (typeof document === 'undefined' || !document.hidden);
+
+      if (canAutoRotate && dt > 0) {
+        const nextY = wrapAngleSigned(rotationRef.current.y - autoRotationSpeed * dt);
+        rotationRef.current = { x: rotationRef.current.x, y: nextY };
+        applyTransform(rotationRef.current.x, nextY);
+      }
+
+      autoRotateRaf = requestAnimationFrame(loop);
+    };
+
+    autoRotateRaf = requestAnimationFrame(loop);
+
+    const onVisibilityChange = () => {
+      if (!document.hidden) {
+        lastTimeRef.current = performance.now();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      if (autoRotateRaf) {
+        cancelAnimationFrame(autoRotateRaf);
+      }
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [autoRotate, autoRotationSpeed, pauseOnHover]);
+
+  useEffect(() => {
     return () => {
       stopInertia();
       if (dragRafRef.current) {
@@ -605,7 +664,16 @@ export default function DomeGallery({
         ['--image-filter']: grayscale ? 'grayscale(1)' : 'none'
       }}
     >
-      <main ref={mainRef} className="sphere-main">
+      <main
+        ref={mainRef}
+        className="sphere-main"
+        onPointerEnter={() => {
+          isHoveredRef.current = true;
+        }}
+        onPointerLeave={() => {
+          isHoveredRef.current = false;
+        }}
+      >
         <div className="stage">
           <div ref={sphereRef} className="sphere">
             {items.map((it, i) => (

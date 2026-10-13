@@ -5,6 +5,7 @@ import { getDistinguishablePortraitCandidates } from '../../../entities/hero/bi/
 import { ChevronRight } from 'lucide-react';
 import DomeGallery from '../../../widgets/dome-gallery/ui/DomeGallery';
 import { SoundEngine } from '../../../shared/bi/sound/soundFx';
+import { ShapeWaves } from '../../../shared/ui/effects/ShapeWaves';
 
 import { ActiveTab } from '../../../widgets/navbar/ui/Navbar';
 
@@ -30,6 +31,39 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
 
   return (
     <div className="relative min-h-screen bg-slate-950 overflow-hidden w-full">
+      {/* Background WebGPU ShapeWaves Animation */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <ShapeWaves
+          maskImage={`${import.meta.env.BASE_URL}dota2.svg`}
+          fontFamily={'Geist, "Geist Sans", system-ui, sans-serif'}
+          fontWeight={500}
+          textSize={0.6}
+          shapes="mixed"
+          cellSize={11}
+          dotSize={0.75}
+          color="#880808"
+          hoverColor="#ffffff"
+          backgroundColor="#020617"
+          speed={0.9}
+          scale={1}
+          contrast={1}
+          brightness={0.4}
+          flow={0}
+          direction={0}
+          fade={0.25}
+          interactive
+          splashRadius={42}
+          splashStrength={0.45}
+          glow={0.35}
+          intro
+          introDuration={1.6}
+          paused={false}
+          onError={(error: unknown) => console.warn('ShapeWaves background fallback notice:', error)}
+        />
+        {/* Soft radial and linear vignettes ensuring typography and hero stand out */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-transparent to-slate-950 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-slate-950/30 to-slate-950/80 pointer-events-none" />
+      </div>
       <div className="relative z-10 w-full pt-16 lg:pt-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12">
         {/* Left Content Area */}
         <div className="flex-1 space-y-8 animate-fadeInLeft">
@@ -123,6 +157,9 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
             maxVerticalRotationDeg={40}
             dragDampening={0.7}
             grayscale={false}
+            autoRotate={true}
+            autoRotationSpeed={3.5}
+            pauseOnHover={false}
           />
         </div>
       </div>

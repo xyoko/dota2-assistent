@@ -13,6 +13,7 @@ import {
 } from '../../../features/predictive-draft/bi/predictiveDraftEngine';
 import { SoundEngine } from '../../../shared/bi/sound/soundFx';
 import { StorageService } from '../../../shared/bi/storage/storageService';
+import { GeminiService } from '../../../shared/bi/ai/geminiService';
 import { RoleOptimalPicks } from '../../../features/predictive-draft/ui/RoleOptimalPicks';
 import { RoleBanSuggestions } from '../../../features/predictive-draft/ui/RoleBanSuggestions';
 import { 
@@ -29,7 +30,11 @@ import {
   Crown, 
   Lock, 
   Trash2,
-    AlertTriangle
+  AlertTriangle,
+  Sparkles,
+  Send,
+  Bot,
+  Loader2
 } from 'lucide-react';
 
 export type DedicatedSlots = [string | null, string | null, string | null, string | null, string | null];
@@ -80,8 +85,14 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
   
   // Inline Hero Pool search & filter states
     
-  // Sub-tab view for analysis: 'picks' | 'bans' | 'intent' | 'lanes'
-  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'picks' | 'bans' | 'intent' | 'lanes'>('picks');
+  // Sub-tab view for analysis: 'picks' | 'bans' | 'intent' | 'lanes' | 'ai'
+  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'picks' | 'bans' | 'intent' | 'lanes' | 'ai'>('picks');
+
+  // Gemini AI Oracle state
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiCustomQuestion, setAiCustomQuestion] = useState<string>('');
 
   // Search Modal state
   const [modalTarget, setModalTarget] = useState<{
@@ -161,7 +172,51 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
     setOpponentBanIds([]);
     setActiveTargetSlot({ team: 'allies', pos: 1 });
     setActiveTargetMode('pick');
-      };
+  };
+
+  // Request Gemini AI Oracle Analysis
+  const handleRequestAiAnalysis = async (customQ?: string) => {
+    setIsAiLoading(true);
+    setAiError(null);
+    SoundEngine.playPick();
+    try {
+      const alliesData = allySlots
+        .map((id, idx) => ({ id, pos: (idx + 1) as PositionNumber }))
+        .filter(s => s.id !== null)
+        .map(s => ({
+          name: HERO_MAP.get(s.id!)?.name || s.id!,
+          role: POSITION_DEFINITIONS[s.pos].role
+        }));
+
+      const opponentsData = opponentSlots
+        .map((id, idx) => ({ id, pos: (idx + 1) as PositionNumber }))
+        .filter(s => s.id !== null)
+        .map(s => ({
+          name: HERO_MAP.get(s.id!)?.name || s.id!,
+          role: POSITION_DEFINITIONS[s.pos].role
+        }));
+
+      const banNames = [...allyBanIds, ...opponentBanIds]
+        .map(id => HERO_MAP.get(id)?.name || id);
+
+      if (customQ && customQ.trim()) {
+        const fullPrompt = `Draft Context (Dota 2 Patch 7.37d):\nAllies: ${alliesData.map(a => `${a.name} (${a.role})`).join(', ') || 'None selected'}\nOpponents: ${opponentsData.map(o => `${o.name} (${o.role})`).join(', ') || 'None selected'}\nBanned Heroes: ${banNames.join(', ') || 'None'}\n\nTactical Question: ${customQ.trim()}\n\nProvide clear, high-level Grandmaster advice in clean Markdown formatting.`;
+        const res = await GeminiService.generateText(fullPrompt, 'You are an elite Dota 2 coach and drafting analyst for Patch 7.37d. Provide concise, tactical advice.');
+        setAiAnalysis(res);
+      } else {
+        const res = await GeminiService.analyzeDraftWithAI({
+          allies: alliesData,
+          opponents: opponentsData,
+          bans: banNames
+        });
+        setAiAnalysis(res);
+      }
+    } catch (err: any) {
+      setAiError(err.message || 'Failed to generate AI analysis.');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   // Open Search Modal (Draft Studio style)
   const handleOpenSlotModal = (team: 'allies' | 'opponents', type: 'pick' | 'ban', pos?: PositionNumber) => {
@@ -369,6 +424,22 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
               />
             </div>
           </div>
+
+          {/* AI Oracle Quick Trigger */}
+          <button
+            onClick={() => {
+              SoundEngine.playPick();
+              setActiveAnalysisTab('ai');
+              if (!aiAnalysis && !isAiLoading) {
+                handleRequestAiAnalysis();
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-900/60 via-indigo-900/60 to-purple-950/60 hover:from-purple-800/80 hover:to-indigo-800/80 text-purple-200 border border-purple-500/40 text-xs font-bold transition-all shadow-[0_0_12px_rgba(168,85,247,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.45)]"
+            title="Get instant Gemini AI Grandmaster Draft Breakdown"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+            <span>AI Oracle</span>
+          </button>
 
           {/* Reset Draft Button */}
           <button
@@ -729,6 +800,27 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             <span>⚔️ Lane Forecast & Strategy</span>
           </button>
 
+          <button
+            onClick={() => {
+              SoundEngine.playHover();
+              setActiveAnalysisTab('ai');
+              if (!aiAnalysis && !isAiLoading) {
+                handleRequestAiAnalysis();
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+              activeAnalysisTab === 'ai'
+                ? 'bg-gradient-to-r from-purple-500/30 via-indigo-500/30 to-purple-600/30 text-purple-300 border border-purple-500/70 shadow-[0_0_15px_rgba(168,85,247,0.35)] font-black'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span>🔮 Gemini AI Oracle</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-purple-500/30 text-purple-200 text-[9px] font-mono">
+              Live
+            </span>
+          </button>
+
         </div>
 
         {/* TAB 1: SEPARATE COMPONENT -> ROLE OPTIMAL & COUNTER PICKS */}
@@ -936,6 +1028,153 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                 </ul>
               </div>
             </div>
+
+          </div>
+        )}
+
+        {/* TAB 5: GEMINI AI TACTICAL ORACLE */}
+        {activeAnalysisTab === 'ai' && (
+          <div className="space-y-4 rounded-2xl bg-slate-950/85 border border-purple-500/40 p-4 sm:p-5 shadow-[0_0_30px_rgba(168,85,247,0.15)] backdrop-blur-md">
+            
+            {/* AI Console Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-500/20 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600/30 via-indigo-600/20 to-purple-900/40 border border-purple-500/50 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                  <Bot className="w-5 h-5 text-purple-300" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-dota font-black text-base text-purple-200 tracking-wide">
+                      GEMINI AI TACTICAL ORACLE
+                    </h3>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Gemini 3.8 Flash Online
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Grandmaster / Immortal-level strategic breakdown for Patch 7.37d
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => handleRequestAiAnalysis()}
+                disabled={isAiLoading}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all cursor-pointer"
+              >
+                {isAiLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-purple-200" />
+                    <span>Analyzing Draft...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-purple-200" />
+                    <span>{aiAnalysis ? 'Re-Analyze Draft' : 'Generate Full Breakdown'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Quick Strategy Question Pills */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-purple-300/80 uppercase tracking-wider">
+                Tactical Quick Inquiries:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  'Lane-by-lane dynamic matchups and rotation triggers',
+                  'Countering enemy core timings and late-game spikes',
+                  'Critical defensive itemization (BKB / Vessel / Pipe / Silver Edge)',
+                  '20-Minute Tormentor & Roshan objective prioritization'
+                ].map((q, idx) => (
+                  <button
+                    key={idx}
+                    disabled={isAiLoading}
+                    onClick={() => {
+                      setAiCustomQuestion(q);
+                      handleRequestAiAnalysis(q);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-slate-800 hover:border-purple-500/50 text-[11px] text-slate-300 hover:text-purple-200 transition-all text-left"
+                  >
+                    💡 {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom AI Chat Prompt Bar */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (aiCustomQuestion.trim() && !isAiLoading) {
+                  handleRequestAiAnalysis(aiCustomQuestion);
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <input
+                type="text"
+                value={aiCustomQuestion}
+                onChange={(e) => setAiCustomQuestion(e.target.value)}
+                placeholder="Ask Gemini AI anything about this draft matchup..."
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-purple-500/30 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400/50 text-xs text-slate-200 placeholder-slate-500"
+              />
+              <button
+                type="submit"
+                disabled={isAiLoading || !aiCustomQuestion.trim()}
+                className="px-4 py-2.5 rounded-xl bg-purple-600/80 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Ask AI</span>
+              </button>
+            </form>
+
+            {/* AI Error Alert */}
+            {aiError && (
+              <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-500/50 flex items-center gap-2.5 text-red-200 text-xs">
+                <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                <span className="flex-1">{aiError}</span>
+                <button
+                  onClick={() => handleRequestAiAnalysis()}
+                  className="px-2.5 py-1 rounded-lg bg-red-900/80 hover:bg-red-800 text-[11px] font-bold"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* AI Response Output Console */}
+            {isAiLoading ? (
+              <div className="min-h-[220px] rounded-xl bg-slate-900/60 border border-purple-500/20 p-8 flex flex-col items-center justify-center space-y-3 text-center animate-pulse">
+                <div className="w-12 h-12 rounded-2xl bg-purple-950/80 border border-purple-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+                  <Loader2 className="w-6 h-6 text-purple-300 animate-spin" />
+                </div>
+                <div className="font-dota font-bold text-sm text-purple-200 uppercase tracking-wider">
+                  Oracle Deep-Think Analysis in Progress...
+                </div>
+                <p className="text-xs text-slate-400 max-w-md">
+                  Synthesizing drafting algorithms, hero facets, counter intensity, and Patch 7.37d telemetry with Google Gemini.
+                </p>
+              </div>
+            ) : aiAnalysis ? (
+              <div className="rounded-xl bg-slate-900/80 border border-purple-500/30 p-4 sm:p-5 text-slate-200 text-xs leading-relaxed space-y-3 shadow-inner max-h-[550px] overflow-y-auto">
+                <div className="whitespace-pre-wrap font-sans text-slate-200 leading-relaxed">
+                  {aiAnalysis}
+                </div>
+              </div>
+            ) : (
+              <div className="min-h-[160px] rounded-xl bg-slate-900/40 border border-dashed border-purple-500/30 p-6 flex flex-col items-center justify-center text-center space-y-2">
+                <Sparkles className="w-8 h-8 text-purple-400/60 animate-bounce" />
+                <div className="font-dota font-bold text-xs text-purple-200 uppercase tracking-wide">
+                  Oracle Awaiting Query
+                </div>
+                <p className="text-[11px] text-slate-400 max-w-sm">
+                  Click <strong className="text-purple-300">Generate Full Breakdown</strong> or select an inquiry to receive a pro-grade tactical blueprint powered by Gemini AI.
+                </p>
+              </div>
+            )}
 
           </div>
         )}
