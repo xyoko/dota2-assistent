@@ -517,6 +517,13 @@ export function predictMissingLineup(
       strengths: ['Devastating 5-man fight potential', 'High comeback potential in defensive base fights'],
       weaknesses: ['Heavily cooldown reliant; vulnerable when big ultimates are down']
     };
+  } else if (pushCount >= 2) {
+    detectedArchetype = {
+      name: 'Early Objective Siege & Fast Push',
+      description: 'Dire aims to take tier 1 and tier 2 towers early, choking Radiant map control before late-game.',
+      strengths: ['High building damage and tower siege', 'Rapid gold accretion through early towers'],
+      weaknesses: ['Falls off in late-game 50+ min attrition']
+    };
   } else if (gankCount >= 2) {
     detectedArchetype = {
       name: 'High-Tempo Pickoff & Map Choke',

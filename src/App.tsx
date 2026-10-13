@@ -1,15 +1,17 @@
-import React, { useState, useMemo, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useCallback, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
-import { HEROES_DATA, HERO_MAP } from './entities/hero';
-import { HeroData, AttributeType, RoleType, AttackType } from './entities/hero';
-import { StorageService } from './shared/bi';
-import { PipManager } from './features/pip-hud';
-import { Navbar, ActiveTab } from './widgets/navbar';
-import { HeroFilterBar } from './features/hero-filters';
-import { HeroCard } from './entities/hero';
-// import { NavigationSidebar } from './widgets/navigation-sidebar';
+import { HERO_MAP } from './entities/hero';
+import { HeroData } from './entities/hero';
+import { Navbar } from './widgets/navbar';
 import { AmbientParticles } from './widgets/ambient-particles';
-import { Shield, Loader2, PictureInPicture } from 'lucide-react';
+import { Loader2, PictureInPicture } from 'lucide-react';
+
+// Modular Architecture Hooks
+import { useNavigationTab } from './features/navigation';
+import { useFavorites } from './features/favorites';
+import { useHeroFilters } from './features/hero-filters';
+import { usePipHud } from './features/pip-hud';
+import { HeroesArsenalView } from './pages/heroes';
 
 // Lazy-loaded heavy views for sub-100ms instant initial page load
 const PredictiveDraft5v5 = lazy(() => import('./pages/predictive').then(m => ({ default: m.PredictiveDraft5v5 })));
@@ -46,68 +48,27 @@ const ViewLoadingFallback = () => (
 );
 
 export const App: React.FC = () => {
-  const getInitialTab = (): ActiveTab => {
-    try {
-      const hash = window.location.hash.replace('#', '');
-      const validTabs: ActiveTab[] = ['home', 'heroes', 'predictive', 'draft', 'arena', 'sandbox', 'interactions', 'counters', 'meta', 'patches', 'notes'];
-      if (validTabs.includes(hash as ActiveTab)) {
-        return hash as ActiveTab;
-      }
-      const params = new URLSearchParams(window.location.search);
-      const tabParam = params.get('tab');
-      if (tabParam && validTabs.includes(tabParam as ActiveTab)) {
-        return tabParam as ActiveTab;
-      }
-    } catch {}
-    return 'home';
-  };
+  // Navigation / Tab Routing State
+  const { activeTab, setActiveTab } = useNavigationTab();
 
-  const [activeTab, setActiveTabState] = useState<ActiveTab>(getInitialTab);
+  // Favorites State
+  const { favorites, favoritesSet, toggleFavorite } = useFavorites();
 
-  const setActiveTab = React.useCallback((tab: ActiveTab) => {
-    setActiveTabState(tab);
-    try {
-      window.location.hash = tab;
-    } catch {}
-  }, []);
-
-  React.useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '');
-      const validTabs: ActiveTab[] = ['home', 'heroes', 'predictive', 'draft', 'arena', 'sandbox', 'interactions', 'counters', 'meta', 'patches', 'notes'];
-      if (validTabs.includes(hash as ActiveTab)) {
-        setActiveTabState(hash as ActiveTab);
-      }
-    };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // Hero filters
-  const [selectedAttr, setSelectedAttr] = useState<AttributeType | 'all'>('all');
-  const [selectedRole, setSelectedRole] = useState<RoleType | 'all'>('all');
-  const [selectedAttack, setSelectedAttack] = useState<AttackType | 'all'>('all');
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<'winRate' | 'name' | 'complexity'>('winRate');
+  // Hero Filtering, Sorting, and Search State
+  const heroFilters = useHeroFilters(favoritesSet);
 
   // Selected Hero for Detail Modal
   const [selectedHero, setSelectedHero] = useState<HeroData | null>(null);
 
-  // Navigation Drawer Sidebar State (<LineSidebar /> from React Bits) - disabled for now
-  // const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(false);
-
-  // Picture-in-Picture & Mini HUD State (Strictly limited to Hero Arsenal view)
-  const [pipHero, setPipHero] = useState<HeroData>(HEROES_DATA[0]);
-  const [isPipOpen, setIsPipOpen] = useState<boolean>(false);
-  const [isNativePipActive, setIsNativePipActive] = useState<boolean>(false);
-  const [pipContainer, setPipContainer] = useState<HTMLElement | null>(null);
-
-  // Allow in-app floating PiP to remain open across all views
-  
-  // Favorites State
-  const [favorites, setFavorites] = useState<string[]>(() => StorageService.getFavorites());
+  // Picture-in-Picture & Mini HUD State & Global Shortcuts (Alt+P)
+  const {
+    pipHero,
+    isPipOpen,
+    isNativePipActive,
+    pipContainer,
+    handleOpenPip,
+    handleClosePip
+  } = usePipHud(selectedHero);
 
   // Loaded draft scenario to pass to Draft Picker
   const [loadedEnemyDraft, setLoadedEnemyDraft] = useState<string[] | null>(null);
@@ -116,119 +77,16 @@ export const App: React.FC = () => {
   const [isLegalModalOpen, setIsLegalModalOpen] = useState<boolean>(false);
   const [legalInitialTab, setLegalInitialTab] = useState<LegalTabType>('overview');
 
-  const handleOpenLegalModal = React.useCallback((tab: LegalTabType = 'overview') => {
+  const handleOpenLegalModal = useCallback((tab: LegalTabType = 'overview') => {
     setLegalInitialTab(tab);
     setIsLegalModalOpen(true);
   }, []);
 
-  const handleToggleFavorite = useCallback((heroId: string) => {
-    StorageService.toggleFavorite(heroId);
-    setFavorites(StorageService.getFavorites());
-  }, []);
-
-  const handleCloseHeroModal = React.useCallback(() => setSelectedHero(null), []);
-  const handleSelectOtherHero = React.useCallback((id: string) => {
+  const handleCloseHeroModal = useCallback(() => setSelectedHero(null), []);
+  const handleSelectOtherHero = useCallback((id: string) => {
     const nextHero = HERO_MAP.get(id);
     if (nextHero) setSelectedHero(nextHero);
   }, []);
-
-  const selectedHeroRef = React.useRef(selectedHero);
-  React.useEffect(() => {
-    selectedHeroRef.current = selectedHero;
-  }, [selectedHero]);
-
-  // Launch Picture-in-Picture (Native Document PiP or In-App Floating Overlay)
-  const handleOpenPip = useCallback(async (targetHero?: HeroData) => {
-    const heroToUse = targetHero || selectedHeroRef.current || HEROES_DATA[0];
-    setPipHero(heroToUse);
-
-    if (PipManager.isSupported()) {
-      const containerDiv = document.createElement('div');
-      containerDiv.style.width = '100%';
-      containerDiv.style.height = '100%';
-
-      const success = await PipManager.openDocumentPip(containerDiv, () => {
-        setIsNativePipActive(false);
-        setIsPipOpen(false);
-        setPipContainer(null);
-      });
-
-      if (success) {
-        setPipContainer(containerDiv);
-        setIsNativePipActive(true);
-        setIsPipOpen(true);
-        return;
-      }
-    }
-
-    // Fallback: Floating overlay inside the main web page
-    setIsNativePipActive(false);
-    setIsPipOpen(true);
-  }, []);
-
-  const handleClosePip = useCallback(() => {
-    if (isNativePipActive) {
-      PipManager.closeDocumentPip();
-    }
-    setIsNativePipActive(false);
-    setIsPipOpen(false);
-    setPipContainer(null);
-  }, [isNativePipActive]);
-
-  // Global Keyboard Shortcut: Alt+P (or Option+P) to toggle Picture-in-Picture Mini HUD
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && (e.key === 'p' || e.key === 'P' || e.code === 'KeyP')) {
-        e.preventDefault();
-        if (isPipOpen || isNativePipActive) {
-          handleClosePip();
-        } else {
-          handleOpenPip();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPipOpen, isNativePipActive, selectedHero, pipHero]);
-
-  // Filtered & Sorted Heroes
-  const filteredHeroes = useMemo(() => {
-    let list = HEROES_DATA.filter((hero) => {
-      // Attribute filter
-      if (selectedAttr !== 'all' && hero.attribute !== selectedAttr) return false;
-      // Role filter
-      if (selectedRole !== 'all' && !hero.roles.includes(selectedRole)) return false;
-      // Attack filter
-      if (selectedAttack !== 'all' && hero.attackType !== selectedAttack) return false;
-      // Favorites filter
-      if (showFavoritesOnly && !favorites.includes(hero.id)) return false;
-      // Search query filter
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesName = hero.name.toLowerCase().includes(q);
-        const matchesTitle = hero.title.toLowerCase().includes(q);
-        const matchesAlias = hero.aliases.some((a) => a.toLowerCase().includes(q));
-        const matchesRole = hero.roles.some((r) => r.toLowerCase().includes(q));
-        const matchesItem = hero.build.core.some((i) => i.name.toLowerCase().includes(q)) ||
-                            hero.counterStrategy.keyCounterItems.some((k) => k.name.toLowerCase().includes(q));
-        if (!matchesName && !matchesTitle && !matchesAlias && !matchesRole && !matchesItem) {
-          return false;
-        }
-      }
-      return true;
-    });
-
-    // Sorting
-    list = [...list].sort((a, b) => {
-      if (sortBy === 'winRate') return b.winRate - a.winRate;
-      if (sortBy === 'name') return a.name.localeCompare(b.name);
-      if (sortBy === 'complexity') return a.complexity - b.complexity;
-      return 0;
-    });
-
-    return list;
-  }, [selectedAttr, selectedRole, selectedAttack, showFavoritesOnly, searchQuery, sortBy, favorites]);
 
   return (
     <div className="min-h-screen relative flex flex-col selection:bg-dota-red selection:text-white overflow-x-hidden">
@@ -240,24 +98,13 @@ export const App: React.FC = () => {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        searchQuery={heroFilters.searchQuery}
+        setSearchQuery={heroFilters.setSearchQuery}
         onOpenPip={handleOpenPip}
       />
 
-      {/* Interactive Line Navigator Sidebar Drawer (React Bits <LineSidebar />) - disabled for now */}
-      {/* 
-      <NavigationSidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        isOpen={isNavSidebarOpen}
-        setIsOpen={setIsNavSidebarOpen}
-      /> 
-      */}
-
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-7xl xl:max-w-[1550px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        
         
         {/* VIEW 0: HOME / COMMAND CENTER */}
         {activeTab === 'home' && (
@@ -267,66 +114,15 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* VIEW 1: HERO BUILDS & GUIDE */}
+        {/* VIEW 1: HERO BUILDS & GUIDE (Virtualized High-Performance Arsenal) */}
         {activeTab === 'heroes' && (
-          <div className="space-y-6">
-            
-            {/* Modern SaaS Showcase Section (Purple-to-Blue Gradient, Grain, 3 Icon Boxes, Emojis, Buzzwords, Em Dashes) */}
-            
-
-            {/* Hero Filter Bar */}
-            <HeroFilterBar
-              selectedAttr={selectedAttr}
-              setSelectedAttr={setSelectedAttr}
-              selectedRole={selectedRole}
-              setSelectedRole={setSelectedRole}
-              selectedAttack={selectedAttack}
-              setSelectedAttack={setSelectedAttack}
-              showFavoritesOnly={showFavoritesOnly}
-              setShowFavoritesOnly={setShowFavoritesOnly}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-            />
-
-            {/* Heroes Grid — Official Dota 2 Portrait Card Layout */}
-            {filteredHeroes.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-5">
-                {filteredHeroes.map((hero) => (
-                  <HeroCard
-                    key={hero.id}
-                    hero={hero}
-                    isFavorite={favorites.includes(hero.id)}
-                    onToggleFavorite={handleToggleFavorite}
-                    onSelectHero={setSelectedHero}
-                    onOpenPip={handleOpenPip}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="bg-dota-panel border-2 border-dota-border rounded-2xl p-12 text-center space-y-3 shadow-2xl">
-                <Shield className="w-12 h-12 text-slate-600 mx-auto" />
-                <h3 className="font-dota font-bold text-lg text-slate-300">
-                  No Heroes Found
-                </h3>
-                <p className="text-xs text-slate-500 max-w-md mx-auto font-sans">
-                  No heroes match your active search and filter criteria. Try clearing some filters.
-                </p>
-                <button
-                  onClick={() => {
-                    setSelectedAttr('all');
-                    setSelectedRole('all');
-                    setSelectedAttack('all');
-                    setShowFavoritesOnly(false);
-                    setSearchQuery('');
-                  }}
-                  className="px-4 py-2 rounded-xl bg-dota-red hover:bg-red-600 text-xs font-bold text-white transition-all shadow-dota-crimson"
-                >
-                  Reset All Filters
-                </button>
-              </div>
-            )}
-
-          </div>
+          <HeroesArsenalView
+            filters={heroFilters}
+            favoritesSet={favoritesSet}
+            onToggleFavorite={toggleFavorite}
+            onSelectHero={setSelectedHero}
+            onOpenPip={handleOpenPip}
+          />
         )}
 
         {/* VIEW: 5v5 PREDICTIVE DRAFT ORACLE */}
@@ -335,7 +131,7 @@ export const App: React.FC = () => {
             <PredictiveDraft5v5
               onSelectHero={setSelectedHero}
               favorites={favorites}
-              onToggleFavorite={handleToggleFavorite}
+              onToggleFavorite={toggleFavorite}
             />
           </Suspense>
         )}
@@ -423,8 +219,8 @@ export const App: React.FC = () => {
           <HeroBuildView
             hero={selectedHero}
             onClose={handleCloseHeroModal}
-            isFavorite={favorites.includes(selectedHero.id)}
-            onToggleFavorite={handleToggleFavorite}
+            isFavorite={favoritesSet.has(selectedHero.id)}
+            onToggleFavorite={toggleFavorite}
             onOpenPip={handleOpenPip}
             onSelectOtherHero={handleSelectOtherHero}
           />

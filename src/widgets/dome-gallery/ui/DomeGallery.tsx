@@ -153,12 +153,12 @@ export default function DomeGallery({
   const lastDragEndAt = useRef(0);
 
   const scrollLockedRef = useRef(false);
-  const lockScroll = useCallback(() => {
+  const _lockScroll = useCallback(() => {
     if (scrollLockedRef.current) return;
     scrollLockedRef.current = true;
     document.body.classList.add('dg-scroll-lock');
   }, []);
-  const unlockScroll = useCallback(() => {
+  const _unlockScroll = useCallback(() => {
     if (!scrollLockedRef.current) return;
     if (rootRef.current?.getAttribute('data-enlarging') === 'true') return;
     scrollLockedRef.current = false;
@@ -346,7 +346,7 @@ export default function DomeGallery({
             dragRafRef.current = null;
           }
           applyTransform(rotationRef.current.x, rotationRef.current.y);
-          let [vMagX, vMagY] = velocity;
+          const [vMagX, vMagY] = velocity;
           const [dirX, dirY] = direction;
           let vx = vMagX * dirX;
           let vy = vMagY * dirY;
