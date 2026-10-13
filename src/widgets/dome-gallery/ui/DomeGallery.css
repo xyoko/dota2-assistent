@@ -121,7 +121,9 @@ main.sphere-main {
   object-fit: cover;
   pointer-events: none;
   backface-visibility: hidden;
-  filter: var(--image-filter, none);
+  filter: var(--image-filter, contrast(1.08) brightness(1.04) saturate(1.1));
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .viewer {

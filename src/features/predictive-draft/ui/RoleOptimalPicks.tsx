@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { HeroData } from '../../../entities/hero/bi/types';
 import { PositionNumber, POSITION_DEFINITIONS, DedicatedSlots } from '../bi/predictiveDraftEngine';
 import { 
@@ -29,7 +29,7 @@ interface RoleOptimalPicksProps {
   initialPos?: PositionNumber;
 }
 
-export const RoleOptimalPicks: React.FC<RoleOptimalPicksProps> = ({
+export const RoleOptimalPicks: React.FC<RoleOptimalPicksProps> = React.memo(({
   allySlots,
   opponentSlots,
   banIds,
@@ -46,7 +46,9 @@ export const RoleOptimalPicks: React.FC<RoleOptimalPicksProps> = ({
     opponentHero, 
     hasOpponentPickedRole, 
     isFirstPickSituation 
-  } = getRolePickSuggestions(selectedPos, allySlots, opponentSlots, banIds, favorites);
+  } = useMemo(() => {
+    return getRolePickSuggestions(selectedPos, allySlots, opponentSlots, banIds, favorites);
+  }, [selectedPos, allySlots, opponentSlots, banIds, favorites]);
 
   const roleDef = POSITION_DEFINITIONS[selectedPos];
   const currentAllyHeroId = allySlots[selectedPos - 1];
@@ -305,4 +307,4 @@ export const RoleOptimalPicks: React.FC<RoleOptimalPicksProps> = ({
 
     </div>
   );
-};
+});

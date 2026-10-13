@@ -1,5 +1,6 @@
 import { HEROES_DATA, HERO_MAP } from '../../../entities/hero/bi/heroes';
 import { HeroData, RoleType } from '../../../entities/hero/bi/types';
+import { getHeroTags } from '../../../entities/hero/bi/heroMatchupData';
 
 // ==========================================
 // TYPES & INTERFACES FOR PREDICTIVE DRAFT
@@ -244,13 +245,39 @@ export function predictEnemyIntentFromBans(
   const direBannedIds = direBans.map((h) => h.id);
   const allBannedIds = allBanned.map((h) => h.id);
 
+  // If no bans have been registered yet, provide active scouting telemetry
+  if (direBans.length === 0) {
+    const metaCandidates = HEROES_DATA
+      .filter((h) => !allBannedIds.includes(h.id))
+      .sort((a, b) => (b.winRate * b.pickRate) - (a.winRate * a.pickRate))
+      .slice(0, 4);
+
+    const fallbackTelegraphs: BanIntentTelegraph[] = metaCandidates.map((hero) => ({
+      hero,
+      confidence: Math.round(hero.winRate * 1.3),
+      reason: `Patch 7.37d high-priority draft threat (${hero.winRate}% WR, ${hero.pickRate}% pick rate). Frequently enabled when early counter-bans are omitted.`,
+      counterRecommendation: hero.weakAgainst?.[0]
+        ? `Draft ${hero.weakAgainst[0].heroName} (${hero.weakAgainst[0].reason}) or ban in second phase.`
+        : 'Prepare instant point-target disable or heavy burst.'
+    }));
+
+    return {
+      telegraphedHeroes: fallbackTelegraphs,
+      detectedStrategy: {
+        name: 'Patch 7.37d Scouting: High-Priority Threat Watchlist',
+        description: 'Opponents have not registered bans yet. Monitor whether Opponents deny illusion-clearers, heal freezes, or instant silences in the opening phase to confirm incoming core picks.',
+        triggerBans: ['Draft Scouting Phase'],
+        confidence: 72
+      }
+    };
+  }
+
   const telegraphedMap = new Map<string, BanIntentTelegraph>();
   let detectedStrategy: DetectedStrategy | null = null;
   let highestPatternScore = 0;
 
-  // Evaluate matching Ban Patterns
+  // 1. Evaluate matching Ban Patterns
   for (const pattern of BAN_PATTERNS) {
-    // Check how many pattern keywords are in Dire's bans (higher weight) and overall bans
     const direMatches = pattern.bannedKeywords.filter((k) => direBannedIds.includes(k));
     const allMatches = pattern.bannedKeywords.filter((k) => allBannedIds.includes(k));
 
@@ -269,9 +296,7 @@ export function predictEnemyIntentFromBans(
       }
 
       for (const targetId of pattern.telegraphedHeroIds) {
-        // If the target is also banned, skip
         if (allBannedIds.includes(targetId)) continue;
-
         const hero = HERO_MAP.get(targetId);
         if (!hero) continue;
 
@@ -288,9 +313,8 @@ export function predictEnemyIntentFromBans(
     }
   }
 
-  // Dynamic evaluation: If Dire banned a counter to Hero X, Hero X is telegraphed!
+  // 2. Dynamic evaluation: Check victims of Dire's banned heroes
   for (const banned of direBans) {
-    // Check heroes that the banned hero was strong against
     if (banned.strongAgainst && banned.strongAgainst.length > 0) {
       for (const victim of banned.strongAgainst) {
         if (allBannedIds.includes(victim.heroId)) continue;
@@ -298,7 +322,7 @@ export function predictEnemyIntentFromBans(
         if (!targetHero) continue;
 
         const current = telegraphedMap.get(victim.heroId);
-        const dynamicConfidence = current ? Math.min(96, current.confidence + 15) : 74;
+        const dynamicConfidence = current ? Math.min(96, current.confidence + 15) : 76;
 
         telegraphedMap.set(victim.heroId, {
           hero: targetHero,
@@ -308,6 +332,51 @@ export function predictEnemyIntentFromBans(
         });
       }
     }
+
+    // Also check any hero whose weakAgainst list contains this banned hero
+    HEROES_DATA.forEach((candidate) => {
+      if (allBannedIds.includes(candidate.id)) return;
+      const wasWeak = candidate.weakAgainst?.find((w) => w.heroId === banned.id);
+      if (wasWeak && !telegraphedMap.has(candidate.id)) {
+        telegraphedMap.set(candidate.id, {
+          hero: candidate,
+          confidence: 75,
+          reason: `Dire eliminated ${banned.name}, which was a primary blocker to ${candidate.name} (${wasWeak.reason})`,
+          counterRecommendation: `Draft secondary counter against ${candidate.name} before Opponents secure it.`
+        });
+      }
+    });
+  }
+
+  // 3. Dynamic Archetype Detection if no BAN_PATTERNS triggered
+  if (!detectedStrategy && direBans.length > 0) {
+    const bannedTags = direBans.flatMap((h) => getHeroTags(h.id, h.attribute, h.roles));
+    const tagCounts = new Map<string, number>();
+    bannedTags.forEach((t) => tagCounts.set(t, (tagCounts.get(t) || 0) + 1));
+
+    let stratName = 'Targeted Counter Denial';
+    let stratDesc = `Dire has banned ${direBans.map((h) => h.name).join(', ')} to remove direct obstacles to their upcoming core draft.`;
+
+    if ((tagCounts.get('cleave_aoe') || 0) > 0) {
+      stratName = 'Illusion & Multi-Unit Swarm Runway';
+      stratDesc = 'Dire removed AoE cleave and waveclear, clearing the path for an unpunished Phantom Lancer, Naga Siren, or Chaos Knight pick.';
+    } else if ((tagCounts.get('anti_heal') || 0) > 0) {
+      stratName = 'High-Sustain & Regeneration Deathball';
+      stratDesc = 'Dire banned heal reduction, enabling high-sustain brawlers like Morphling, Huskar, Alchemist, or Slark.';
+    } else if ((tagCounts.get('mana_burn') || 0) > 0) {
+      stratName = 'Mana Shield & High Mana Dependency';
+      stratDesc = 'Dire removed mana burn tools, paving the runway for Medusa, Storm Spirit, or Leshrac.';
+    } else if ((tagCounts.get('point_lockdown') || 0) > 0) {
+      stratName = 'Elusive Skirmisher Empowerment';
+      stratDesc = 'Dire eliminated point-target lockdown, telegraphing high-mobility skirmishers like Puck, Slark, or Void Spirit.';
+    }
+
+    detectedStrategy = {
+      name: stratName,
+      description: stratDesc,
+      triggerBans: direBans.map((h) => h.name),
+      confidence: Math.min(92, 60 + direBans.length * 15)
+    };
   }
 
   // Sort by confidence descending
@@ -497,10 +566,11 @@ export function predictMissingLineup(
   let lateCarryCount = 0;
 
   direPicks.forEach((hero) => {
-    if (['faceless_void', 'witch_doctor', 'axe', 'sven'].includes(hero.id)) teamfightCount++;
-    if (['drow_ranger', 'sven', 'windranger'].includes(hero.id)) pushCount++;
-    if (['storm_spirit', 'lion', 'legion_commander', 'pudge'].includes(hero.id)) gankCount++;
-    if (['anti_mage', 'phantom_assassin', 'faceless_void'].includes(hero.id)) lateCarryCount++;
+    const tags = getHeroTags(hero.id, hero.attribute, hero.roles);
+    if (tags.includes('teamfight') || tags.includes('big_aoe_ult')) teamfightCount++;
+    if (tags.includes('push')) pushCount++;
+    if (tags.includes('gank') || tags.includes('point_lockdown')) gankCount++;
+    if (tags.includes('late_carry') || tags.includes('illusion')) lateCarryCount++;
   });
 
   let detectedArchetype = {
@@ -744,6 +814,146 @@ export function suggestPicks(
   return suggestions.sort((a, b) => b.score - a.score).slice(0, 10);
 }
 
+function evaluateLaneMatchup(
+  laneName: string,
+  laneType: 'Radiant Safe vs Dire Off' | 'Mid vs Mid' | 'Radiant Off vs Dire Safe',
+  radiantHeroes: HeroData[],
+  direHeroes: HeroData[]
+): LaneMatchupForecast {
+  if (radiantHeroes.length === 0 && direHeroes.length === 0) {
+    return {
+      laneName,
+      laneType,
+      radiantHeroes,
+      direHeroes,
+      advantage: 'Even',
+      confidence: 50,
+      tacticalTip: 'Draft heroes into these dedicated lane positions to simulate early trade dynamics, creep equilibrium, and kill thresholds.'
+    };
+  }
+
+  if (radiantHeroes.length === 0) {
+    return {
+      laneName,
+      laneType,
+      radiantHeroes,
+      direHeroes,
+      advantage: 'Dire Favored',
+      confidence: 72,
+      tacticalTip: `Opponents have drafted ${direHeroes.map((h) => h.name).join(' & ')} here. Allies currently lack lane presence; Opponents claim uncontested wave control.`
+    };
+  }
+
+  if (direHeroes.length === 0) {
+    return {
+      laneName,
+      laneType,
+      radiantHeroes,
+      direHeroes,
+      advantage: 'Radiant Favored',
+      confidence: 72,
+      tacticalTip: `Allies have drafted ${radiantHeroes.map((h) => h.name).join(' & ')}. Opponents have not picked their lane counter yet; Allies enjoy free-farm lane priority.`
+    };
+  }
+
+  // Both sides have heroes! Calculate dynamic lane advantage:
+  let radAdvantageScore = 0;
+  let direAdvantageScore = 0;
+
+  // 1. Direct counters between heroes in this exact lane
+  radiantHeroes.forEach((rh) => {
+    direHeroes.forEach((dh) => {
+      if (rh.strongAgainst?.some((s) => s.heroId === dh.id)) radAdvantageScore += 22;
+      if (dh.strongAgainst?.some((s) => s.heroId === rh.id)) direAdvantageScore += 22;
+    });
+  });
+
+  // 2. Attack Range & Harass Advantage
+  const radRangedCount = radiantHeroes.filter((h) => h.attackType === 'Ranged').length;
+  const direRangedCount = direHeroes.filter((h) => h.attackType === 'Ranged').length;
+  radAdvantageScore += radRangedCount * 8;
+  direAdvantageScore += direRangedCount * 8;
+
+  // 3. Early kill potential / disable pressure
+  radiantHeroes.forEach((rh) => {
+    const tags = getHeroTags(rh.id, rh.attribute, rh.roles);
+    if (tags.includes('point_lockdown')) radAdvantageScore += 10;
+    if (tags.includes('spell_burst')) radAdvantageScore += 8;
+    if (tags.includes('save_sustain')) radAdvantageScore += 7;
+  });
+
+  direHeroes.forEach((dh) => {
+    const tags = getHeroTags(dh.id, dh.attribute, dh.roles);
+    if (tags.includes('point_lockdown')) direAdvantageScore += 10;
+    if (tags.includes('spell_burst')) direAdvantageScore += 8;
+    if (tags.includes('save_sustain')) direAdvantageScore += 7;
+  });
+
+  // 4. Win rate base weighting
+  const radAvgWr = radiantHeroes.reduce((acc, h) => acc + h.winRate, 0) / radiantHeroes.length;
+  const direAvgWr = direHeroes.reduce((acc, h) => acc + h.winRate, 0) / direHeroes.length;
+  radAdvantageScore += (radAvgWr - 50) * 1.5;
+  direAdvantageScore += (direAvgWr - 50) * 1.5;
+
+  const netScore = radAdvantageScore - direAdvantageScore;
+  let advantage: 'Radiant Favored' | 'Dire Favored' | 'Even' = 'Even';
+  let confidence = 65;
+
+  if (netScore >= 12) {
+    advantage = 'Radiant Favored';
+    confidence = Math.min(95, 70 + Math.round(netScore * 0.7));
+  } else if (netScore <= -12) {
+    advantage = 'Dire Favored';
+    confidence = Math.min(95, 70 + Math.round(Math.abs(netScore) * 0.7));
+  } else {
+    advantage = 'Even';
+    confidence = 62;
+  }
+
+  // Dynamic contextual tactical tips
+  let tacticalTip = '';
+  const radNames = radiantHeroes.map((h) => h.name).join(' & ');
+  const direNames = direHeroes.map((h) => h.name).join(' & ');
+
+  if (laneType === 'Mid vs Mid') {
+    const rh = radiantHeroes[0];
+    const dh = direHeroes[0];
+    if (advantage === 'Radiant Favored') {
+      tacticalTip = `${rh.name} holds clear matchup advantage over ${dh.name}. Harass aggressively during wave resets, shove the mid wave at min 5:40, and secure power rune control.`;
+    } else if (advantage === 'Dire Favored') {
+      tacticalTip = `${dh.name} exerts superior wave pressure on ${rh.name}. Pull creep aggro to own highground, stack medium jungle camps, and request early support rotation for 6-min power rune.`;
+    } else {
+      tacticalTip = `${rh.name} vs ${dh.name} is a balanced, skill-intensive contest. Prioritize highground creep block and secure water runes at 2:00 and 4:00 to sustain bottle charges.`;
+    }
+  } else if (laneType === 'Radiant Safe vs Dire Off') {
+    if (advantage === 'Radiant Favored') {
+      tacticalTip = `Allies (${radNames}) control kill pressure against Dire (${direNames}). Maintain creep equilibrium near Radiant tower and punish aggressive offlane overextensions.`;
+    } else if (advantage === 'Dire Favored') {
+      tacticalTip = `Dire Offlane (${direNames}) pressures ${radiantHeroes[0]?.name || 'Radiant Carry'}. Pos 5 must unblock small pull camp, contest lotus pool at 3:00, and ferry additional healing supplies.`;
+    } else {
+      tacticalTip = `Even safe lane duel (${radNames} vs ${direNames}). Pull lane creeps at :15/:45 seconds to keep equilibrium outside tower range and trade carefully around creep aggro.`;
+    }
+  } else {
+    if (advantage === 'Radiant Favored') {
+      tacticalTip = `Radiant Offlane (${radNames}) pressures Dire carry (${direHeroes[0]?.name || 'Dire Carry'}). Harass last hits, block Dire small pull camp, and force their support to drain healing consumables.`;
+    } else if (advantage === 'Dire Favored') {
+      tacticalTip = `Dire Safe Lane (${direNames}) holds trade superiority. Radiant offlane should drag creep waves between tier 1 and tier 2 towers to disrupt enemy creep freeze.`;
+    } else {
+      tacticalTip = `Balanced offlane contest (${radNames} vs ${direNames}). Contest lotus pool at minute 3:00 and execute coordinated trades when enemy support steps away to pull.`;
+    }
+  }
+
+  return {
+    laneName,
+    laneType,
+    radiantHeroes,
+    direHeroes,
+    advantage,
+    confidence,
+    tacticalTip
+  };
+}
+
 /**
  * 5. Computes Draft Advantage %, Power Spike timeline, and lane forecasts.
  */
@@ -773,11 +983,12 @@ export function calculateAdvantageAndWinConditions(
     let scaling = 0;
 
     heroes.forEach((h) => {
-      if (['lion', 'axe', 'witch_doctor', 'faceless_void', 'legion_commander', 'sven'].includes(h.id)) cc += 22;
-      if (['phantom_assassin', 'storm_spirit', 'lion', 'drow_ranger', 'windranger'].includes(h.id)) burst += 22;
-      if (['drow_ranger', 'sven', 'windranger'].includes(h.id)) push += 22;
-      if (['witch_doctor', 'necrophos', 'abaddon', 'dazzle', 'pudge'].includes(h.id)) sustain += 22;
-      if (['anti_mage', 'faceless_void', 'phantom_assassin', 'drow_ranger', 'sven'].includes(h.id)) scaling += 24;
+      const tags = getHeroTags(h.id, h.attribute, h.roles);
+      if (tags.includes('point_lockdown') || tags.includes('big_aoe_ult') || tags.includes('teamfight')) cc += 20;
+      if (tags.includes('spell_burst') || tags.includes('gank')) burst += 20;
+      if (tags.includes('push')) push += 20;
+      if (tags.includes('save_sustain')) sustain += 20;
+      if (tags.includes('late_carry') || tags.includes('illusion')) scaling += 22;
     });
 
     return {
@@ -823,50 +1034,41 @@ export function calculateAdvantageAndWinConditions(
 
   // Lane Forecasts (dedicated positions: Safe = Pos 1 & 5, Mid = Pos 2, Offlane = Pos 3 & 4)
   const radSafeHeroes = radiantSlots
-    ? [radiantSlots[0], radiantSlots[4]].map((id) => id ? HERO_MAP.get(id) : null).filter((h): h is HeroData => Boolean(h))
+    ? [radiantSlots[0], radiantSlots[4]].map((id) => (id ? HERO_MAP.get(id) : null)).filter((h): h is HeroData => Boolean(h))
     : radiantPicks.slice(0, 2);
   const direOffHeroes = direSlots
-    ? [direSlots[2], direSlots[3]].map((id) => id ? HERO_MAP.get(id) : null).filter((h): h is HeroData => Boolean(h))
+    ? [direSlots[2], direSlots[3]].map((id) => (id ? HERO_MAP.get(id) : null)).filter((h): h is HeroData => Boolean(h))
     : direPicks.slice(2, 4);
 
   const radMidHero = radiantSlots && radiantSlots[1] ? HERO_MAP.get(radiantSlots[1]) : (radiantPicks[1] || null);
   const direMidHero = direSlots && direSlots[1] ? HERO_MAP.get(direSlots[1]) : (direPicks[1] || null);
 
   const radOffHeroes = radiantSlots
-    ? [radiantSlots[2], radiantSlots[3]].map((id) => id ? HERO_MAP.get(id) : null).filter((h): h is HeroData => Boolean(h))
+    ? [radiantSlots[2], radiantSlots[3]].map((id) => (id ? HERO_MAP.get(id) : null)).filter((h): h is HeroData => Boolean(h))
     : radiantPicks.slice(2, 4);
   const direSafeHeroes = direSlots
-    ? [direSlots[0], direSlots[4]].map((id) => id ? HERO_MAP.get(id) : null).filter((h): h is HeroData => Boolean(h))
+    ? [direSlots[0], direSlots[4]].map((id) => (id ? HERO_MAP.get(id) : null)).filter((h): h is HeroData => Boolean(h))
     : direPicks.slice(0, 2);
 
   const laneForecasts: LaneMatchupForecast[] = [
-    {
-      laneName: 'Radiant Safe Lane (Bottom) vs Dire Offlane (Top)',
-      laneType: 'Radiant Safe vs Dire Off',
-      radiantHeroes: radSafeHeroes,
-      direHeroes: direOffHeroes,
-      advantage: earlyAdvantage === 'Radiant' ? 'Radiant Favored' : (earlyAdvantage === 'Dire' ? 'Dire Favored' : 'Even'),
-      confidence: 76,
-      tacticalTip: 'Control creep equilibrium near Radiant tower. Block Dire large camp pull to prevent wave resets.'
-    },
-    {
-      laneName: 'Mid Lane Contest (Pos 2 vs Pos 2)',
-      laneType: 'Mid vs Mid',
-      radiantHeroes: radMidHero ? [radMidHero] : [],
-      direHeroes: direMidHero ? [direMidHero] : [],
-      advantage: 'Even',
-      confidence: 68,
-      tacticalTip: 'Secure 6-minute power rune to dictate first rotation. Save glyph for mid tower defense.'
-    },
-    {
-      laneName: 'Radiant Offlane (Top) vs Dire Safe Lane (Bottom)',
-      laneType: 'Radiant Off vs Dire Safe',
-      radiantHeroes: radOffHeroes,
-      direHeroes: direSafeHeroes,
-      advantage: earlyAdvantage === 'Dire' ? 'Dire Favored' : (earlyAdvantage === 'Radiant' ? 'Radiant Favored' : 'Even'),
-      confidence: 74,
-      tacticalTip: 'Pressure Dire carry’s last hits with aggressive trades. Force their support to deplete healing supplies.'
-    }
+    evaluateLaneMatchup(
+      'Radiant Safe Lane (Bottom) vs Dire Offlane (Top)',
+      'Radiant Safe vs Dire Off',
+      radSafeHeroes,
+      direOffHeroes
+    ),
+    evaluateLaneMatchup(
+      'Mid Lane Contest (Pos 2 vs Pos 2)',
+      'Mid vs Mid',
+      radMidHero ? [radMidHero] : [],
+      direMidHero ? [direMidHero] : []
+    ),
+    evaluateLaneMatchup(
+      'Radiant Offlane (Top) vs Dire Safe Lane (Bottom)',
+      'Radiant Off vs Dire Safe',
+      radOffHeroes,
+      direSafeHeroes
+    )
   ];
 
   // Win Conditions

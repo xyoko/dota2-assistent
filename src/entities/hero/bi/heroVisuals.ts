@@ -67,12 +67,10 @@ export function getDistinguishablePortraitCandidates(avatarUrl: string): string[
     if (filename) {
       // 1. Official Steam crop portrait (native 400x250 16:10, ultra-fast Cloudflare edge CDN, zero rate-limiting)
       candidates.push(`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/crops/${filename}.png`);
-      // 2. High-Performance WebP Portrait Crop fallback
-      candidates.push(`https://wsrv.nl/?url=cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/crops/${filename}.png&trim=10&w=480&h=300&fit=contain&output=webp`);
-      // 3. WebP character render fallback (centered 16:10)
-      candidates.push(`https://wsrv.nl/?url=cdn.cloudflare.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders/${filename}.png&trim=10&w=480&h=300&fit=contain&output=webp`);
-      // 4. Classic vertical card portrait (235x272)
+      // 2. Official vertical hero card portrait (235x272)
       candidates.push(`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/heroes/${filename}_vert.jpg`);
+      // 3. Official full hero image
+      candidates.push(`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${filename}.png`);
     }
   }
 

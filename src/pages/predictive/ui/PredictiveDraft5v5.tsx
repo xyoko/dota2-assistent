@@ -824,7 +824,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
         </div>
 
         {/* TAB 1: SEPARATE COMPONENT -> ROLE OPTIMAL & COUNTER PICKS */}
-        {activeAnalysisTab === 'picks' && (
+        <div className={activeAnalysisTab === 'picks' ? 'block' : 'hidden'}>
           <RoleOptimalPicks
             allySlots={allySlots}
             opponentSlots={opponentSlots}
@@ -835,10 +835,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             onToggleFavorite={handleToggleFavorite}
             initialPos={activeTargetSlot.pos}
           />
-        )}
+        </div>
 
         {/* TAB 2: SEPARATE COMPONENT -> ROLE BAN SUGGESTIONS */}
-        {activeAnalysisTab === 'bans' && (
+        <div className={activeAnalysisTab === 'bans' ? 'block' : 'hidden'}>
           <RoleBanSuggestions
             allySlots={allySlots}
             opponentSlots={opponentSlots}
@@ -848,11 +848,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             onSelectHero={onSelectHero}
             initialPos={activeTargetSlot.pos}
           />
-        )}
+        </div>
 
         {/* TAB 3: BAN INTENT & LINEUP FORECAST */}
-        {activeAnalysisTab === 'intent' && (
-          <div className="space-y-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 p-4 sm:p-5 shadow-xl backdrop-blur-md">
+        <div className={activeAnalysisTab === 'intent' ? 'block space-y-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 p-4 sm:p-5 shadow-xl backdrop-blur-md' : 'hidden'}>
             
             {/* Header */}
             <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
@@ -962,79 +961,118 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             </div>
 
           </div>
-        )}
 
         {/* TAB 4: LANE FORECAST & WIN CONDITIONS */}
-        {activeAnalysisTab === 'lanes' && (
-          <div className="space-y-4 rounded-2xl bg-slate-950/80 border border-cyan-500/30 p-4 sm:p-5 shadow-xl backdrop-blur-md">
-            
-            <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
-              <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
-                <Swords className="w-5 h-5 text-cyan-300" />
-              </div>
-              <div>
-                <h3 className="font-dota font-bold text-base text-cyan-200">
-                  PROJECTED LANE MATCHUPS & 5V5 WIN CONDITIONS
-                </h3>
-                <p className="text-[11px] text-slate-400">
-                  Head-to-head lane simulation comparing Allies vs Opponents assigned positions
-                </p>
-              </div>
+        <div className={activeAnalysisTab === 'lanes' ? 'block space-y-4 rounded-2xl bg-slate-950/80 border border-cyan-500/30 p-4 sm:p-5 shadow-xl backdrop-blur-md' : 'hidden'}>
+          <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
+              <Swords className="w-5 h-5 text-cyan-300" />
             </div>
+            <div>
+              <h3 className="font-dota font-bold text-base text-cyan-200">
+                PROJECTED LANE MATCHUPS & 5V5 WIN CONDITIONS
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Head-to-head lane simulation comparing Allies vs Opponents assigned positions
+              </p>
+            </div>
+          </div>
 
-            {/* Lane Forecast Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {analysis.laneForecasts.map((lane, i) => (
-                <div key={`lane-fc-${i}`} className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-dota font-bold text-xs text-white">{lane.laneName}</span>
-                    <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+          {/* Lane Forecast Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            {analysis.laneForecasts.map((lane, i) => (
+              <div key={`lane-fc-${i}`} className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3 shadow-md flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+                    <span className="font-dota font-bold text-xs text-slate-100">{lane.laneName}</span>
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border whitespace-nowrap ${
                       lane.advantage === 'Radiant Favored'
-                        ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50'
+                        ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
                         : lane.advantage === 'Dire Favored'
-                        ? 'bg-rose-950 text-rose-300 border-rose-500/50'
+                        ? 'bg-rose-950/80 text-rose-300 border-rose-500/60 shadow-[0_0_10px_rgba(244,63,94,0.2)]'
                         : 'bg-slate-800 text-slate-300 border-slate-700'
                     }`}>
-                      {lane.advantage === 'Radiant Favored' ? 'Allies Favored' : lane.advantage === 'Dire Favored' ? 'Opponents Favored' : 'Even Lane'}
+                      {lane.advantage === 'Radiant Favored' ? `Allies Favored (${lane.confidence}%)` : lane.advantage === 'Dire Favored' ? `Opponents Favored (${lane.confidence}%)` : `Even Lane (${lane.confidence}%)`}
                     </span>
                   </div>
 
-                  <p className="text-[11px] text-slate-300 leading-snug">{lane.tacticalTip}</p>
+                  {/* Lane Heroes Lineup Comparison */}
+                  <div className="py-2.5 flex items-center justify-between gap-1 text-[11px]">
+                    {/* Allies Heroes */}
+                    <div className="flex-1 flex flex-col gap-1">
+                      <span className="text-[9px] font-mono font-bold uppercase text-emerald-400">Allies</span>
+                      {lane.radiantHeroes.length > 0 ? (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {lane.radiantHeroes.map((h) => (
+                            <div key={`rad-lane-h-${h.id}`} className="flex items-center gap-1 bg-slate-950/70 border border-emerald-500/40 rounded px-1.5 py-0.5" title={`${h.name} (${h.attackType})`}>
+                              <img src={h.avatarUrl} alt={h.name} className="w-5 h-5 rounded object-cover" />
+                              <span className="font-dota text-xs text-white truncate max-w-[65px]">{h.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 italic">Unassigned</span>
+                      )}
+                    </div>
+
+                    <div className="px-1 text-[10px] font-black font-mono text-slate-500">VS</div>
+
+                    {/* Opponents Heroes */}
+                    <div className="flex-1 flex flex-col items-end gap-1">
+                      <span className="text-[9px] font-mono font-bold uppercase text-rose-400">Opponents</span>
+                      {lane.direHeroes.length > 0 ? (
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                          {lane.direHeroes.map((h) => (
+                            <div key={`dire-lane-h-${h.id}`} className="flex items-center gap-1 bg-slate-950/70 border border-rose-500/40 rounded px-1.5 py-0.5" title={`${h.name} (${h.attackType})`}>
+                              <span className="font-dota text-xs text-white truncate max-w-[65px]">{h.name}</span>
+                              <img src={h.avatarUrl} alt={h.name} className="w-5 h-5 rounded object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 italic">Unassigned</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
 
-            {/* 5v5 Win Conditions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-              <div className="p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-2">
-                <h4 className="font-dota font-bold text-xs text-emerald-300 uppercase tracking-wide flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Allies Win Conditions
-                </h4>
-                <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
-                  {analysis.winConditions.radiant.map((wc, i) => (
-                    <li key={`ally-wc-${i}`}>{wc}</li>
-                  ))}
-                </ul>
+                {/* Tactical Tip */}
+                <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 leading-relaxed">
+                  <span className="font-bold text-cyan-300 block mb-0.5 text-[10px] uppercase font-mono tracking-wider">Tactical Instruction</span>
+                  {lane.tacticalTip}
+                </div>
               </div>
-
-              <div className="p-3.5 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-2">
-                <h4 className="font-dota font-bold text-xs text-rose-300 uppercase tracking-wide flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5" /> Opponent Threat Conditions
-                </h4>
-                <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
-                  {analysis.winConditions.dire.map((wc, i) => (
-                    <li key={`opp-wc-${i}`}>{wc}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
+            ))}
           </div>
-        )}
+
+          {/* 5v5 Win Conditions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+            <div className="p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-2">
+              <h4 className="font-dota font-bold text-xs text-emerald-300 uppercase tracking-wide flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Allies Win Conditions
+              </h4>
+              <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
+                {analysis.winConditions.radiant.map((wc, i) => (
+                  <li key={`ally-wc-${i}`}>{wc}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-2">
+              <h4 className="font-dota font-bold text-xs text-rose-300 uppercase tracking-wide flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" /> Opponent Threat Conditions
+              </h4>
+              <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
+                {analysis.winConditions.dire.map((wc, i) => (
+                  <li key={`opp-wc-${i}`}>{wc}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
 
         {/* TAB 5: GEMINI AI TACTICAL ORACLE */}
-        {activeAnalysisTab === 'ai' && (
-          <div className="space-y-4 rounded-2xl bg-slate-950/85 border border-purple-500/40 p-4 sm:p-5 shadow-[0_0_30px_rgba(168,85,247,0.15)] backdrop-blur-md">
+        <div className={activeAnalysisTab === 'ai' ? 'block space-y-4 rounded-2xl bg-slate-950/85 border border-purple-500/40 p-4 sm:p-5 shadow-[0_0_30px_rgba(168,85,247,0.15)] backdrop-blur-md' : 'hidden'}>
             
             {/* AI Console Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-500/20 pb-4">
@@ -1177,7 +1215,6 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             )}
 
           </div>
-        )}
 
       </div>
 

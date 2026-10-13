@@ -26,7 +26,7 @@ export interface RoleBanSuggestion {
   roleName: string;
   impactScore: number; // 0 - 100
   priority: 'CRITICAL' | 'HIGH' | 'TACTICAL';
-  category: 'Protects Our Pick' | 'Denies Opponent Combo' | 'High-Threat Meta';
+  category: 'Protects Our Pick' | 'Denies Opponent Combo' | 'Anticipates Telegraphed Pick' | 'High-Threat Meta';
   isFavorite: boolean;
   targetAllyHero?: HeroData;
   targetOpponentHero?: HeroData;
@@ -297,6 +297,10 @@ export function getRoleBanSuggestions(
     .map((id) => HERO_MAP.get(id))
     .filter((h): h is HeroData => Boolean(h));
 
+  const allOpponentHeroes = opponentSlots
+    .filter((id): id is string => Boolean(id))
+    .map((id) => HERO_MAP.get(id))
+    .filter((h): h is HeroData => Boolean(h));
 
   // Role candidate heroes that can be banned
   const roleCandidates = HEROES_DATA.filter((candidate) => {
@@ -344,19 +348,36 @@ export function getRoleBanSuggestions(
       }
     }
 
-    // 2. Disrupt Opponent Combo: Check if candidate combos with opponent's role hero
-    if (!isAllyThreat && opponentRoleHero) {
-      const combosWithOppRole = candidate.synergies?.find((s) => s.heroId === opponentRoleHero.id);
-      if (combosWithOppRole) {
-        impactScore += 32;
-        priority = 'HIGH';
-        category = 'Denies Opponent Combo';
-        reason = `Prevents Opponent pairing with ${opponentRoleHero.name} (${combosWithOppRole.reason})`;
-        targetOpponentHero = opponentRoleHero;
+    // 2. Disrupt Opponent Combo: Check if candidate combos with any opponent drafted hero
+    if (!isAllyThreat && allOpponentHeroes.length > 0) {
+      for (const opp of allOpponentHeroes) {
+        const combosWithOpp = candidate.synergies?.find((s) => s.heroId === opp.id);
+        if (combosWithOpp) {
+          impactScore += 34;
+          priority = 'HIGH';
+          category = 'Denies Opponent Combo';
+          reason = `Prevents Opponents pairing with ${opp.name} (${combosWithOpp.reason})`;
+          targetOpponentHero = opp;
+          break;
+        }
       }
     }
 
-    // 3. High-Threat Meta Baseline
+    // 3. Anticipate Telegraphed Intent from Bans: If opponent banned a counter to candidate
+    if (!isAllyThreat && category === 'High-Threat Meta') {
+      for (const bId of banIds) {
+        const banHero = HERO_MAP.get(bId);
+        if (banHero?.strongAgainst?.some((s) => s.heroId === candidate.id)) {
+          impactScore += 24;
+          priority = 'HIGH';
+          category = 'Anticipates Telegraphed Pick';
+          reason = `Banning ${banHero.name} removed a primary blocker to ${candidate.name}. Pre-emptively deny this pick.`;
+          break;
+        }
+      }
+    }
+
+    // 4. High-Threat Meta Baseline
     if (category === 'High-Threat Meta') {
       impactScore += Math.round((candidate.winRate - 50) * 1.6);
       if (candidate.winRate >= 53) {

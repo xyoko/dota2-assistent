@@ -1,4 +1,5 @@
-import { HeroData, Ability, TalentOption, MatchupEntry } from './types';
+import { HeroData, Ability, TalentOption } from './types';
+import { generateDynamicHeroMatchups } from './heroMatchupData';
 
 // ==========================================
 // SHARED ZERO-OVERHEAD REUSABLE TEMPLATES
@@ -228,21 +229,7 @@ const ARCHETYPE_BUILDS = {
   }
 };
 
-const DEFAULT_STRONG_AGAINST: MatchupEntry[] = [
-  { heroId: 'crystal_maiden', heroName: 'Crystal Maiden', reason: 'High gap close and burst punishes low base mobility and squishy support pool.' },
-  { heroId: 'drow_ranger', heroName: 'Drow Ranger', reason: 'Closing the distance disables Marksmanship and forces defensive panic.' }
-];
 
-const DEFAULT_WEAK_AGAINST: MatchupEntry[] = [
-  { heroId: 'legion_commander', heroName: 'Legion Commander', reason: 'Duel locks down through mobility spells and forces physical combat.' },
-  { heroId: 'axe', heroName: 'Axe', reason: 'Berserker’s Call pierces debuff immunity and controls positioning.' },
-  { heroId: 'lion', heroName: 'Lion', reason: 'Instant Hex and multi-target Earth Spike provide lockdown before defensive items activate.' }
-];
-
-const DEFAULT_SYNERGIES: MatchupEntry[] = [
-  { heroId: 'magnus', heroName: 'Magnus', reason: 'Reverse Polarity groups targets together for optimal area spell commitment.' },
-  { heroId: 'crystal_maiden', heroName: 'Crystal Maiden', reason: 'Arcane Aura guarantees infinite mana for high spell rotation and lane harass.' }
-];
 
 function createArchetypeHero(spec: {
   id: string;
@@ -276,6 +263,8 @@ function createArchetypeHero(spec: {
   const ab2 = spec.abilities[2]?.name || 'Tactical Buff';
   const abUlt = spec.abilities[spec.abilities.length - 1]?.name || 'Ultimate';
 
+  const dynamicMatchups = generateDynamicHeroMatchups(spec);
+
   return {
     ...spec,
     playstyle: spec.name + ' plays as an impactful ' + primaryRole.toLowerCase() + ', leveraging strong lane pressure and critical power spike timings to control teamfight tempo.',
@@ -289,9 +278,9 @@ function createArchetypeHero(spec: {
       maxPriority: [ab0, ab1, ab2, abUlt],
       levelGuide: ['Q', 'W', 'E', 'Q', 'Q', 'R', 'Q', 'W', 'W', 'Talent', 'W', 'R', 'E', 'E', 'Talent', 'E', 'R']
     },
-    strongAgainst: DEFAULT_STRONG_AGAINST,
-    weakAgainst: DEFAULT_WEAK_AGAINST,
-    synergies: DEFAULT_SYNERGIES,
+    strongAgainst: dynamicMatchups.strongAgainst,
+    weakAgainst: dynamicMatchups.weakAgainst,
+    synergies: dynamicMatchups.synergies,
     counterStrategy: {
       keyCounterItems: [
         { name: 'Black King Bar', reason: 'Negates primary spell lockdown and burst magical damage.' },

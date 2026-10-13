@@ -22,7 +22,7 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
     return HEROES_DATA.map(hero => {
       const candidates = getDistinguishablePortraitCandidates(hero.avatarUrl);
       return {
-        src: (candidates[1] || candidates[0]),
+        src: candidates[0],
         alt: hero.name,
         hero: hero
       };

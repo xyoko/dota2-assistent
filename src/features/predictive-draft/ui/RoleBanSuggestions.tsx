@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { HeroData } from '../../../entities/hero/bi/types';
 import { PositionNumber, POSITION_DEFINITIONS, DedicatedSlots } from '../bi/predictiveDraftEngine';
 import { 
@@ -24,7 +24,7 @@ interface RoleBanSuggestionsProps {
   initialPos?: PositionNumber;
 }
 
-export const RoleBanSuggestions: React.FC<RoleBanSuggestionsProps> = ({
+export const RoleBanSuggestions: React.FC<RoleBanSuggestionsProps> = React.memo(({
   allySlots,
   opponentSlots,
   banIds,
@@ -35,13 +35,15 @@ export const RoleBanSuggestions: React.FC<RoleBanSuggestionsProps> = ({
 }) => {
   const [selectedPos, setSelectedPos] = useState<PositionNumber>(initialPos);
 
-  const { suggestions, allyRoleHero, opponentRoleHero } = getRoleBanSuggestions(
-    selectedPos,
-    allySlots,
-    opponentSlots,
-    banIds,
-    favorites
-  );
+  const { suggestions, allyRoleHero, opponentRoleHero } = useMemo(() => {
+    return getRoleBanSuggestions(
+      selectedPos,
+      allySlots,
+      opponentSlots,
+      banIds,
+      favorites
+    );
+  }, [selectedPos, allySlots, opponentSlots, banIds, favorites]);
 
   const roleDef = POSITION_DEFINITIONS[selectedPos];
 
@@ -288,4 +290,4 @@ export const RoleBanSuggestions: React.FC<RoleBanSuggestionsProps> = ({
 
     </div>
   );
-};
+});
