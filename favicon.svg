@@ -1,0 +1,21 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+  <defs>
+    <linearGradient id='bgGrad' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#1a2130' />
+      <stop offset='100%' stop-color='#0b0e14' />
+    </linearGradient>
+    <linearGradient id='goldGrad' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#f5d77f' />
+      <stop offset='100%' stop-color='#c89b3c' />
+    </linearGradient>
+    <linearGradient id='redGrad' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' stop-color='#ff4b4b' />
+      <stop offset='100%' stop-color='#b31b1b' />
+    </linearGradient>
+  </defs>
+  <rect width='100' height='100' rx='24' fill='url(#bgGrad)' stroke='#e5b869' stroke-width='2' />
+  <path d='M25 75 L75 25 M30 35 L40 25 L75 60 L65 70 Z M25 75 L35 85 L70 50 L60 40 Z' fill='url(#redGrad)' />
+  <polygon points='40,25 25,40 30,50 50,30' fill='url(#goldGrad)' />
+  <polygon points='60,75 75,60 70,50 50,70' fill='url(#goldGrad)' />
+  <circle cx='50' cy='50' r='6' fill='#00d2ff' filter='drop-shadow(0 0 4px #00d2ff)' />
+</svg>
