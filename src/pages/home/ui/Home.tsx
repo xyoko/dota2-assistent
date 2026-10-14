@@ -12,9 +12,10 @@ import { ActiveTab } from '../../../widgets/navbar/ui/Navbar';
 interface HomeProps {
   onNavigateTab: (tab: ActiveTab) => void;
   onSelectHero?: (hero: HeroData) => void;
+  isActive?: boolean;
 }
 
-export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHero }) => {
+export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHero, isActive = true }) => {
   // Main hero array (user can change, must contain only one hero)
   const [mainHero, setMainHero] = useState<HeroData>(HEROES_DATA[0]);
 
@@ -31,7 +32,7 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
 
   return (
     <div className="relative min-h-screen bg-[#120f17] overflow-hidden w-full">
-      {/* Background WebGPU ShapeWaves Animation */}
+      {/* Background WebGPU ShapeWaves Animation (Optimized & Freeze-Safe) */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <ShapeWaves
           maskImage={`${import.meta.env.BASE_URL}dota2.svg`}
@@ -39,25 +40,25 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
           fontWeight={500}
           textSize={0.6}
           shapes="mixed"
-          cellSize={10}
-          dotSize={0.75}
+          cellSize={28}
+          dotSize={0.7}
           color="#880808"
           hoverColor="#ffffff"
           backgroundColor="#120f17"
-          speed={1}
+          speed={0.8}
           scale={1}
           contrast={1}
           brightness={0.4}
           flow={0}
           direction={0}
           fade={0.25}
-          interactive
+          interactive={false}
           splashRadius={40}
           splashStrength={0.4}
-          glow={0.35}
-          intro
+          glow={0}
+          intro={false}
           introDuration={1.6}
-          paused={false}
+          paused={!isActive}
           onError={(error: unknown) => console.warn('ShapeWaves background fallback notice:', error)}
         />
         {/* Soft atmospheric gradient vignettes for readability */}
@@ -145,21 +146,21 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
           </span>
         </div>
         
-        <div className="relative w-full h-[806px] mt-8 rounded-3xl overflow-hidden bg-slate-900/10 backdrop-blur-[2px] border border-white/5 shadow-2xl">
+        <div className="relative w-full h-[806px] mt-8 rounded-3xl overflow-hidden bg-slate-950/40 border border-red-500/10 shadow-2xl">
           <DomeGallery 
             images={domeImages}
             onSelectHero={setMainHero} 
             onOpenHeroDetails={onSelectHero}
-            segments={26}
+            segments={20}
             fit={0.62}
             minRadius={780}
             tileInset="22px"
             maxVerticalRotationDeg={40}
             dragDampening={0.7}
             grayscale={false}
-            autoRotate={true}
+            autoRotate={isActive}
             autoRotationSpeed={3.5}
-            pauseOnHover={false}
+            pauseOnHover={true}
             overlayBlurColor="transparent"
           />
         </div>

@@ -159,6 +159,21 @@ export default function DomeGallery({
   const lastDragEndAt = useRef(0);
   const isHoveredRef = useRef(false);
   const lastTimeRef = useRef(0);
+  const isVisibleInViewportRef = useRef(true);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisibleInViewportRef.current = entry.isIntersecting;
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, []);
 
   const scrollLockedRef = useRef(false);
   const _lockScroll = useCallback(() => {
@@ -613,6 +628,7 @@ export default function DomeGallery({
         !openingRef.current &&
         !focusedElRef.current &&
         (!pauseOnHover || !isHoveredRef.current) &&
+        isVisibleInViewportRef.current &&
         (typeof document === 'undefined' || !document.hidden);
 
       if (canAutoRotate && dt > 0) {

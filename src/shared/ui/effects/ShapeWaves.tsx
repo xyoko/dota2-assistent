@@ -301,11 +301,106 @@ export default function ShapeWaves({
 }) {
   const rootRef = useRef(null);
   const canvasRef = useRef(null);
+  const fallbackCanvasRef = useRef(null);
   const [ready, setReady] = useState(false);
   const settingsRef = useRef(null);
   const applySettingsRef = useRef(() => {});
   const applyMaskRef = useRef(() => {});
   const onErrorRef = useRef(onError);
+
+  // High-performance 2D canvas ambient wave fallback
+  useEffect(() => {
+    if (ready) return;
+
+    const canvas = fallbackCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
+
+    let animId = 0;
+    let t = 0;
+    let disposed = false;
+
+    const resizeFallback = () => {
+      if (!canvas) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+      canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
+      canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
+    };
+
+    resizeFallback();
+    window.addEventListener('resize', resizeFallback, { passive: true });
+
+    let maskImg = null;
+    if (maskImage) {
+      maskImg = new Image();
+      maskImg.src = maskImage;
+    }
+
+    const renderFallback = () => {
+      if (disposed || paused || document.hidden) return;
+
+      const w = canvas.width;
+      const h = canvas.height;
+      if (w === 0 || h === 0) {
+        animId = requestAnimationFrame(renderFallback);
+        return;
+      }
+
+      ctx.fillStyle = backgroundColor || '#120f17';
+      ctx.fillRect(0, 0, w, h);
+
+      t += 0.012 * speed;
+
+      // Draw subtle glowing crimson mask watermark
+      if (maskImg && maskImg.complete && maskImg.naturalWidth > 0) {
+        ctx.save();
+        const maxDim = Math.min(w * 0.45, h * 0.55);
+        const aspect = maskImg.naturalWidth / maskImg.naturalHeight;
+        const dw = maxDim;
+        const dh = maxDim / aspect;
+        const dx = (w - dw) / 2;
+        const dy = (h - dh) / 2;
+        ctx.globalAlpha = 0.08 + Math.sin(t * 0.6) * 0.03;
+        ctx.drawImage(maskImg, dx, dy, dw, dh);
+        ctx.restore();
+      }
+
+      // Draw subtle matrix of glowing crimson points
+      ctx.fillStyle = color || '#880808';
+      const step = Math.max(28, cellSize * (window.devicePixelRatio || 1));
+      const cols = Math.ceil(w / step);
+      const rows = Math.ceil(h / step);
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = c * step + (step / 2);
+          const y = r * step + (step / 2);
+          const wave = Math.sin(c * 0.16 + r * 0.12 + t) * Math.cos(r * 0.14 - t * 0.5);
+          const alpha = Math.max(0.04, Math.min(0.38, (wave + 1) * 0.18));
+          const rad = Math.max(0.8, (wave + 1.2) * (dotSize || 0.75) * 1.3);
+
+          ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          ctx.arc(x, y, rad, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      animId = requestAnimationFrame(renderFallback);
+    };
+
+    if (!paused) {
+      animId = requestAnimationFrame(renderFallback);
+    }
+
+    return () => {
+      disposed = true;
+      if (animId) cancelAnimationFrame(animId);
+      window.removeEventListener('resize', resizeFallback);
+    };
+  }, [ready, paused, speed, backgroundColor, color, maskImage, cellSize, dotSize]);
 
   settingsRef.current = {
     text: String(text ?? ''),
@@ -439,10 +534,13 @@ export default function ShapeWaves({
       chargesActive = true;
     };
 
+    let lastPointerTime = 0;
     const handlePointerMove = event => {
       if (!settingsRef.current.interactive) return;
-      if (!bounds) bounds = root.getBoundingClientRect();
       const now = performance.now();
+      if (now - lastPointerTime < 32) return;
+      lastPointerTime = now;
+      if (!bounds) bounds = root.getBoundingClientRect();
       const x = event.clientX - bounds.left;
       const y = event.clientY - bounds.top;
       const inside = x >= 0 && y >= 0 && x <= bounds.width && y <= bounds.height;
@@ -483,8 +581,29 @@ export default function ShapeWaves({
 
     void (async () => {
       try {
-        gpu = await init({ powerPreference: 'low-power' });
-        if (disposed) return gpu.dispose();
+        if (!navigator?.gpu) {
+          throw new Error('WebGPU not supported on this browser');
+        }
+
+        const adapterPromise = navigator.gpu.requestAdapter({ powerPreference: 'low-power' });
+        const probeTimeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('WebGPU adapter request timed out')), 600)
+        );
+        const probeAdapter = await Promise.race([adapterPromise, probeTimeoutPromise]);
+        if (!probeAdapter) {
+          throw new Error('No compatible WebGPU adapter found');
+        }
+
+        if ((probeAdapter as any).isFallbackAdapter) {
+          throw new Error('WebGPU software fallback adapter detected; using Canvas fallback for silky performance');
+        }
+
+        const initPromise = init({ powerPreference: 'low-power' });
+        const initTimeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('vgpu init timed out')), 1200)
+        );
+        gpu = await Promise.race([initPromise, initTimeout]);
+        if (disposed) return gpu?.dispose();
         unsubscribeGpuError = gpu.onError(reportFailure);
 
         const initialSize = measureSurface();
@@ -527,35 +646,57 @@ export default function ShapeWaves({
           label: 'shape-waves-scene',
           set: { params, maskTexture, maskSampler: linearSampler, charges: chargeBuffer }
         });
-        const sceneTarget = target(gpu, { size: initialSize, format: 'rgba8unorm', label: 'shape-waves-scene' });
-        const glowSize = size => [Math.max(1, Math.ceil(size[0] / 2)), Math.max(1, Math.ceil(size[1] / 2))];
-        const glowA = target(gpu, { size: glowSize(initialSize), format: 'rgba8unorm', label: 'shape-waves-glow-a' });
-        const glowB = target(gpu, { size: glowSize(initialSize), format: 'rgba8unorm', label: 'shape-waves-glow-b' });
-        const blurParamsX = uniforms(gpu, { direction: [0, 0, 4, 1] });
-        const blurParamsY = uniforms(gpu, { direction: [0, 0, 4, 0] });
-        const blurX = effect(gpu, prepareShader(BLUR_SHADER), {
-          label: 'shape-waves-glow-x',
-          set: { blur: blurParamsX, sourceTexture: sceneTarget, sourceSampler: linearSampler }
-        });
-        const blurY = effect(gpu, prepareShader(BLUR_SHADER), {
-          label: 'shape-waves-glow-y',
-          set: { blur: blurParamsY, sourceTexture: glowA, sourceSampler: linearSampler }
-        });
-        const compositeParams = uniforms(gpu, { strength: [2, 0, 0, 0] });
-        const composite = effect(gpu, prepareShader(COMPOSITE_SHADER), {
-          label: 'shape-waves-composite',
-          set: { composite: compositeParams, sceneTexture: sceneTarget, glowTexture: glowB, linearSampler }
-        });
-        await Promise.all([
-          scene.compile({ colors: [outputFormat] }),
-          scene.compile(sceneTarget),
-          blurX.compile(glowA),
-          blurY.compile(glowB),
-          composite.compile({ colors: [outputFormat] })
-        ]);
-        if (disposed) return;
 
         const glowEnabled = () => settingsRef.current.glow > 0;
+        let sceneTarget = null;
+        let glowA = null;
+        let glowB = null;
+        let blurParamsX = null;
+        let blurParamsY = null;
+        let blurX = null;
+        let blurY = null;
+        let compositeParams = null;
+        let composite = null;
+        let compilePromise;
+
+        const glowSize = size => [Math.max(1, Math.ceil(size[0] / 2)), Math.max(1, Math.ceil(size[1] / 2))];
+
+        if (glowEnabled()) {
+          sceneTarget = target(gpu, { size: initialSize, format: 'rgba8unorm', label: 'shape-waves-scene' });
+          glowA = target(gpu, { size: glowSize(initialSize), format: 'rgba8unorm', label: 'shape-waves-glow-a' });
+          glowB = target(gpu, { size: glowSize(initialSize), format: 'rgba8unorm', label: 'shape-waves-glow-b' });
+          blurParamsX = uniforms(gpu, { direction: [0, 0, 4, 1] });
+          blurParamsY = uniforms(gpu, { direction: [0, 0, 4, 0] });
+          blurX = effect(gpu, prepareShader(BLUR_SHADER), {
+            label: 'shape-waves-glow-x',
+            set: { blur: blurParamsX, sourceTexture: sceneTarget, sourceSampler: linearSampler }
+          });
+          blurY = effect(gpu, prepareShader(BLUR_SHADER), {
+            label: 'shape-waves-glow-y',
+            set: { blur: blurParamsY, sourceTexture: glowA, sourceSampler: linearSampler }
+          });
+          compositeParams = uniforms(gpu, { strength: [2, 0, 0, 0] });
+          composite = effect(gpu, prepareShader(COMPOSITE_SHADER), {
+            label: 'shape-waves-composite',
+            set: { composite: compositeParams, sceneTexture: sceneTarget, glowTexture: glowB, linearSampler }
+          });
+          compilePromise = Promise.all([
+            scene.compile({ colors: [outputFormat] }),
+            scene.compile(sceneTarget),
+            blurX.compile(glowA),
+            blurY.compile(glowB),
+            composite.compile({ colors: [outputFormat] })
+          ]);
+        } else {
+          compilePromise = scene.compile({ colors: [outputFormat] });
+        }
+
+        const compileTimeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Shader compilation timed out')), 1800)
+        );
+        await Promise.race([compilePromise, compileTimeout]);
+        if (disposed) return;
+
         let lastIntro = false;
 
         const configureGrid = () => {
@@ -609,10 +750,10 @@ export default function ShapeWaves({
 
         const updateCharges = deltaSeconds => {
           if (!chargesActive) return false;
-          simulationBacklog = Math.min(simulationBacklog + deltaSeconds, SIMULATION_STEP * 4);
+          simulationBacklog = Math.min(simulationBacklog + deltaSeconds, SIMULATION_STEP);
           let peak = 1;
-          while (simulationBacklog >= SIMULATION_STEP) {
-            simulationBacklog -= SIMULATION_STEP;
+          if (simulationBacklog >= SIMULATION_STEP) {
+            simulationBacklog = 0;
             peak = stepRipples();
           }
           if (peak < SETTLED_THRESHOLD) {
@@ -665,7 +806,7 @@ export default function ShapeWaves({
           params.set({ motion: [drift[0], drift[1], settings.text.trim() || settings.maskImage.trim() ? 1 : 0, settings.fade] });
           try {
             frame(gpu, currentFrame => {
-              if (!glowEnabled()) {
+              if (!glowEnabled() || !sceneTarget || !composite) {
                 currentFrame.pass(output, scene);
                 return;
               }
@@ -760,7 +901,9 @@ export default function ShapeWaves({
             hover: [...parseColor(settings.hoverColor, '#ffffff'), glowEnabled() ? 1 : 0],
             background: [...parseColor(settings.backgroundColor, '#000000'), 1]
           });
-          compositeParams.set({ strength: [2 * settings.glow, 0, 0, 0] });
+          if (compositeParams) {
+            compositeParams.set({ strength: [2 * settings.glow, 0, 0, 0] });
+          }
           if (settings.intro !== lastIntro) {
             lastIntro = settings.intro;
             if (settings.intro && !reduceMotion.matches) introArmed = true;
@@ -814,12 +957,14 @@ export default function ShapeWaves({
           const nextSize = measureSurface();
           if (nextSize[0] !== output.size[0] || nextSize[1] !== output.size[1]) output.resize(nextSize);
           const [width, height] = output.size;
-          sceneTarget.resize([width, height]);
-          const half = glowSize([width, height]);
-          glowA.resize(half);
-          glowB.resize(half);
-          blurParamsX.set({ direction: [1 / half[0], 0, 4, 1] });
-          blurParamsY.set({ direction: [0, 1 / half[1], 4, 0] });
+          if (glowEnabled() && sceneTarget && glowA && glowB && blurParamsX && blurParamsY) {
+            sceneTarget.resize([width, height]);
+            const half = glowSize([width, height]);
+            glowA.resize(half);
+            glowB.resize(half);
+            blurParamsX.set({ direction: [1 / half[0], 0, 4, 1] });
+            blurParamsY.set({ direction: [0, 1 / half[1], 4, 0] });
+          }
           params.set({ resolution: [width, height, 1 / width, 1 / height] });
           drawMask();
           applySettings();
@@ -883,6 +1028,7 @@ export default function ShapeWaves({
       style={{ backgroundColor }}
       aria-hidden="true"
     >
+      <canvas ref={fallbackCanvasRef} className="shape-waves__fallback" />
       <canvas ref={canvasRef} className="shape-waves__canvas" />
     </div>
   );

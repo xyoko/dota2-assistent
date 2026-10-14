@@ -107,12 +107,13 @@ export const App: React.FC = () => {
       <main className="relative z-10 flex-1 max-w-7xl xl:max-w-[1550px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* VIEW 0: HOME / COMMAND CENTER */}
-        {activeTab === 'home' && (
+        <div className={activeTab === 'home' ? 'contents' : 'hidden'} aria-hidden={activeTab !== 'home'}>
           <Home 
+            isActive={activeTab === 'home'}
             onNavigateTab={setActiveTab} 
             onSelectHero={setSelectedHero}
           />
-        )}
+        </div>
 
         {/* VIEW 1: HERO BUILDS & GUIDE (Virtualized High-Performance Arsenal) */}
         {activeTab === 'heroes' && (
