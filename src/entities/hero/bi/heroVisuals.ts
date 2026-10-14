@@ -168,3 +168,54 @@ export const DAMAGE_TYPE_CONFIG = {
     accent: '#a855f7'
   }
 };
+
+/**
+ * Extracts the canonical Valve hero slug used for official Valve media (videos, renders, audio)
+ */
+export function getHeroValveSlug(heroOrAvatar: HeroData | string): string {
+  const avatarUrl = typeof heroOrAvatar === 'string' ? heroOrAvatar : heroOrAvatar?.avatarUrl;
+  if (avatarUrl && avatarUrl.includes('/dota_react/heroes/')) {
+    const filename = avatarUrl.split('/').pop()?.replace('.png', '') || '';
+    if (filename) return filename;
+  }
+  if (typeof heroOrAvatar !== 'string' && heroOrAvatar?.id) {
+    const idMap: Record<string, string> = {
+      shadow_fiend: 'nevermore',
+      queen_of_pain: 'queenofpain',
+      nature_s_prophet: 'furion',
+      zeus: 'zuus',
+      outworld_destroyer: 'obsidian_destroyer',
+      treant_protector: 'treant',
+      windranger: 'windrunner',
+      wraith_king: 'skeleton_king',
+      necrophos: 'necrolyte',
+      doom: 'doom_bringer',
+      underlord: 'abyssal_underlord',
+      clockwerk: 'rattletrap',
+      io: 'wisp',
+      vengeful_spirit: 'vengefulspirit',
+      magnus: 'magnataur',
+      timbersaw: 'shredder',
+      centaur_warrunner: 'centaur'
+    };
+    if (idMap[heroOrAvatar.id]) return idMap[heroOrAvatar.id];
+    return heroOrAvatar.id.replace(/_/g, '');
+  }
+  return 'antimage';
+}
+
+/**
+ * Returns the official Valve high-resolution animated render WebM URL
+ */
+export function getHeroOfficialAnimationUrl(hero: HeroData | string): string {
+  const slug = getHeroValveSlug(hero);
+  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/videos/dota_react/heroes/renders/${slug}.webm`;
+}
+
+/**
+ * Returns proxy URL for axios fetching if running locally
+ */
+export function getHeroProxyAnimationUrl(hero: HeroData | string): string {
+  const slug = getHeroValveSlug(hero);
+  return `/valve-cdn/apps/dota2/videos/dota_react/heroes/renders/${slug}.webm`;
+}

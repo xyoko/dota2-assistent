@@ -45,5 +45,12 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    proxy: {
+      '/valve-cdn': {
+        target: 'https://cdn.cloudflare.steamstatic.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/valve-cdn/, '')
+      }
+    }
   },
 });

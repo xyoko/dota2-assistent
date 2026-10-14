@@ -6,6 +6,7 @@ import { ChevronRight } from 'lucide-react';
 import DomeGallery from '../../../widgets/dome-gallery/ui/DomeGallery';
 import { SoundEngine } from '../../../shared/bi/sound/soundFx';
 import { ShapeWaves } from '../../../shared/ui/effects/ShapeWaves';
+import { HeroAnimationDisplay } from '../../../widgets/hero-animation-display';
 
 import { ActiveTab } from '../../../widgets/navbar/ui/Navbar';
 
@@ -101,36 +102,11 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
         </div>
 
         <div className="flex-1 relative w-full flex justify-center items-center perspective-1000">
-          <div 
-            onClick={() => {
-              if (onSelectHero) {
-                SoundEngine.playPick();
-                onSelectHero(mainHero);
-              }
-            }}
-            className="w-full aspect-square max-w-[280px] sm:max-w-[320px] relative hover:scale-105 transition-transform duration-500 ease-out cursor-pointer group"
-            title={`View ${mainHero.name} Details`}
-          >
-            {(() => {
-              const candidates = getDistinguishablePortraitCandidates(mainHero.avatarUrl);
-              return (
-                <img 
-                  src={candidates[0]} 
-                  alt={mainHero.name}
-                  className="w-full h-full object-cover rounded-3xl shadow-[0_0_50px_rgba(220,38,38,0.3)] filter brightness-110 contrast-125 border border-red-500/20"
-                  onError={(e) => {
-                    const img = e.currentTarget as HTMLImageElement;
-                    const currentIndex = candidates.indexOf(img.src);
-                    if (currentIndex < candidates.length - 1) {
-                      img.src = candidates[currentIndex + 1];
-                    }
-                  }}
-                />
-              );
-            })()}
-            {/* Holographic overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-red-950/80 via-transparent to-transparent mix-blend-overlay rounded-3xl" />
-          </div>
+          <HeroAnimationDisplay
+            hero={mainHero}
+            isActive={isActive}
+            onSelectHero={onSelectHero}
+          />
         </div>
       </div>
 
