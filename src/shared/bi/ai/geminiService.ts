@@ -3,6 +3,8 @@
  * Powered by Google AI Studio Gemini API
  */
 
+import { ArgonRouter } from './argonRouter';
+
 export interface GeminiDraftAnalysisPrompt {
   allies: { name: string; role: string }[];
   opponents: { name: string; role: string }[];
@@ -14,12 +16,8 @@ const DEFAULT_API_KEY = '';
 
 export class GeminiService {
   private static getApiKey(): string {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('dota_gemini_api_key');
-      if (stored && stored.trim()) return stored.trim();
-    }
-    const envKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
-    if (envKey && envKey.trim()) return envKey.trim();
+    const key = ArgonRouter.resolveApiKey();
+    if (key) return key;
     return DEFAULT_API_KEY;
   }
 
@@ -38,7 +36,7 @@ export class GeminiService {
   }
 
   /**
-   * Calls the Gemini API with automatic model fallback
+   * Calls the Gemini API with dynamic model routing via ArgonRouter
    */
   public static async generateText(prompt: string, systemInstruction?: string): Promise<string> {
     const apiKey = this.getApiKey();
@@ -46,7 +44,11 @@ export class GeminiService {
       throw new Error('Gemini API Key is not configured.');
     }
 
-    const models = ['gemini-4-argon', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+    // Dynamic model routing based on delegation criteria
+    const route = ArgonRouter.evaluateRoute(prompt);
+    const models = route.selectedModel === 'gemini-4-argon'
+      ? ['gemini-4-argon', 'gemini-3.8-flash', 'gemini-flash-latest']
+      : ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
     let lastError: Error | null = null;
 
     for (const model of models) {

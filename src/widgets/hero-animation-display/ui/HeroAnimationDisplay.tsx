@@ -151,15 +151,6 @@ export const HeroAnimationDisplay: React.FC<HeroAnimationDisplayProps> = ({
         </span>
       </div>
 
-      {/* Live Video Indicator Badge */}
-      {videoUrl && !isLoading && !hasError && (
-        <div className="absolute top-3 right-3 z-10 px-2 py-0.5 rounded-md bg-red-600/80 backdrop-blur-md border border-red-400/30 flex items-center gap-1 shadow-sm animate-pulse">
-          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-          <span className="text-[9px] font-mono font-bold text-white tracking-widest uppercase">
-            VALVE LIVE
-          </span>
-        </div>
-      )}
 
       {/* Atmospheric Holographic Sheen */}
       <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />

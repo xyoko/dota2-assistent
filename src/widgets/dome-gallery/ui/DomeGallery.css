@@ -187,17 +187,17 @@ main.sphere-main {
   position: absolute;
   left: 0;
   right: 0;
-  height: 80px;
+  height: 120px;
   z-index: 5;
   pointer-events: none;
-  background: linear-gradient(to bottom, transparent, var(--overlay-blur-color, transparent));
 }
 
 .edge-fade--top {
   top: 0;
-  transform: rotate(180deg);
+  background: linear-gradient(to bottom, var(--overlay-blur-color, rgba(18, 15, 23, 0.95)) 0%, rgba(18, 15, 23, 0.7) 40%, transparent 100%);
 }
 
 .edge-fade--bottom {
   bottom: 0;
+  background: linear-gradient(to top, var(--overlay-blur-color, rgba(18, 15, 23, 0.95)) 0%, rgba(18, 15, 23, 0.7) 40%, transparent 100%);
 }

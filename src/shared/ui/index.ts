@@ -5,4 +5,4 @@ export * from './dota/DotaUIComponents';
 export * from './effects/FlexCarousel';
 export * from './effects/GhostFibers';
 export * from './effects/ShapeWaves';
-
+export * from './error/ErrorBoundary';

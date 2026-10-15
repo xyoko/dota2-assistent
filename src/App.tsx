@@ -12,6 +12,7 @@ import { useFavorites } from './features/favorites';
 import { useHeroFilters } from './features/hero-filters';
 import { usePipHud } from './features/pip-hud';
 import { HeroesArsenalView } from './pages/heroes';
+import { ErrorBoundary } from './shared/ui/error/ErrorBoundary';
 
 // Lazy-loaded heavy views for sub-100ms instant initial page load
 const PredictiveDraft5v5 = lazy(() => import('./pages/predictive').then(m => ({ default: m.PredictiveDraft5v5 })));
@@ -95,161 +96,191 @@ export const App: React.FC = () => {
       {activeTab !== 'home' && <AmbientParticles />}
 
       {/* Navigation Header */}
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        searchQuery={heroFilters.searchQuery}
-        setSearchQuery={heroFilters.setSearchQuery}
-        onOpenPip={handleOpenPip}
-      />
+      <ErrorBoundary title="Navbar Navigation">
+        <Navbar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          searchQuery={heroFilters.searchQuery}
+          setSearchQuery={heroFilters.setSearchQuery}
+          onOpenPip={handleOpenPip}
+        />
+      </ErrorBoundary>
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-7xl xl:max-w-[1550px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* VIEW 0: HOME / COMMAND CENTER */}
         <div className={activeTab === 'home' ? 'contents' : 'hidden'} aria-hidden={activeTab !== 'home'}>
-          <Home 
-            isActive={activeTab === 'home'}
-            onNavigateTab={setActiveTab} 
-            onSelectHero={setSelectedHero}
-          />
+          <ErrorBoundary title="Command Center Home" resetKeys={[activeTab]}>
+            <Home 
+              isActive={activeTab === 'home'}
+              onNavigateTab={setActiveTab} 
+              onSelectHero={setSelectedHero}
+            />
+          </ErrorBoundary>
         </div>
 
         {/* VIEW 1: HERO BUILDS & GUIDE (Virtualized High-Performance Arsenal) */}
         {activeTab === 'heroes' && (
-          <HeroesArsenalView
-            filters={heroFilters}
-            favoritesSet={favoritesSet}
-            onToggleFavorite={toggleFavorite}
-            onSelectHero={setSelectedHero}
-            onOpenPip={handleOpenPip}
-          />
+          <ErrorBoundary title="Hero Arsenal" resetKeys={[activeTab]}>
+            <HeroesArsenalView
+              filters={heroFilters}
+              favoritesSet={favoritesSet}
+              onToggleFavorite={toggleFavorite}
+              onSelectHero={setSelectedHero}
+              onOpenPip={handleOpenPip}
+            />
+          </ErrorBoundary>
         )}
 
         {/* VIEW: 5v5 PREDICTIVE DRAFT ORACLE */}
         {activeTab === 'predictive' && (
-          <Suspense fallback={<ViewLoadingFallback />}>
-            <PredictiveDraft5v5
-              onSelectHero={setSelectedHero}
-              favorites={favorites}
-              onToggleFavorite={toggleFavorite}
-            />
-          </Suspense>
+          <ErrorBoundary title="Predictive Draft Oracle" resetKeys={[activeTab]}>
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <PredictiveDraft5v5
+                onSelectHero={setSelectedHero}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         {/* VIEW 2: DRAFT STUDIO */}
         {activeTab === 'draft' && (
-          <Suspense fallback={<ViewLoadingFallback />}>
-            <DraftCounterPicker
-              onSelectHero={setSelectedHero}
-              initialEnemyHeroIds={loadedEnemyDraft}
-            />
-          </Suspense>
+          <ErrorBoundary title="Draft Studio" resetKeys={[activeTab]}>
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <DraftCounterPicker
+                onSelectHero={setSelectedHero}
+                initialEnemyHeroIds={loadedEnemyDraft}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         {/* VIEW 3: 1V1 MATCHUP ARENA */}
         {activeTab === 'arena' && (
-          <Suspense fallback={<ViewLoadingFallback />}>
-            <MatchupArena
-              onSelectHero={setSelectedHero}
-            />
-          </Suspense>
+          <ErrorBoundary title="Matchup Arena" resetKeys={[activeTab]}>
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <MatchupArena
+                onSelectHero={setSelectedHero}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         {/* VIEW 4: BUILD LAB & SHOP SANDBOX */}
         {activeTab === 'sandbox' && (
-          <Suspense fallback={<ViewLoadingFallback />}>
-            <BuildSandbox
-              onSelectHero={setSelectedHero}
-            />
-          </Suspense>
+          <ErrorBoundary title="Build Sandbox" resetKeys={[activeTab]}>
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <BuildSandbox
+                onSelectHero={setSelectedHero}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         {/* VIEW 5: HERO ↔ ITEM COUNTERS */}
         {activeTab === 'interactions' && (
-          <Suspense fallback={<ViewLoadingFallback />}>
-            <HeroItemInteractions
-              onSelectHero={setSelectedHero}
-            />
-          </Suspense>
+          <ErrorBoundary title="Hero Item Interactions" resetKeys={[activeTab]}>
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <HeroItemInteractions
+                onSelectHero={setSelectedHero}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         {/* VIEW 6: ITEM & THREAT COUNTERS */}
         {activeTab === 'counters' && (
-          <Suspense fallback={<ViewLoadingFallback />}>
-            <ItemCounterFinder />
-          </Suspense>
+          <ErrorBoundary title="Item Counter Finder" resetKeys={[activeTab]}>
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <ItemCounterFinder />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         {/* VIEW 7: META & TIER LIST */}
         {activeTab === 'meta' && (
-          <Suspense fallback={<ViewLoadingFallback />}>
-            <MetaTierList
-              onSelectHero={setSelectedHero}
-            />
-          </Suspense>
+          <ErrorBoundary title="Meta Tier List" resetKeys={[activeTab]}>
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <MetaTierList
+                onSelectHero={setSelectedHero}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         {/* VIEW 8: PATCH NEWS & HERO FIXES */}
         {activeTab === 'patches' && (
-          <Suspense fallback={<ViewLoadingFallback />}>
-            <PatchNewsView
-              onSelectHero={setSelectedHero}
-            />
-          </Suspense>
+          <ErrorBoundary title="Patch News" resetKeys={[activeTab]}>
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <PatchNewsView
+                onSelectHero={setSelectedHero}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         {/* VIEW 9: MY NOTES & DRAFTS */}
         {activeTab === 'notes' && (
-          <Suspense fallback={<ViewLoadingFallback />}>
-            <CustomNotesView
-              onSelectHero={setSelectedHero}
-              onLoadDraftScenario={(enemyIds) => {
-                setLoadedEnemyDraft(enemyIds);
-                setActiveTab('draft');
-              }}
-            />
-          </Suspense>
+          <ErrorBoundary title="Custom Notes" resetKeys={[activeTab]}>
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <CustomNotesView
+                onSelectHero={setSelectedHero}
+                onLoadDraftScenario={(enemyIds) => {
+                  setLoadedEnemyDraft(enemyIds);
+                  setActiveTab('draft');
+                }}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
       </main>
 
       {/* Selected Hero Full Detail Modal */}
       {selectedHero && (
-        <Suspense fallback={<ViewLoadingFallback />}>
-          <HeroBuildView
-            hero={selectedHero}
-            onClose={handleCloseHeroModal}
-            isFavorite={favoritesSet.has(selectedHero.id)}
-            onToggleFavorite={toggleFavorite}
-            onOpenPip={handleOpenPip}
-            onSelectOtherHero={handleSelectOtherHero}
-          />
-        </Suspense>
+        <ErrorBoundary title="Hero Detail Modal" onReset={handleCloseHeroModal}>
+          <Suspense fallback={<ViewLoadingFallback />}>
+            <HeroBuildView
+              hero={selectedHero}
+              onClose={handleCloseHeroModal}
+              isFavorite={favoritesSet.has(selectedHero.id)}
+              onToggleFavorite={toggleFavorite}
+              onOpenPip={handleOpenPip}
+              onSelectOtherHero={handleSelectOtherHero}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
       {/* Native Document Picture-in-Picture Portal */}
       {isNativePipActive && pipContainer && createPortal(
-        <Suspense fallback={<div className="p-4 text-xs text-amber-300">Loading PiP HUD...</div>}>
-          <PictureInPictureHUD
-            initialHero={pipHero}
-            onClose={handleClosePip}
-            isNativePip={true}
-          />
-        </Suspense>,
+        <ErrorBoundary title="Picture-in-Picture HUD" compact onReset={handleClosePip}>
+          <Suspense fallback={<div className="p-4 text-xs text-amber-300">Loading PiP HUD...</div>}>
+            <PictureInPictureHUD
+              initialHero={pipHero}
+              onClose={handleClosePip}
+              isNativePip={true}
+            />
+          </Suspense>
+        </ErrorBoundary>,
         pipContainer
       )}
 
       {/* Floating In-App Mini HUD Overlay (Fallback or on-screen mode) */}
       {isPipOpen && !isNativePipActive && (
         <div className="fixed bottom-4 right-4 z-50 animate-slideUp">
-          <Suspense fallback={<ViewLoadingFallback />}>
-            <PictureInPictureHUD
-              initialHero={pipHero}
-              onClose={handleClosePip}
-              isNativePip={false}
-            />
-          </Suspense>
+          <ErrorBoundary title="Mini HUD Overlay" compact onReset={handleClosePip}>
+            <Suspense fallback={<ViewLoadingFallback />}>
+              <PictureInPictureHUD
+                initialHero={pipHero}
+                onClose={handleClosePip}
+                isNativePip={false}
+              />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       )}
 
@@ -364,16 +395,20 @@ export const App: React.FC = () => {
       </footer>
 
       {/* Floating Cookie Consent Banner (GDPR / ePrivacy) */}
-      <CookieConsentBanner 
-        onOpenLegalTab={handleOpenLegalModal as (tab: string) => void}
-      />
+      <ErrorBoundary silent title="Cookie Consent Banner">
+        <CookieConsentBanner 
+          onOpenLegalTab={handleOpenLegalModal as (tab: string) => void}
+        />
+      </ErrorBoundary>
 
       {/* 20-Point Legal Compliance & Consumer Protection Modal */}
-      <LegalComplianceModal
-        isOpen={isLegalModalOpen}
-        onClose={() => setIsLegalModalOpen(false)}
-        initialTab={legalInitialTab}
-      />
+      <ErrorBoundary silent title="Legal Compliance Modal" onReset={() => setIsLegalModalOpen(false)}>
+        <LegalComplianceModal
+          isOpen={isLegalModalOpen}
+          onClose={() => setIsLegalModalOpen(false)}
+          initialTab={legalInitialTab}
+        />
+      </ErrorBoundary>
 
     </div>
   );

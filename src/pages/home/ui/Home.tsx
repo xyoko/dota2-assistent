@@ -7,6 +7,7 @@ import DomeGallery from '../../../widgets/dome-gallery/ui/DomeGallery';
 import { SoundEngine } from '../../../shared/bi/sound/soundFx';
 import { ShapeWaves } from '../../../shared/ui/effects/ShapeWaves';
 import { HeroAnimationDisplay } from '../../../widgets/hero-animation-display';
+import { ErrorBoundary } from '../../../shared/ui/error/ErrorBoundary';
 
 import { ActiveTab } from '../../../widgets/navbar/ui/Navbar';
 
@@ -35,33 +36,35 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
     <div className="relative min-h-screen bg-[#120f17] overflow-hidden w-full">
       {/* Background WebGPU ShapeWaves Animation (Optimized & Freeze-Safe) */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <ShapeWaves
-          maskImage={`${import.meta.env.BASE_URL}dota2.svg`}
-          fontFamily={'Geist, "Geist Sans", system-ui, sans-serif'}
-          fontWeight={500}
-          textSize={0.6}
-          shapes="mixed"
-          cellSize={28}
-          dotSize={0.7}
-          color="#880808"
-          hoverColor="#ffffff"
-          backgroundColor="#120f17"
-          speed={0.8}
-          scale={1}
-          contrast={1}
-          brightness={0.4}
-          flow={0}
-          direction={0}
-          fade={0.25}
-          interactive={false}
-          splashRadius={40}
-          splashStrength={0.4}
-          glow={0}
-          intro={false}
-          introDuration={1.6}
-          paused={!isActive}
-          onError={(error: unknown) => console.warn('ShapeWaves background fallback notice:', error)}
-        />
+        <ErrorBoundary silent title="Background Animation">
+          <ShapeWaves
+            maskImage={`${import.meta.env.BASE_URL}dota2.svg`}
+            fontFamily={'Geist, "Geist Sans", system-ui, sans-serif'}
+            fontWeight={500}
+            textSize={0.6}
+            shapes="mixed"
+            cellSize={28}
+            dotSize={0.7}
+            color="#880808"
+            hoverColor="#ffffff"
+            backgroundColor="#120f17"
+            speed={0.8}
+            scale={1}
+            contrast={1}
+            brightness={0.4}
+            flow={0}
+            direction={0}
+            fade={0.25}
+            interactive={false}
+            splashRadius={40}
+            splashStrength={0.4}
+            glow={0}
+            intro={false}
+            introDuration={1.6}
+            paused={!isActive}
+            onError={(error: unknown) => console.warn('ShapeWaves background fallback notice:', error)}
+          />
+        </ErrorBoundary>
         {/* Soft atmospheric gradient vignettes for readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#120f17]/50 via-transparent to-[#120f17]/70 pointer-events-none" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-[#120f17]/20 to-[#120f17]/60 pointer-events-none" />
@@ -102,17 +105,19 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
         </div>
 
         <div className="flex-1 relative w-full flex justify-center items-center perspective-1000">
-          <HeroAnimationDisplay
-            hero={mainHero}
-            isActive={isActive}
-            onSelectHero={onSelectHero}
-          />
+          <ErrorBoundary compact title="Selected Hero Animation">
+            <HeroAnimationDisplay
+              hero={mainHero}
+              isActive={isActive}
+              onSelectHero={onSelectHero}
+            />
+          </ErrorBoundary>
         </div>
       </div>
 
       {/* React Bits Flex Carousel for Hero Selection */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-28 mb-28">
-        <div className="mb-6 flex items-center justify-between">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-36 mb-36 lg:mt-44 lg:mb-44">
+        <div className="mb-8 flex items-center justify-between">
           <h2 className="text-2xl font-dota font-bold text-white tracking-wide flex items-center gap-2">
             <span className="w-2 h-8 bg-red-500 rounded" />
             Featured Arsenal
@@ -122,23 +127,25 @@ export const Home: React.FC<HomeProps> = React.memo(({ onNavigateTab, onSelectHe
           </span>
         </div>
         
-        <div className="relative w-full h-[806px] mt-8 rounded-3xl overflow-hidden bg-slate-950/40 border border-red-500/10 shadow-2xl">
-          <DomeGallery 
-            images={domeImages}
-            onSelectHero={setMainHero} 
-            onOpenHeroDetails={onSelectHero}
-            segments={20}
-            fit={0.62}
-            minRadius={780}
-            tileInset="22px"
-            maxVerticalRotationDeg={40}
-            dragDampening={0.7}
-            grayscale={false}
-            autoRotate={isActive}
-            autoRotationSpeed={3.5}
-            pauseOnHover={true}
-            overlayBlurColor="transparent"
-          />
+        <div className="relative w-full h-[880px] rounded-3xl overflow-hidden bg-slate-950/40 border border-red-500/10 shadow-2xl">
+          <ErrorBoundary compact title="Featured Arsenal Dome Gallery">
+            <DomeGallery 
+              images={domeImages}
+              onSelectHero={setMainHero} 
+              onOpenHeroDetails={onSelectHero}
+              segments={20}
+              fit={0.50}
+              minRadius={620}
+              tileInset="24px"
+              maxVerticalRotationDeg={28}
+              dragDampening={0.7}
+              grayscale={false}
+              autoRotate={isActive}
+              autoRotationSpeed={3.5}
+              pauseOnHover={true}
+              overlayBlurColor="#120f17"
+            />
+          </ErrorBoundary>
         </div>
       </div>
 

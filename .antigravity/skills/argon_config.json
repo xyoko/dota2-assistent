@@ -1,0 +1,68 @@
+{
+  "skill_name": "argon_router",
+  "version": "2.1.0-priority",
+  "active": true,
+  "argon_priority": true,
+  "priority_model": "gemini-4-argon",
+  "api_key_env_var": "GOOGLE_STUDIO_API_KEY",
+  "models": {
+    "default": {
+      "id": "gemini-3.8-flash",
+      "name": "Gemini 3.8 Flash",
+      "tier": "free",
+      "capabilities": [
+        "file_parsing",
+        "repository_mapping",
+        "shell_monitoring",
+        "terminal_execution",
+        "routine_code_edits",
+        "draft_analysis"
+      ]
+    },
+    "high_horizon": {
+      "id": "gemini-4-argon",
+      "name": "Gemini 4 Argon",
+      "tier": "advanced",
+      "capabilities": [
+        "high_horizon_engineering",
+        "architectural_synthesis",
+        "multi_system_migration",
+        "formal_verification",
+        "deep_cross_codebase_reasoning",
+        "conversational_reasoning"
+      ]
+    }
+  },
+  "routing_criteria": {
+    "priority_policy": "Argon is priority for all conversational reasoning and project tasks; Gemini 3.8 Flash is preserved for local mechanical utilities.",
+    "explicit_tokens": [
+      "[Argon]",
+      "argon:"
+    ],
+    "high_horizon_keywords": [
+      "high-horizon",
+      "high horizon",
+      "architectural refactor",
+      "architecture redesign",
+      "end-to-end migration",
+      "multi-system migration",
+      "deep cross-codebase reasoning",
+      "cross-repository reasoning",
+      "formal verification",
+      "multi-turn verification",
+      "complex system redesign",
+      "autonomous multi-component engineering"
+    ],
+    "default_free_tasks": [
+      "file parsing",
+      "parse file",
+      "repository mapping",
+      "repo mapping",
+      "shell monitoring",
+      "monitor shell",
+      "terminal execution",
+      "run command",
+      "run shell"
+    ]
+  }
+}

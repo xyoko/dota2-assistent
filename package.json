@@ -9,6 +9,8 @@
     "build": "tsc && vite build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
+    "argon:validate": "node .antigravity/skills/argon_router.mjs --validate",
+    "argon:check": "node .antigravity/skills/argon_router.mjs --check",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "preview": "vite preview"
