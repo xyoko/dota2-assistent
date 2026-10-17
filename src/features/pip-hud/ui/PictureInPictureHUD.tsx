@@ -10,13 +10,25 @@ import {
   ChevronRight, 
   Coins, 
   X, 
-  Search,
-  Sparkles,
-  Zap,
-  Clock,
-  Minimize2,
-  Maximize2
+  Search, 
+  Sparkles, 
+  Zap, 
+  Clock, 
+  Minimize2, 
+  Maximize2,
+  MousePointerClick
 } from 'lucide-react';
+
+const QUICK_HERO_IDS = [
+  'antimage', 
+  'pudge', 
+  'invoker', 
+  'juggernaut', 
+  'phantom_assassin', 
+  'axe', 
+  'crystal_maiden', 
+  'lion'
+];
 
 interface PictureInPictureHUDProps {
   initialHero: HeroData;
@@ -321,6 +333,45 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
           </div>
 
         </div>
+
+        {/* Quick Hero Switcher Chips (One-tap hero change for rapid draft/in-game usage) */}
+        {!isSearchOpen && (
+          <div className="mt-1.5 pt-1.5 border-t border-slate-800/60 flex items-center gap-1.5 overflow-x-auto custom-scrollbar">
+            <span className="text-[8px] font-mono uppercase tracking-wider text-slate-500 font-bold flex-shrink-0">
+              Quick:
+            </span>
+            {QUICK_HERO_IDS.map((heroId) => {
+              const h = HERO_MAP.get(heroId);
+              if (!h) return null;
+              const isCurrent = h.id === selectedHero.id;
+              return (
+                <button
+                  key={h.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedHero(h);
+                    SoundEngine.playHover();
+                  }}
+                  className={`relative w-6 h-6 rounded-md overflow-hidden border transition-all flex-shrink-0 ${
+                    isCurrent
+                      ? 'border-dota-gold ring-1 ring-dota-gold shadow-[0_0_6px_rgba(200,155,60,0.4)]'
+                      : 'border-slate-800 hover:border-slate-600 opacity-60 hover:opacity-100'
+                  }`}
+                  title={`Switch to ${h.name}`}
+                >
+                  <img
+                    src={h.avatarUrl}
+                    alt={h.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
+                    }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ============================================================ */}
@@ -837,14 +888,20 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
         title="1-Click anywhere on screen: Advance build phase | 2-Clicks anywhere on screen: Toggle Counters Matrix"
       >
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="font-bold text-dota-gold">🖱️ 1-Click:</span>
+          <div className="flex items-center gap-1 text-dota-gold font-bold">
+            <MousePointerClick className="w-3 h-3 text-dota-gold" />
+            <span>1-Click:</span>
+          </div>
           <span>Next Phase</span>
-          <span className="text-slate-600">•</span>
-          <span className="font-bold text-red-400">⚡ 2-Click:</span>
+          <span className="text-slate-700">•</span>
+          <div className="flex items-center gap-1 text-red-400 font-bold">
+            <Zap className="w-3 h-3 text-red-400" />
+            <span>2-Click:</span>
+          </div>
           <span>Counters</span>
-          <span className="text-slate-600">•</span>
-          <span className="text-[9px] text-slate-500 font-mono">(Tap anywhere on screen)</span>
-          <span className="text-slate-600">•</span>
+          <span className="text-slate-700">•</span>
+          <span className="text-[9px] text-slate-500 font-mono">(Tap screen)</span>
+          <span className="text-slate-700">•</span>
           <kbd className="px-1.5 py-0.5 rounded bg-black/60 border border-slate-700 font-mono text-[9px] text-amber-300 font-bold">
             Alt+P
           </kbd>

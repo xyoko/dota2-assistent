@@ -191,7 +191,8 @@ export class ArgonRouter {
         model_name: this.config.models.high_horizon.name,
         tier: 'advanced',
         route_reason: 'Global Argon Priority active: conversational reasoning / project analysis routed to gemini-4-argon',
-        requires_api_key: true,
+        requires_api_key: !this.config.zero_setup_available,
+        zero_setup_available: Boolean(this.config.zero_setup_available),
         api_key_configured: this.isApiKeyConfigured(),
         api_key_env_var: this.apiKeyEnvVar,
         latency_ms: +(performance.now() - start).toFixed(4)
@@ -224,7 +225,8 @@ export class ArgonRouter {
     console.log(`[*] Default Free Model:  ${this.defaultModelId} (${this.config.models.default.name})`);
     console.log(`[*] Argon Routing Model: ${this.argonModelId} (${this.config.models.high_horizon.name})`);
     console.log(`[*] API Key Env Var:     ${this.apiKeyEnvVar}`);
-    console.log(`[*] API Key Status:      ${this.isApiKeyConfigured() ? 'CONFIGURED' : 'NOT SET (optional for dry-run)'}`);
+    console.log(`[*] API Key Status:      ${this.isApiKeyConfigured() ? 'CONFIGURED' : 'NOT SET'}`);
+    console.log(`[*] Zero-Setup Mode:     ${this.config.zero_setup_available ? 'ACTIVE (Ready without manual API setup)' : 'API Key Required'}`);
     console.log('-'.repeat(65));
 
     const testCases = [
@@ -353,6 +355,7 @@ function runCli() {
       priority_model: router.argonModelId,
       api_key_env_var: router.apiKeyEnvVar,
       api_key_configured: router.isApiKeyConfigured(),
+      zero_setup_available: Boolean(router.config.zero_setup_available),
       default_model: router.defaultModelId,
       high_horizon_model: router.argonModelId,
       config_path: router.configPath

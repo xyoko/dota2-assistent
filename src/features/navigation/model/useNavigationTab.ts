@@ -40,6 +40,10 @@ export function useNavigationTab() {
     setActiveTabState(tab);
     try {
       window.location.hash = tab;
+      if (window.__lenis) {
+        window.__lenis.scrollTo(0, { immediate: true });
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     } catch {}
   }, []);
 
@@ -48,6 +52,10 @@ export function useNavigationTab() {
       const hash = window.location.hash.replace('#', '') as ActiveTab;
       if (VALID_TABS.includes(hash)) {
         setActiveTabState(hash);
+        if (window.__lenis) {
+          window.__lenis.scrollTo(0, { immediate: true });
+        }
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       }
     };
     window.addEventListener('hashchange', handleHashChange);

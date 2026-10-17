@@ -4,7 +4,18 @@ import { HERO_MAP } from './entities/hero';
 import { HeroData } from './entities/hero';
 import { Navbar } from './widgets/navbar';
 import { AmbientParticles } from './widgets/ambient-particles';
-import { Loader2, PictureInPicture } from 'lucide-react';
+import { 
+  Loader2, 
+  PictureInPicture, 
+  Scale, 
+  Lock, 
+  FileText, 
+  Cookie, 
+  CreditCard, 
+  Accessibility, 
+  Trash2,
+  Sparkles
+} from 'lucide-react';
 
 // Modular Architecture Hooks
 import { useNavigationTab } from './features/navigation';
@@ -29,6 +40,9 @@ import { HeroBuildView } from './features/hero-build';
 import { PictureInPictureHUD } from './features/pip-hud';
 import { CookieConsentBanner } from './widgets/legal-compliance-modal';
 import { LegalComplianceModal, LegalTabType } from './widgets/legal-compliance-modal';
+import { CommandPalette } from './widgets/command-palette';
+import { useLenis } from './shared/bi/scroll/useLenis';
+import { DotaGSAPBackground } from './shared/ui/effects/DotaGSAPBackground';
 
 const ViewLoadingFallback = () => (
   <div className="w-full min-h-[420px] flex flex-col items-center justify-center p-12 bg-dota-panel/60 border border-dota-gold/30 rounded-3xl shadow-dota-glow space-y-4">
@@ -49,6 +63,9 @@ const ViewLoadingFallback = () => (
 );
 
 export const App: React.FC = () => {
+  // Global Lenis Smooth Scrolling Engine
+  useLenis();
+
   // Navigation / Tab Routing State
   const { activeTab, setActiveTab } = useNavigationTab();
 
@@ -78,6 +95,9 @@ export const App: React.FC = () => {
   const [isLegalModalOpen, setIsLegalModalOpen] = useState<boolean>(false);
   const [legalInitialTab, setLegalInitialTab] = useState<LegalTabType>('overview');
 
+  // Emil Kowalski style Command Palette State (Cmd+K)
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
+
   const handleOpenLegalModal = useCallback((tab: LegalTabType = 'overview') => {
     setLegalInitialTab(tab);
     setIsLegalModalOpen(true);
@@ -90,8 +110,11 @@ export const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen relative flex flex-col selection:bg-dota-red selection:text-white overflow-x-hidden">
+    <div className="min-h-screen relative flex flex-col selection:bg-dota-red selection:text-white overflow-x-hidden bg-[#07090e]">
       
+      {/* Official Dota 2 Logo Animated GSAP Background & WebGL Shader Gradient (Global) */}
+      <DotaGSAPBackground isActive={true} />
+
       {/* Floating Ambient Particles Engine (paused on Home to eliminate background redraw lag) */}
       {activeTab !== 'home' && <AmbientParticles />}
 
@@ -103,6 +126,7 @@ export const App: React.FC = () => {
           searchQuery={heroFilters.searchQuery}
           setSearchQuery={heroFilters.setSearchQuery}
           onOpenPip={handleOpenPip}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         />
       </ErrorBoundary>
 
@@ -110,15 +134,15 @@ export const App: React.FC = () => {
       <main className="relative z-10 flex-1 max-w-7xl xl:max-w-[1550px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* VIEW 0: HOME / COMMAND CENTER */}
-        <div className={activeTab === 'home' ? 'contents' : 'hidden'} aria-hidden={activeTab !== 'home'}>
+        {activeTab === 'home' && (
           <ErrorBoundary title="Command Center Home" resetKeys={[activeTab]}>
             <Home 
-              isActive={activeTab === 'home'}
+              isActive={true}
               onNavigateTab={setActiveTab} 
               onSelectHero={setSelectedHero}
             />
           </ErrorBoundary>
-        </div>
+        )}
 
         {/* VIEW 1: HERO BUILDS & GUIDE (Virtualized High-Performance Arsenal) */}
         {activeTab === 'heroes' && (
@@ -284,14 +308,14 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Floating PiP Quick Trigger Button when PiP is closed — strictly available in Hero view */}
-      {activeTab === 'heroes' && !isPipOpen && (
+      {/* Floating PiP Quick Trigger Button when PiP is closed — Available across entire tactical suite */}
+      {!isPipOpen && (
         <button
           onClick={() => handleOpenPip()}
-          className="fixed bottom-5 right-5 z-40 p-3 rounded-2xl bg-gradient-to-br from-amber-500 via-dota-gold to-yellow-600 text-slate-950 font-black shadow-dota-glow hover:scale-110 active:scale-95 transition-all flex items-center gap-2 border-2 border-amber-200 select-none group"
+          className="fixed bottom-5 right-5 z-40 px-3.5 py-2.5 rounded-2xl bg-gradient-to-br from-amber-500 via-dota-gold to-yellow-600 text-slate-950 font-black shadow-[0_4px_20px_rgba(200,155,60,0.35)] hover:shadow-[0_6px_24px_rgba(200,155,60,0.55)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 border border-amber-200 select-none group"
           title="Open Picture-in-Picture Mini HUD (Always on top)"
         >
-          <PictureInPicture className="w-5 h-5 text-slate-950" />
+          <PictureInPicture className="w-4 h-4 text-slate-950 group-hover:rotate-6 transition-transform" />
           <span className="hidden sm:inline text-xs font-dota uppercase tracking-wider">Mini HUD</span>
         </button>
       )}
@@ -300,11 +324,11 @@ export const App: React.FC = () => {
       <footer className="mt-16 bg-slate-950/95 border-t border-purple-500/20 py-10 text-xs text-slate-400 relative z-10 font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           
-          {/* Brand & Mission Statement with Emojis & Em Dashes */}
+          {/* Brand & Mission Statement with SVG Icons & Em Dashes */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800/80 pb-6 text-center sm:text-left">
             <div>
               <div className="flex items-center justify-center sm:justify-start gap-2 text-slate-100 font-bold font-grotesk text-base">
-                <span>🔮</span>
+                <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />
                 <span className="bg-gradient-to-r from-purple-300 via-indigo-200 to-sky-300 bg-clip-text text-transparent font-extrabold">
                   AEGIS FORGE
                 </span>
@@ -321,7 +345,7 @@ export const App: React.FC = () => {
                 onClick={() => handleOpenLegalModal('overview')}
                 className="px-3.5 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/40 text-purple-300 text-xs font-semibold flex items-center gap-1.5 transition-all btn-fade shadow-sm"
               >
-                <span>⚖️</span>
+                <Scale className="w-3.5 h-3.5 text-purple-300" />
                 <span>20-Point Compliance & Audit Hub</span>
               </button>
             </div>
@@ -331,44 +355,44 @@ export const App: React.FC = () => {
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-2 text-xs">
             <button
               onClick={() => handleOpenLegalModal('privacy')}
-              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
             >
-              <span>🔒</span>
+              <Lock className="w-3 h-3 text-slate-400" />
               <span>Privacy Policy</span>
             </button>
             <button
               onClick={() => handleOpenLegalModal('terms')}
-              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
             >
-              <span>📜</span>
+              <FileText className="w-3 h-3 text-slate-400" />
               <span>Terms of Service</span>
             </button>
             <button
               onClick={() => handleOpenLegalModal('cookies')}
-              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
             >
-              <span>🍪</span>
+              <Cookie className="w-3 h-3 text-slate-400" />
               <span>Cookie Policy</span>
             </button>
             <button
               onClick={() => handleOpenLegalModal('refunds')}
-              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
             >
-              <span>💳</span>
+              <CreditCard className="w-3 h-3 text-slate-400" />
               <span>100% Free & Refund Policy</span>
             </button>
             <button
               onClick={() => handleOpenLegalModal('accessibility')}
-              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
             >
-              <span>♿</span>
+              <Accessibility className="w-3 h-3 text-slate-400" />
               <span>Accessibility & Licenses</span>
             </button>
             <button
               onClick={() => handleOpenLegalModal('privacy')}
-              className="text-red-400 hover:text-red-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1"
+              className="text-red-400 hover:text-red-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
             >
-              <span>🗑️</span>
+              <Trash2 className="w-3 h-3 text-red-400" />
               <span>Data Deletion Request</span>
             </button>
           </div>
@@ -407,6 +431,20 @@ export const App: React.FC = () => {
           isOpen={isLegalModalOpen}
           onClose={() => setIsLegalModalOpen(false)}
           initialTab={legalInitialTab}
+        />
+      </ErrorBoundary>
+
+      {/* Emil Kowalski Style Spotlight Command Palette (Cmd+K) */}
+      <ErrorBoundary silent title="Command Palette">
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          onNavigateTab={setActiveTab}
+          onSelectHero={(hero) => {
+            setSelectedHero(hero);
+            setActiveTab('heroes');
+          }}
+          onOpenPip={handleOpenPip}
         />
       </ErrorBoundary>
 

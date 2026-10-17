@@ -3,7 +3,7 @@ import { HeroData } from '../../../entities/hero/bi/types';
 import { HeroFilterBar } from '../../../features/hero-filters';
 import { VirtualizedHeroGrid } from '../../../entities/hero/ui/VirtualizedHeroGrid';
 import { HeroFiltersState } from '../../../features/hero-filters/model/useHeroFilters';
-import { Shield } from 'lucide-react';
+import { Crown } from 'lucide-react';
 
 interface HeroesArsenalViewProps {
   filters: HeroFiltersState;
@@ -62,7 +62,7 @@ export const HeroesArsenalView: React.FC<HeroesArsenalViewProps> = React.memo(({
         />
       ) : (
         <div className="bg-dota-panel border-2 border-dota-border rounded-2xl p-12 text-center space-y-3 shadow-2xl">
-          <Shield className="w-12 h-12 text-slate-600 mx-auto" />
+          <Crown className="w-12 h-12 text-amber-500/60 mx-auto" />
           <h3 className="font-dota font-bold text-lg text-slate-300">
             No Heroes Found
           </h3>

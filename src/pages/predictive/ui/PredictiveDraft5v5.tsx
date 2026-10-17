@@ -16,9 +16,9 @@ import { StorageService } from '../../../shared/bi/storage/storageService';
 import { GeminiService } from '../../../shared/bi/ai/geminiService';
 import { RoleOptimalPicks } from '../../../features/predictive-draft/ui/RoleOptimalPicks';
 import { RoleBanSuggestions } from '../../../features/predictive-draft/ui/RoleBanSuggestions';
+import { EsportsOracleCockpit } from '../../../features/predictive-draft/ui/EsportsOracleCockpit';
 import { 
   BrainCircuit, 
-  Shield, 
   Swords, 
   Target, 
   CheckCircle2, 
@@ -32,9 +32,15 @@ import {
   Trash2,
   AlertTriangle,
   Sparkles,
-  Send,
-  Bot,
-  Loader2
+  Loader2,
+  Key,
+  ExternalLink,
+  Check,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  Compass,
+  Layers
 } from 'lucide-react';
 
 export type DedicatedSlots = [string | null, string | null, string | null, string | null, string | null];
@@ -88,11 +94,50 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
   // Sub-tab view for analysis: 'picks' | 'bans' | 'intent' | 'lanes' | 'ai'
   const [activeAnalysisTab, setActiveAnalysisTab] = useState<'picks' | 'bans' | 'intent' | 'lanes' | 'ai'>('picks');
 
-  // Gemini AI Oracle state
+  // Active / Passive drafting cockpit mode: 'active' focuses on active target slot & compact lineup; 'passive' shows full 10-hero lineup board
+  const [draftFocusMode, setDraftFocusMode] = useState<'active' | 'passive'>('active');
+
+  // Collapsible Ban Deck toggle in active cockpit mode
+  const [showBansDeck, setShowBansDeck] = useState<boolean>(false);
+
+  // Strategy Module Dropdown menu state
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
+
+  // Gemini AI Oracle state (Gemini Flash-Lite Free Tier)
   const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [aiCustomQuestion, setAiCustomQuestion] = useState<string>('');
+
+  // Gemini Free Tier API Key modal state
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
+  const [customKeyInput, setCustomKeyInput] = useState<string>('');
+  const [keyStatus, setKeyStatus] = useState(() => GeminiService.getKeyConfigStatus());
+  const [testConnResult, setTestConnResult] = useState<{ testing: boolean; message: string; ok?: boolean } | null>(null);
+
+  const handleSaveCustomKey = () => {
+    if (!customKeyInput.trim()) return;
+    GeminiService.setCustomApiKey(customKeyInput.trim());
+    setKeyStatus(GeminiService.getKeyConfigStatus());
+    setCustomKeyInput('');
+    setTestConnResult({ testing: false, message: 'Custom key saved successfully!', ok: true });
+  };
+
+  const handleClearCustomKey = () => {
+    GeminiService.setCustomApiKey('');
+    setKeyStatus(GeminiService.getKeyConfigStatus());
+    setCustomKeyInput('');
+    setTestConnResult(null);
+  };
+
+  const handleTestConnection = async () => {
+    setTestConnResult({ testing: true, message: 'Testing connection to Gemini Flash-Lite...' });
+    const res = await GeminiService.testConnection();
+    if (res.success) {
+      setTestConnResult({ testing: false, message: 'Connected to Gemini Flash-Lite (Free Tier) successfully!', ok: true });
+    } else {
+      setTestConnResult({ testing: false, message: `Connection failed: ${res.error}`, ok: false });
+    }
+  };
 
   // Search Modal state
   const [modalTarget, setModalTarget] = useState<{
@@ -201,8 +246,17 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
 
       if (customQ && customQ.trim()) {
         const fullPrompt = `Draft Context (Dota 2 Patch 7.37d):\nAllies: ${alliesData.map(a => `${a.name} (${a.role})`).join(', ') || 'None selected'}\nOpponents: ${opponentsData.map(o => `${o.name} (${o.role})`).join(', ') || 'None selected'}\nBanned Heroes: ${banNames.join(', ') || 'None'}\n\nTactical Question: ${customQ.trim()}\n\nProvide clear, high-level Grandmaster advice in clean Markdown formatting.`;
-        const res = await GeminiService.generateText(fullPrompt, 'You are an elite Dota 2 coach and drafting analyst for Patch 7.37d. Provide concise, tactical advice.');
-        setAiAnalysis(res);
+        if (!GeminiService.isKeyConfigured()) {
+          const fallbackAdvice = GeminiService.generateDeterministicDraftAdvice({
+            allies: alliesData,
+            opponents: opponentsData,
+            bans: banNames
+          });
+          setAiAnalysis(`${fallbackAdvice}\n\n> 💡 **Custom Question Answered**: For *"${customQ.trim()}"*, prioritize lane control, active defensive itemization, and timing smoke ganks around enemy ultimate cooldowns.\n> *To unlock live neural generation with Gemini Flash-Lite (Google AI Studio Free Tier), click "Free Tier Config" above.*`);
+        } else {
+          const res = await GeminiService.generateText(fullPrompt, 'You are an elite Dota 2 coach and drafting analyst for Patch 7.37d. Provide concise, tactical advice.');
+          setAiAnalysis(res);
+        }
       } else {
         const res = await GeminiService.analyzeDraftWithAI({
           allies: alliesData,
@@ -366,6 +420,45 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
   const allyPickCount = allySlots.filter(Boolean).length;
   const opponentPickCount = opponentSlots.filter(Boolean).length;
 
+  const activeSlotDef = POSITION_DEFINITIONS[activeTargetSlot.pos];
+  const activeSlotHeroId = activeTargetSlot.team === 'allies' 
+    ? allySlots[activeTargetSlot.pos - 1] 
+    : opponentSlots[activeTargetSlot.pos - 1];
+  const activeSlotHero = activeSlotHeroId ? HERO_MAP.get(activeSlotHeroId) : null;
+
+  const alliesData = useMemo(() => {
+    return allySlots
+      .map((id, idx) => ({ id, pos: (idx + 1) as PositionNumber }))
+      .filter(s => s.id !== null)
+      .map(s => {
+        const hero = HERO_MAP.get(s.id!);
+        return {
+          name: hero?.name || s.id!,
+          role: POSITION_DEFINITIONS[s.pos].role,
+          avatarUrl: hero?.avatarUrl
+        };
+      });
+  }, [allySlots]);
+
+  const opponentsData = useMemo(() => {
+    return opponentSlots
+      .map((id, idx) => ({ id, pos: (idx + 1) as PositionNumber }))
+      .filter(s => s.id !== null)
+      .map(s => {
+        const hero = HERO_MAP.get(s.id!);
+        return {
+          name: hero?.name || s.id!,
+          role: POSITION_DEFINITIONS[s.pos].role,
+          avatarUrl: hero?.avatarUrl
+        };
+      });
+  }, [opponentSlots]);
+
+  const banNames = useMemo(() => {
+    return [...allyBanIds, ...opponentBanIds]
+      .map(id => HERO_MAP.get(id)?.name || id);
+  }, [allyBanIds, opponentBanIds]);
+
   return (
     <div ref={containerRef} className="space-y-4 pb-12">
       
@@ -391,7 +484,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-sans">
-              Allies vs Opponents lineup engine. Select any dedicated slot to view tailored counter-picks & matching heroes.
+              Allies vs Opponents lineup engine. Switch between Active Focus and Full Overview on demand.
             </p>
           </div>
         </div>
@@ -401,7 +494,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
           <div className="flex-1 space-y-1">
             <div className="flex items-center justify-between text-[11px] font-bold">
               <span className="text-emerald-400 flex items-center gap-1 font-mono">
-                <Shield className="w-3 h-3" /> ALLIES {analysis.draftAdvantage.radiantScore}%
+                <Crown className="w-3 h-3 text-emerald-400" /> ALLIES {analysis.draftAdvantage.radiantScore}%
               </span>
               <div className="flex items-center gap-2 text-[10px] text-slate-400 font-sans">
                 <span>E: <strong className={analysis.draftAdvantage.earlyAdvantage === 'Radiant' ? 'text-emerald-400' : 'text-rose-400'}>{analysis.draftAdvantage.earlyAdvantage === 'Radiant' ? 'Allies' : analysis.draftAdvantage.earlyAdvantage === 'Dire' ? 'Opponents' : 'Even'}</strong></span>
@@ -425,21 +518,39 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             </div>
           </div>
 
-          {/* AI Oracle Quick Trigger */}
-          <button
-            onClick={() => {
-              SoundEngine.playPick();
-              setActiveAnalysisTab('ai');
-              if (!aiAnalysis && !isAiLoading) {
-                handleRequestAiAnalysis();
-              }
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-900/60 via-indigo-900/60 to-purple-950/60 hover:from-purple-800/80 hover:to-indigo-800/80 text-purple-200 border border-purple-500/40 text-xs font-bold transition-all shadow-[0_0_12px_rgba(168,85,247,0.25)] hover:shadow-[0_0_20px_rgba(168,85,247,0.45)]"
-            title="Get instant Gemini AI Grandmaster Draft Breakdown"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
-            <span>AI Oracle</span>
-          </button>
+          {/* Active / Passive Focus Mode Toggle */}
+          <div className="flex items-center p-1 rounded-xl bg-slate-900/90 border border-slate-800">
+            <button
+              onClick={() => {
+                SoundEngine.playHover();
+                setDraftFocusMode('active');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all flex items-center gap-1 ${
+                draftFocusMode === 'active'
+                  ? 'bg-amber-500/25 text-amber-200 border border-amber-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Active Cockpit: Focus on selected draft slot and collapse passive elements"
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>Active</span>
+            </button>
+            <button
+              onClick={() => {
+                SoundEngine.playHover();
+                setDraftFocusMode('passive');
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all flex items-center gap-1 ${
+                draftFocusMode === 'passive'
+                  ? 'bg-amber-500/25 text-amber-200 border border-amber-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Passive Overview: Expand complete 10-hero lineup board and ban rosters"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Full Board</span>
+            </button>
+          </div>
 
           {/* Reset Draft Button */}
           <button
@@ -448,378 +559,649 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             title="Reset Draft to blank initial state"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Draft</span>
+            <span>Reset</span>
           </button>
         </div>
 
       </div>
 
       {/* ========================================================= */}
-      {/* 2. DRAFT BOARD - DEDICATED SLOTS (ALLIES & OPPONENTS)     */}
+      {/* 2. DRAFT BOARD - ACTIVE FOCUS OR PASSIVE FULL BOARD       */}
       {/* ========================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
-        
-        {/* ALLIES SIDE - 5 DEDICATED SLOTS */}
-        <div className="bg-dota-panel rounded-2xl border-2 border-emerald-500/40 p-2.5 sm:p-3 space-y-2 shadow-lg">
-          <div className="flex items-center justify-between text-xs pb-1 border-b border-emerald-500/20">
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-              <span className="font-dota font-black text-sm text-emerald-300 tracking-wider">ALLIES</span>
-              <span className="text-[10px] text-emerald-400 font-bold px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-500/30">
-                {allyPickCount}/5 Dedicated Picks
-              </span>
-            </div>
-            <div className="text-[10px] text-slate-400 font-mono">
-              Your Team Lineup
-            </div>
-          </div>
+      {draftFocusMode === 'active' ? (
+        /* ACTIVE DRAFT COCKPIT (COLLAPSED & HIGHEST DENSITY) */
+        <div className="space-y-3">
+          
+          {/* Active Slot Focus Card & Mini Lineup Navigator */}
+          <div className="bg-slate-950/85 border-2 border-amber-500/40 rounded-2xl p-3 sm:p-4 shadow-2xl backdrop-blur-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+            
+            {/* Left: Current Active Slot Detail */}
+            <div className="flex items-center gap-3.5">
+              <div 
+                onClick={() => handleOpenSlotModal(activeTargetSlot.team, activeTargetMode, activeTargetSlot.pos)}
+                className={`w-14 h-14 rounded-xl border-2 flex items-center justify-center relative cursor-pointer group transition-all overflow-hidden ${
+                  activeSlotHero 
+                    ? activeTargetSlot.team === 'allies' ? 'border-emerald-400 bg-emerald-950/50' : 'border-rose-400 bg-rose-950/50'
+                    : 'border-dashed border-amber-400 bg-amber-500/10 hover:bg-amber-500/20'
+                }`}
+                title="Click to assign hero to this active slot"
+              >
+                {activeSlotHero ? (
+                  <>
+                    <img src={activeSlotHero.avatarUrl} alt={activeSlotHero.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center text-amber-300">
+                    <Plus className="w-5 h-5 animate-pulse" />
+                    <span className="text-[7px] font-mono font-bold">PICK</span>
+                  </div>
+                )}
+              </div>
 
-          {/* 5 Dedicated Allies Slot Cards */}
-          <div className="grid grid-cols-5 gap-1.5">
-            {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
-              const def = POSITION_DEFINITIONS[pos];
-              const heroId = allySlots[pos - 1];
-              const hero = heroId ? HERO_MAP.get(heroId) : null;
-              const isTargeted = activeTargetSlot.team === 'allies' && activeTargetSlot.pos === pos && activeTargetMode === 'pick';
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
+                    activeTargetSlot.team === 'allies' 
+                      ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40' 
+                      : 'bg-rose-950 text-rose-300 border-rose-500/40'
+                  }`}>
+                    {activeTargetSlot.team === 'allies' ? 'Allies Team' : 'Opponents Team'}
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-amber-400">
+                    Pos {activeTargetSlot.pos} • {activeSlotDef.name}
+                  </span>
+                </div>
 
-              return (
-                <div
-                  key={`ally-dedicated-pos-${pos}`}
-                  onClick={() => handleOpenSlotModal('allies', 'pick', pos)}
-                  className={`h-24 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
-                    isTargeted 
-                      ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-2 ring-dota-gold/80' 
-                      : hero 
-                        ? 'bg-dota-card/95 border-emerald-500/50 hover:border-emerald-400 hover:scale-[1.02]' 
-                        : 'bg-dota-bg/80 border-dashed border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/10'
-                  }`}
-                  title={
-                    hero 
-                      ? `${hero.name} (Ally ${def.name}) - Click to change` 
-                      : `Ally ${def.name} (${def.role}) - Click to select suggested heroes`
-                  }
-                >
-                  {/* Top Bar: Dedicated Position & Role Tag */}
-                  <div className="flex items-center justify-between text-[10px] leading-none">
-                    <span className={`font-black uppercase px-1 py-0.2 rounded text-[8px] ${
-                      isTargeted ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-emerald-400 border border-emerald-500/40'
-                    }`}>
-                      P{pos}
-                    </span>
-                    {hero ? (
-                      <button
+                <h3 className="text-base sm:text-lg font-dota font-black text-white mt-0.5">
+                  {activeSlotHero ? activeSlotHero.name : `Select ${activeSlotDef.role}`}
+                </h3>
+
+                <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                  <span>Lane: <strong className="text-slate-200">{activeSlotDef.lane}</strong></span>
+                  {activeSlotHero && (
+                    <>
+                      <span>•</span>
+                      <span className="text-emerald-400 font-bold">{activeSlotHero.winRate}% WR</span>
+                      <span>•</span>
+                      <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleRemoveHero('allies', 'pick', pos);
+                          handleRemoveHero(activeTargetSlot.team, 'pick', activeTargetSlot.pos);
                         }}
-                        className="p-0.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-950/60 leading-none transition-colors"
-                        title="Remove hero from this dedicated slot"
+                        className="text-red-400 hover:text-red-300 underline text-[11px]"
                       >
-                        <Trash2 className="w-2.5 h-2.5" />
+                        Clear
                       </button>
-                    ) : (
-                      <span className="text-[8px] text-slate-500 uppercase">{def.lane.split(' ')[0]}</span>
-                    )}
-                  </div>
-
-                  {/* Center: Hero Avatar & Name OR + Add Hero */}
-                  {hero ? (
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onSelectHero) onSelectHero(hero);
-                      }}
-                      className="flex items-center gap-1.5 overflow-hidden"
-                    >
-                      <img 
-                        src={hero.avatarUrl} 
-                        alt={hero.name} 
-                        className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-emerald-500/50 shadow group-hover:scale-105 transition-transform" 
-                      />
-                      <div className="truncate flex-1">
-                        <div className="font-dota font-bold text-xs text-slate-100 truncate group-hover:text-emerald-300 leading-tight">
-                          {hero.name}
-                        </div>
-                        <div className="text-[9px] text-emerald-400 font-semibold leading-none">{hero.winRate}% WR</div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-1 text-slate-400 group-hover:text-emerald-300">
-                      <div className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-emerald-500 group-hover:bg-emerald-500/20 flex items-center justify-center transition-all group-hover:scale-110">
-                        <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                      </div>
-                      <span className="text-[9px] font-bold mt-1 text-emerald-300">Add {def.role.split(' ')[0]}</span>
-                    </div>
+                    </>
                   )}
-
-                  {/* Bottom: Dedicated Role Label */}
-                  <div className="text-[8px] text-slate-400 truncate flex items-center justify-between leading-none">
-                    <span className="truncate font-semibold text-slate-300">{def.role.replace(' Support', ' Sup')}</span>
-                    {isTargeted ? (
-                      <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>
-                    ) : (
-                      <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Suggest</span>
-                    )}
-                  </div>
                 </div>
-              );
-            })}
+              </div>
+            </div>
+
+            {/* Right: Dual Team Quick Lineup Strip (P1-P5) */}
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              {/* Allies Mini Slots (P1 - P5) */}
+              <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-900/90 border border-emerald-500/30">
+                <span className="text-[9px] font-mono font-bold text-emerald-400 uppercase px-1">Rad</span>
+                {([1, 2, 3, 4, 5] as PositionNumber[]).map(pos => {
+                  const hId = allySlots[pos - 1];
+                  const h = hId ? HERO_MAP.get(hId) : null;
+                  const isSelected = activeTargetSlot.team === 'allies' && activeTargetSlot.pos === pos;
+                  return (
+                    <button
+                      key={`nav-ally-${pos}`}
+                      onClick={() => {
+                        SoundEngine.playHover();
+                        setActiveTargetSlot({ team: 'allies', pos });
+                        setActiveTargetMode('pick');
+                      }}
+                      className={`w-8 h-8 rounded-lg overflow-hidden relative border transition-all ${
+                        isSelected 
+                          ? 'border-amber-400 ring-2 ring-amber-400/50 scale-105 z-10' 
+                          : h ? 'border-emerald-500/50 opacity-90' : 'border-dashed border-emerald-500/30 bg-emerald-950/20 text-slate-500'
+                      }`}
+                      title={`Ally Pos ${pos} - ${h?.name || 'Vacant'}`}
+                    >
+                      {h ? (
+                        <img src={h.avatarUrl} alt={h.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[9px] font-mono font-bold text-emerald-400">P{pos}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="text-slate-600 font-mono text-xs font-bold">VS</div>
+
+              {/* Opponents Mini Slots (P1 - P5) */}
+              <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-900/90 border border-rose-500/30">
+                <span className="text-[9px] font-mono font-bold text-rose-400 uppercase px-1">Dire</span>
+                {([1, 2, 3, 4, 5] as PositionNumber[]).map(pos => {
+                  const hId = opponentSlots[pos - 1];
+                  const h = hId ? HERO_MAP.get(hId) : null;
+                  const isSelected = activeTargetSlot.team === 'opponents' && activeTargetSlot.pos === pos;
+                  return (
+                    <button
+                      key={`nav-opp-${pos}`}
+                      onClick={() => {
+                        SoundEngine.playHover();
+                        setActiveTargetSlot({ team: 'opponents', pos });
+                        setActiveTargetMode('pick');
+                      }}
+                      className={`w-8 h-8 rounded-lg overflow-hidden relative border transition-all ${
+                        isSelected 
+                          ? 'border-amber-400 ring-2 ring-amber-400/50 scale-105 z-10' 
+                          : h ? 'border-rose-500/50 opacity-90' : 'border-dashed border-rose-500/30 bg-rose-950/20 text-slate-500'
+                      }`}
+                      title={`Opponent Pos ${pos} - ${h?.name || 'Vacant'}`}
+                    >
+                      {h ? (
+                        <img src={h.avatarUrl} alt={h.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[9px] font-mono font-bold text-rose-400">P{pos}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
           </div>
 
-          {/* Allies Bans Bar */}
-          <div className="flex items-center gap-1.5 min-h-[28px] overflow-x-auto custom-scrollbar pt-1 border-t border-emerald-500/20 text-[10px]">
-            <span className="text-slate-400 flex items-center gap-1 flex-shrink-0 font-bold">
-              <Lock className="w-3 h-3 text-red-400" /> Allies Bans:
-            </span>
-            {allyBanIds.map((banId, idx) => {
-              const hero = HERO_MAP.get(banId);
-              return (
-                <div key={`ally-ban-${banId}-${idx}`} className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-950/70 border border-red-500/40 text-red-200 text-[10px]">
-                  {hero && <img src={hero.avatarUrl} alt={hero.name} className="w-3.5 h-3.5 rounded object-cover grayscale" />}
-                  <span className="line-through">{hero?.name || banId}</span>
-                  <button onClick={() => handleRemoveHero('allies', 'ban', idx)} className="text-red-400 hover:text-white font-bold">×</button>
+          {/* Collapsible Ban Deck Accordion (Hides passive ban clutter) */}
+          <div className="rounded-xl bg-slate-900/60 border border-slate-800 overflow-hidden">
+            <button
+              onClick={() => {
+                SoundEngine.playHover();
+                setShowBansDeck(!showBansDeck);
+              }}
+              className="w-full px-4 py-2 flex items-center justify-between text-xs text-slate-400 hover:text-white transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Lock className="w-3.5 h-3.5 text-red-400" />
+                <span className="font-bold">
+                  Bans Roster ({allyBanIds.length + opponentBanIds.length}/14 Active)
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  Allies: {allyBanIds.length} • Opponents: {opponentBanIds.length}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
+                <span>{showBansDeck ? 'Hide Bans Deck' : 'Expand Bans Deck'}</span>
+                {showBansDeck ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </div>
+            </button>
+
+            {showBansDeck && (
+              <div className="p-3 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-950/60 animate-fadeIn">
+                {/* Allies Bans */}
+                <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                  <span className="text-emerald-400 font-bold text-[10px] uppercase font-mono">Allies Bans:</span>
+                  {allyBanIds.map((banId, idx) => {
+                    const h = HERO_MAP.get(banId);
+                    return (
+                      <span key={`a-ban-${banId}-${idx}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-950/70 border border-red-500/40 text-red-200 text-[10px]">
+                        {h && <img src={h.avatarUrl} alt={h.name} className="w-3.5 h-3.5 rounded object-cover grayscale" />}
+                        <span className="line-through">{h?.name || banId}</span>
+                        <button onClick={() => handleRemoveHero('allies', 'ban', idx)} className="text-red-400 hover:text-white font-bold ml-0.5">×</button>
+                      </span>
+                    );
+                  })}
+                  {allyBanIds.length < 7 && (
+                    <button
+                      onClick={() => handleOpenSlotModal('allies', 'ban')}
+                      className="text-red-400 hover:text-red-300 font-bold text-[10px] px-2 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10"
+                    >
+                      + Ban
+                    </button>
+                  )}
                 </div>
-              );
-            })}
-            {allyBanIds.length < 7 && (
-              <button
-                onClick={() => handleOpenSlotModal('allies', 'ban')}
-                className="flex-shrink-0 text-red-400 hover:text-red-300 font-bold flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10 transition-colors"
-              >
-                <Plus className="w-2.5 h-2.5" /> Ban Hero
-              </button>
+
+                {/* Opponents Bans */}
+                <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                  <span className="text-rose-400 font-bold text-[10px] uppercase font-mono">Opponent Bans:</span>
+                  {opponentBanIds.map((banId, idx) => {
+                    const h = HERO_MAP.get(banId);
+                    return (
+                      <span key={`o-ban-${banId}-${idx}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-950/70 border border-red-500/40 text-red-200 text-[10px]">
+                        {h && <img src={h.avatarUrl} alt={h.name} className="w-3.5 h-3.5 rounded object-cover grayscale" />}
+                        <span className="line-through">{h?.name || banId}</span>
+                        <button onClick={() => handleRemoveHero('opponents', 'ban', idx)} className="text-red-400 hover:text-white font-bold ml-0.5">×</button>
+                      </span>
+                    );
+                  })}
+                  {opponentBanIds.length < 7 && (
+                    <button
+                      onClick={() => handleOpenSlotModal('opponents', 'ban')}
+                      className="text-red-400 hover:text-red-300 font-bold text-[10px] px-2 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10"
+                    >
+                      + Ban
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
           </div>
+
         </div>
-
-        {/* OPPONENTS SIDE - 5 DEDICATED SLOTS */}
-        <div className="bg-dota-panel rounded-2xl border-2 border-rose-500/40 p-2.5 sm:p-3 space-y-2 shadow-lg">
-          <div className="flex items-center justify-between text-xs pb-1 border-b border-rose-500/20">
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]" />
-              <span className="font-dota font-black text-sm text-rose-300 tracking-wider">OPPONENTS</span>
-              <span className="text-[10px] text-rose-400 font-bold px-1.5 py-0.2 rounded bg-rose-950 border border-rose-500/30">
-                {opponentPickCount}/5 Dedicated Picks
-              </span>
+      ) : (
+        /* PASSIVE FULL BOARD (10 COMPLETE SLOTS & PERSISTENT BANS) */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 animate-fadeIn">
+          
+          {/* ALLIES SIDE - 5 DEDICATED SLOTS */}
+          <div className="bg-dota-panel rounded-2xl border-2 border-emerald-500/40 p-2.5 sm:p-3 space-y-2 shadow-lg">
+            <div className="flex items-center justify-between text-xs pb-1 border-b border-emerald-500/20">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
+                <span className="font-dota font-black text-sm text-emerald-300 tracking-wider">ALLIES</span>
+                <span className="text-[10px] text-emerald-400 font-bold px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-500/30">
+                  {allyPickCount}/5 Dedicated Picks
+                </span>
+              </div>
+              <div className="text-[10px] text-slate-400 font-mono">
+                Your Team Lineup
+              </div>
             </div>
-            <div className="text-[10px] text-slate-400 font-mono">
-              Enemy Draft Targets
-            </div>
-          </div>
 
-          {/* 5 Dedicated Opponents Slot Cards */}
-          <div className="grid grid-cols-5 gap-1.5">
-            {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
-              const def = POSITION_DEFINITIONS[pos];
-              const heroId = opponentSlots[pos - 1];
-              const hero = heroId ? HERO_MAP.get(heroId) : null;
-              const isTargeted = activeTargetSlot.team === 'opponents' && activeTargetSlot.pos === pos && activeTargetMode === 'pick';
+            {/* 5 Dedicated Allies Slot Cards */}
+            <div className="grid grid-cols-5 gap-1.5">
+              {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
+                const def = POSITION_DEFINITIONS[pos];
+                const heroId = allySlots[pos - 1];
+                const hero = heroId ? HERO_MAP.get(heroId) : null;
+                const isTargeted = activeTargetSlot.team === 'allies' && activeTargetSlot.pos === pos && activeTargetMode === 'pick';
 
-              return (
-                <div
-                  key={`opponent-dedicated-pos-${pos}`}
-                  onClick={() => handleOpenSlotModal('opponents', 'pick', pos)}
-                  className={`h-24 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
-                    isTargeted 
-                      ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-2 ring-dota-gold/80' 
-                      : hero 
-                        ? 'bg-dota-card/95 border-rose-500/50 hover:border-rose-400 hover:scale-[1.02]' 
-                        : 'bg-dota-bg/80 border-dashed border-rose-500/30 hover:border-rose-500/60 hover:bg-rose-500/10'
-                  }`}
-                  title={
-                    hero 
-                      ? `${hero.name} (Opponent ${def.name}) - Click to change` 
-                      : `Opponent ${def.name} (${def.role}) - Click to select hero`
-                  }
-                >
-                  {/* Top Bar: Dedicated Position & Role */}
-                  <div className="flex items-center justify-between text-[10px] leading-none">
-                    <span className={`font-black uppercase px-1 py-0.2 rounded text-[8px] ${
-                      isTargeted ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-rose-400 border border-rose-500/40'
-                    }`}>
-                      P{pos}
-                    </span>
+                return (
+                  <div
+                    key={`ally-dedicated-pos-${pos}`}
+                    onClick={() => handleOpenSlotModal('allies', 'pick', pos)}
+                    className={`h-24 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
+                      isTargeted 
+                        ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-2 ring-dota-gold/80' 
+                        : hero 
+                          ? 'bg-dota-card/95 border-emerald-500/50 hover:border-emerald-400 hover:scale-[1.02]' 
+                          : 'bg-dota-bg/80 border-dashed border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/10'
+                    }`}
+                    title={
+                      hero 
+                        ? `${hero.name} (Ally ${def.name}) - Click to change` 
+                        : `Ally ${def.name} (${def.role}) - Click to select suggested heroes`
+                    }
+                  >
+                    {/* Top Bar: Dedicated Position & Role Tag */}
+                    <div className="flex items-center justify-between text-[10px] leading-none">
+                      <span className={`font-black uppercase px-1 py-0.2 rounded text-[8px] ${
+                        isTargeted ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-emerald-400 border border-emerald-500/40'
+                      }`}>
+                        P{pos}
+                      </span>
+                      {hero ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveHero('allies', 'pick', pos);
+                          }}
+                          className="p-0.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-950/60 leading-none transition-colors"
+                          title="Remove hero from this dedicated slot"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                        </button>
+                      ) : (
+                        <span className="text-[8px] text-slate-500 uppercase">{def.lane.split(' ')[0]}</span>
+                      )}
+                    </div>
+
+                    {/* Center: Hero Avatar & Name OR + Add Hero */}
                     {hero ? (
-                      <button
+                      <div 
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleRemoveHero('opponents', 'pick', pos);
+                          if (onSelectHero) onSelectHero(hero);
                         }}
-                        className="p-0.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-950/60 leading-none transition-colors"
-                        title="Remove hero from this dedicated slot"
+                        className="flex items-center gap-1.5 overflow-hidden"
                       >
-                        <Trash2 className="w-2.5 h-2.5" />
-                      </button>
-                    ) : (
-                      <span className="text-[8px] text-slate-500 uppercase">{def.lane.split(' ')[0]}</span>
-                    )}
-                  </div>
-
-                  {/* Center: Hero Avatar & Name OR + Add Hero */}
-                  {hero ? (
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onSelectHero) onSelectHero(hero);
-                      }}
-                      className="flex items-center gap-1.5 overflow-hidden"
-                    >
-                      <img 
-                        src={hero.avatarUrl} 
-                        alt={hero.name} 
-                        className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-rose-500/50 shadow group-hover:scale-105 transition-transform" 
-                      />
-                      <div className="truncate flex-1">
-                        <div className="font-dota font-bold text-xs text-slate-100 truncate group-hover:text-rose-300 leading-tight">
-                          {hero.name}
+                        <img 
+                          src={hero.avatarUrl} 
+                          alt={hero.name} 
+                          className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-emerald-500/50 shadow group-hover:scale-105 transition-transform" 
+                        />
+                        <div className="truncate flex-1">
+                          <div className="font-dota font-bold text-xs text-slate-100 truncate group-hover:text-emerald-300 leading-tight">
+                            {hero.name}
+                          </div>
+                          <div className="text-[9px] text-emerald-400 font-semibold leading-none">{hero.winRate}% WR</div>
                         </div>
-                        <div className="text-[9px] text-rose-400 font-semibold leading-none">{hero.winRate}% WR</div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-1 text-slate-400 group-hover:text-rose-300">
-                      <div className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-rose-500 group-hover:bg-rose-500/20 flex items-center justify-center transition-all group-hover:scale-110">
-                        <Plus className="w-3.5 h-3.5 text-rose-400" />
-                      </div>
-                      <span className="text-[9px] font-bold mt-1 text-rose-300">Add {def.role.split(' ')[0]}</span>
-                    </div>
-                  )}
-
-                  {/* Bottom: Dedicated Role Label */}
-                  <div className="text-[8px] text-slate-400 truncate flex items-center justify-between leading-none">
-                    <span className="truncate font-semibold text-slate-300">{def.role.replace(' Support', ' Sup')}</span>
-                    {isTargeted ? (
-                      <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>
                     ) : (
-                      <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Target</span>
+                      <div className="flex flex-col items-center justify-center py-1 text-slate-400 group-hover:text-emerald-300">
+                        <div className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-emerald-500 group-hover:bg-emerald-500/20 flex items-center justify-center transition-all group-hover:scale-110">
+                          <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                        </div>
+                        <span className="text-[9px] font-bold mt-1 text-emerald-300">Add {def.role.split(' ')[0]}</span>
+                      </div>
                     )}
+
+                    {/* Bottom: Dedicated Role Label */}
+                    <div className="text-[8px] text-slate-400 truncate flex items-center justify-between leading-none">
+                      <span className="truncate font-semibold text-slate-300">{def.role.replace(' Support', ' Sup')}</span>
+                      {isTargeted ? (
+                        <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>
+                      ) : (
+                        <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Suggest</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {/* Allies Bans Bar */}
+            <div className="flex items-center gap-1.5 min-h-[28px] overflow-x-auto custom-scrollbar pt-1 border-t border-emerald-500/20 text-[10px]">
+              <span className="text-slate-400 flex items-center gap-1 flex-shrink-0 font-bold">
+                <Lock className="w-3 h-3 text-red-400" /> Allies Bans:
+              </span>
+              {allyBanIds.map((banId, idx) => {
+                const hero = HERO_MAP.get(banId);
+                return (
+                  <div key={`ally-ban-${banId}-${idx}`} className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-950/70 border border-red-500/40 text-red-200 text-[10px]">
+                    {hero && <img src={hero.avatarUrl} alt={hero.name} className="w-3.5 h-3.5 rounded object-cover grayscale" />}
+                    <span className="line-through">{hero?.name || banId}</span>
+                    <button onClick={() => handleRemoveHero('allies', 'ban', idx)} className="text-red-400 hover:text-white font-bold">×</button>
+                  </div>
+                );
+              })}
+              {allyBanIds.length < 7 && (
+                <button
+                  onClick={() => handleOpenSlotModal('allies', 'ban')}
+                  className="flex-shrink-0 text-red-400 hover:text-red-300 font-bold flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10 transition-colors"
+                >
+                  <Plus className="w-2.5 h-2.5" /> Ban Hero
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Opponents Bans Bar */}
-          <div className="flex items-center gap-1.5 min-h-[28px] overflow-x-auto custom-scrollbar pt-1 border-t border-rose-500/20 text-[10px]">
-            <span className="text-slate-400 flex items-center gap-1 flex-shrink-0 font-bold">
-              <Lock className="w-3 h-3 text-red-400" /> Opponent Bans:
-            </span>
-            {opponentBanIds.map((banId, idx) => {
-              const hero = HERO_MAP.get(banId);
-              return (
-                <div key={`opp-ban-${banId}-${idx}`} className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-950/70 border border-red-500/40 text-red-200 text-[10px]">
-                  {hero && <img src={hero.avatarUrl} alt={hero.name} className="w-3.5 h-3.5 rounded object-cover grayscale" />}
-                  <span className="line-through">{hero?.name || banId}</span>
-                  <button onClick={() => handleRemoveHero('opponents', 'ban', idx)} className="text-red-400 hover:text-white font-bold">×</button>
-                </div>
-              );
-            })}
-            {opponentBanIds.length < 7 && (
-              <button
-                onClick={() => handleOpenSlotModal('opponents', 'ban')}
-                className="flex-shrink-0 text-red-400 hover:text-red-300 font-bold flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10 transition-colors"
-              >
-                <Plus className="w-2.5 h-2.5" /> Ban Hero
-              </button>
-            )}
+          {/* OPPONENTS SIDE - 5 DEDICATED SLOTS */}
+          <div className="bg-dota-panel rounded-2xl border-2 border-rose-500/40 p-2.5 sm:p-3 space-y-2 shadow-lg">
+            <div className="flex items-center justify-between text-xs pb-1 border-b border-rose-500/20">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]" />
+                <span className="font-dota font-black text-sm text-rose-300 tracking-wider">OPPONENTS</span>
+                <span className="text-[10px] text-rose-400 font-bold px-1.5 py-0.2 rounded bg-rose-950 border border-rose-500/30">
+                  {opponentPickCount}/5 Dedicated Picks
+                </span>
+              </div>
+              <div className="text-[10px] text-slate-400 font-mono">
+                Enemy Draft Targets
+              </div>
+            </div>
+
+            {/* 5 Dedicated Opponents Slot Cards */}
+            <div className="grid grid-cols-5 gap-1.5">
+              {([1, 2, 3, 4, 5] as PositionNumber[]).map((pos) => {
+                const def = POSITION_DEFINITIONS[pos];
+                const heroId = opponentSlots[pos - 1];
+                const hero = heroId ? HERO_MAP.get(heroId) : null;
+                const isTargeted = activeTargetSlot.team === 'opponents' && activeTargetSlot.pos === pos && activeTargetMode === 'pick';
+
+                return (
+                  <div
+                    key={`opponent-dedicated-pos-${pos}`}
+                    onClick={() => handleOpenSlotModal('opponents', 'pick', pos)}
+                    className={`h-24 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
+                      isTargeted 
+                        ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-2 ring-dota-gold/80' 
+                        : hero 
+                          ? 'bg-dota-card/95 border-rose-500/50 hover:border-rose-400 hover:scale-[1.02]' 
+                          : 'bg-dota-bg/80 border-dashed border-rose-500/30 hover:border-rose-500/60 hover:bg-rose-500/10'
+                    }`}
+                    title={
+                      hero 
+                        ? `${hero.name} (Opponent ${def.name}) - Click to change` 
+                        : `Opponent ${def.name} (${def.role}) - Click to select hero`
+                    }
+                  >
+                    {/* Top Bar: Dedicated Position & Role */}
+                    <div className="flex items-center justify-between text-[10px] leading-none">
+                      <span className={`font-black uppercase px-1 py-0.2 rounded text-[8px] ${
+                        isTargeted ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-rose-400 border border-rose-500/40'
+                      }`}>
+                        P{pos}
+                      </span>
+                      {hero ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveHero('opponents', 'pick', pos);
+                          }}
+                          className="p-0.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-950/60 leading-none transition-colors"
+                          title="Remove hero from this dedicated slot"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                        </button>
+                      ) : (
+                        <span className="text-[8px] text-slate-500 uppercase">{def.lane.split(' ')[0]}</span>
+                      )}
+                    </div>
+
+                    {/* Center: Hero Avatar & Name OR + Add Hero */}
+                    {hero ? (
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onSelectHero) onSelectHero(hero);
+                        }}
+                        className="flex items-center gap-1.5 overflow-hidden"
+                      >
+                        <img 
+                          src={hero.avatarUrl} 
+                          alt={hero.name} 
+                          className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-rose-500/50 shadow group-hover:scale-105 transition-transform" 
+                        />
+                        <div className="truncate flex-1">
+                          <div className="font-dota font-bold text-xs text-slate-100 truncate group-hover:text-rose-300 leading-tight">
+                            {hero.name}
+                          </div>
+                          <div className="text-[9px] text-rose-400 font-semibold leading-none">{hero.winRate}% WR</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-1 text-slate-400 group-hover:text-rose-300">
+                        <div className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-rose-500 group-hover:bg-rose-500/20 flex items-center justify-center transition-all group-hover:scale-110">
+                          <Plus className="w-3.5 h-3.5 text-rose-400" />
+                        </div>
+                        <span className="text-[9px] font-bold mt-1 text-rose-300">Add {def.role.split(' ')[0]}</span>
+                      </div>
+                    )}
+
+                    {/* Bottom: Dedicated Role Label */}
+                    <div className="text-[8px] text-slate-400 truncate flex items-center justify-between leading-none">
+                      <span className="truncate font-semibold text-slate-300">{def.role.replace(' Support', ' Sup')}</span>
+                      {isTargeted ? (
+                        <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>
+                      ) : (
+                        <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Target</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Opponents Bans Bar */}
+            <div className="flex items-center gap-1.5 min-h-[28px] overflow-x-auto custom-scrollbar pt-1 border-t border-rose-500/20 text-[10px]">
+              <span className="text-slate-400 flex items-center gap-1 flex-shrink-0 font-bold">
+                <Lock className="w-3 h-3 text-red-400" /> Opponent Bans:
+              </span>
+              {opponentBanIds.map((banId, idx) => {
+                const hero = HERO_MAP.get(banId);
+                return (
+                  <div key={`opp-ban-${banId}-${idx}`} className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-950/70 border border-red-500/40 text-red-200 text-[10px]">
+                    {hero && <img src={hero.avatarUrl} alt={hero.name} className="w-3.5 h-3.5 rounded object-cover grayscale" />}
+                    <span className="line-through">{hero?.name || banId}</span>
+                    <button onClick={() => handleRemoveHero('opponents', 'ban', idx)} className="text-red-400 hover:text-white font-bold">×</button>
+                  </div>
+                );
+              })}
+              {opponentBanIds.length < 7 && (
+                <button
+                  onClick={() => handleOpenSlotModal('opponents', 'ban')}
+                  className="flex-shrink-0 text-red-400 hover:text-red-300 font-bold flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10 transition-colors"
+                >
+                  <Plus className="w-2.5 h-2.5" /> Ban Hero
+                </button>
+              )}
+            </div>
           </div>
+
         </div>
-
-      </div>
+      )}
 
       {/* ========================================================= */}
       {/* 4. PREDICTIVE ANALYSIS & STRATEGY ENGINE                  */}
       {/* ========================================================= */}
       <div className="space-y-4">
         
-        {/* Navigation Tabs Bar */}
-        <div className="flex items-center border-b border-dota-border bg-dota-panel rounded-2xl p-1.5 gap-1.5 overflow-x-auto shadow-xl">
+        {/* STRATEGY MODULE CONTROL BAR (COMPACT DROPDOWN & QUICK PILLS) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-dota-panel rounded-2xl p-2.5 border border-dota-border shadow-xl">
           
-          <button
-            onClick={() => {
-              SoundEngine.playHover();
-              setActiveAnalysisTab('picks');
-            }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-              activeAnalysisTab === 'picks'
-                ? 'bg-gradient-to-r from-emerald-500/30 to-teal-500/30 text-emerald-300 border border-emerald-500/70 shadow-dota-glow font-black'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
-            }`}
-          >
-            <Target className="w-3.5 h-3.5 text-emerald-400" />
-            <span>🎯 Optimal & Counter Picks</span>
-          </button>
-
-          <button
-            onClick={() => {
-              SoundEngine.playHover();
-              setActiveAnalysisTab('bans');
-            }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-              activeAnalysisTab === 'bans'
-                ? 'bg-gradient-to-r from-rose-500/30 to-red-500/30 text-rose-300 border border-rose-500/70 shadow font-black'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5 text-rose-400" />
-            <span>🚫 Targeted Ban Suggestions</span>
-          </button>
-
-          <button
-            onClick={() => {
-              SoundEngine.playHover();
-              setActiveAnalysisTab('intent');
-            }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-              activeAnalysisTab === 'intent'
-                ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300 border border-amber-500/70 shadow-dota-glow font-black'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
-            }`}
-          >
-            <BrainCircuit className="w-3.5 h-3.5 text-amber-400" />
-            <span>🔮 Ban Intent & Lineup Decryption</span>
-            {analysis.banPredictions.telegraphedHeroes.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200 text-[9px] font-mono">
-                {analysis.banPredictions.telegraphedHeroes.length} telegraphed
+          {/* Custom Strategy Mode Dropdown Selector */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                SoundEngine.playHover();
+                setIsDropdownOpen(!isDropdownOpen);
+              }}
+              className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-500/60 text-white font-bold text-xs transition-all shadow-md group"
+            >
+              {activeAnalysisTab === 'picks' && <Target className="w-4 h-4 text-emerald-400" />}
+              {activeAnalysisTab === 'bans' && <Lock className="w-4 h-4 text-rose-400" />}
+              {activeAnalysisTab === 'intent' && <BrainCircuit className="w-4 h-4 text-amber-400" />}
+              {activeAnalysisTab === 'lanes' && <Swords className="w-4 h-4 text-cyan-400" />}
+              {activeAnalysisTab === 'ai' && <Sparkles className="w-4 h-4 text-purple-400" />}
+              
+              <span className="font-dota uppercase tracking-wide">
+                {activeAnalysisTab === 'picks' && '🎯 Role Optimal Picks'}
+                {activeAnalysisTab === 'bans' && '🚫 Targeted Ban Suggestions'}
+                {activeAnalysisTab === 'intent' && '🔮 Ban-Intent Decryption'}
+                {activeAnalysisTab === 'lanes' && '⚔️ Lane Matchup Forecast'}
+                {activeAnalysisTab === 'ai' && '🧠 Neural Tactical Oracle'}
               </span>
+
+              {activeAnalysisTab === 'intent' && analysis.banPredictions.telegraphedHeroes.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-300 text-[9px] font-mono">
+                  {analysis.banPredictions.telegraphedHeroes.length} telegraphed
+                </span>
+              )}
+
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 group-hover:text-amber-300 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu Items */}
+            {isDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1.5 w-72 rounded-2xl bg-slate-950 border border-slate-700 shadow-2xl z-40 p-1.5 space-y-1 backdrop-blur-2xl animate-fadeIn">
+                {[
+                  { id: 'picks', label: 'Role Optimal Picks', desc: 'Ranked synergies & counter-picks', icon: Target, color: 'text-emerald-400' },
+                  { id: 'bans', label: 'Targeted Ban Suggestions', desc: 'Algorithmic ban priorities', icon: Lock, color: 'text-rose-400' },
+                  { id: 'intent', label: 'Ban-Intent Decryption', desc: 'Decode opponent strategy & candidate picks', icon: BrainCircuit, color: 'text-amber-400' },
+                  { id: 'lanes', label: 'Lane Matchup Forecast', desc: 'Head-to-head lane simulation', icon: Swords, color: 'text-cyan-400' },
+                  { id: 'ai', label: 'Neural Tactical Oracle', desc: 'Live pro esports AI telemetry', icon: Sparkles, color: 'text-purple-400' },
+                ].map(item => {
+                  const Icon = item.icon;
+                  const isCurrent = activeAnalysisTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        SoundEngine.playPick();
+                        setActiveAnalysisTab(item.id as any);
+                        setIsDropdownOpen(false);
+                        if (item.id === 'ai' && !aiAnalysis && !isAiLoading) {
+                          handleRequestAiAnalysis();
+                        }
+                      }}
+                      className={`w-full p-2.5 rounded-xl text-left flex items-start gap-2.5 transition-all ${
+                        isCurrent 
+                          ? 'bg-amber-500/20 border border-amber-500/50 text-white' 
+                          : 'hover:bg-slate-900 border border-transparent text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${item.color}`} />
+                      <div className="truncate">
+                        <div className="font-dota font-bold text-xs">{item.label}</div>
+                        <div className="text-[10px] text-slate-400 font-sans">{item.desc}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             )}
-          </button>
+          </div>
 
-          <button
-            onClick={() => {
-              SoundEngine.playHover();
-              setActiveAnalysisTab('lanes');
-            }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-              activeAnalysisTab === 'lanes'
-                ? 'bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-cyan-300 border border-cyan-500/70 shadow font-black'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
-            }`}
-          >
-            <Swords className="w-3.5 h-3.5 text-cyan-400" />
-            <span>⚔️ Lane Forecast & Strategy</span>
-          </button>
-
-          <button
-            onClick={() => {
-              SoundEngine.playHover();
-              setActiveAnalysisTab('ai');
-              if (!aiAnalysis && !isAiLoading) {
-                handleRequestAiAnalysis();
-              }
-            }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-              activeAnalysisTab === 'ai'
-                ? 'bg-gradient-to-r from-purple-500/30 via-indigo-500/30 to-purple-600/30 text-purple-300 border border-purple-500/70 shadow-[0_0_15px_rgba(168,85,247,0.35)] font-black'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            <span>🔮 Gemini AI Oracle</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-purple-500/30 text-purple-200 text-[9px] font-mono">
-              Live
-            </span>
-          </button>
+          {/* Quick Fast-Switch Segmented Pills */}
+          <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs">
+            <button
+              onClick={() => {
+                SoundEngine.playHover();
+                setActiveAnalysisTab('picks');
+              }}
+              className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                activeAnalysisTab === 'picks' ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              🎯 Picks
+            </button>
+            <button
+              onClick={() => {
+                SoundEngine.playHover();
+                setActiveAnalysisTab('bans');
+              }}
+              className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                activeAnalysisTab === 'bans' ? 'bg-rose-500/30 text-rose-300 border border-rose-500/50' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              🚫 Bans
+            </button>
+            <button
+              onClick={() => {
+                SoundEngine.playHover();
+                setActiveAnalysisTab('intent');
+              }}
+              className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                activeAnalysisTab === 'intent' ? 'bg-amber-500/30 text-amber-300 border border-amber-500/50' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              🔮 Intent
+            </button>
+            <button
+              onClick={() => {
+                SoundEngine.playHover();
+                setActiveAnalysisTab('lanes');
+              }}
+              className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                activeAnalysisTab === 'lanes' ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-500/50' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              ⚔️ Lanes
+            </button>
+            <button
+              onClick={() => {
+                SoundEngine.playHover();
+                setActiveAnalysisTab('ai');
+                if (!aiAnalysis && !isAiLoading) {
+                  handleRequestAiAnalysis();
+                }
+              }}
+              className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                activeAnalysisTab === 'ai' ? 'bg-purple-500/30 text-purple-200 border border-purple-500/50' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Sparkles className="w-3 h-3 text-purple-400" />
+              <span>AI Oracle</span>
+            </button>
+          </div>
 
         </div>
 
@@ -1071,150 +1453,19 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
           </div>
         </div>
 
-        {/* TAB 5: GEMINI AI TACTICAL ORACLE */}
-        <div className={activeAnalysisTab === 'ai' ? 'block space-y-4 rounded-2xl bg-slate-950/85 border border-purple-500/40 p-4 sm:p-5 shadow-[0_0_30px_rgba(168,85,247,0.15)] backdrop-blur-md' : 'hidden'}>
-            
-            {/* AI Console Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-500/20 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600/30 via-indigo-600/20 to-purple-900/40 border border-purple-500/50 flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                  <Bot className="w-5 h-5 text-purple-300" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-dota font-black text-base text-purple-200 tracking-wide">
-                      GEMINI AI TACTICAL ORACLE
-                    </h3>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Gemini 4 / 3.8 Flash Online
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">
-                    Grandmaster / Immortal-level strategic breakdown for Patch 7.37d
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handleRequestAiAnalysis()}
-                disabled={isAiLoading}
-                className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all cursor-pointer"
-              >
-                {isAiLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-purple-200" />
-                    <span>Analyzing Draft...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 text-purple-200" />
-                    <span>{aiAnalysis ? 'Re-Analyze Draft' : 'Generate Full Breakdown'}</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Quick Strategy Question Pills */}
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-bold text-purple-300/80 uppercase tracking-wider">
-                Tactical Quick Inquiries:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  'Lane-by-lane dynamic matchups and rotation triggers',
-                  'Countering enemy core timings and late-game spikes',
-                  'Critical defensive itemization (BKB / Vessel / Pipe / Silver Edge)',
-                  '20-Minute Tormentor & Roshan objective prioritization'
-                ].map((q, idx) => (
-                  <button
-                    key={idx}
-                    disabled={isAiLoading}
-                    onClick={() => {
-                      setAiCustomQuestion(q);
-                      handleRequestAiAnalysis(q);
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-slate-800 hover:border-purple-500/50 text-[11px] text-slate-300 hover:text-purple-200 transition-all text-left"
-                  >
-                    💡 {q}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Custom AI Chat Prompt Bar */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (aiCustomQuestion.trim() && !isAiLoading) {
-                  handleRequestAiAnalysis(aiCustomQuestion);
-                }
-              }}
-              className="flex items-center gap-2"
-            >
-              <input
-                type="text"
-                value={aiCustomQuestion}
-                onChange={(e) => setAiCustomQuestion(e.target.value)}
-                placeholder="Ask Gemini AI anything about this draft matchup..."
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-purple-500/30 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400/50 text-xs text-slate-200 placeholder-slate-500"
-              />
-              <button
-                type="submit"
-                disabled={isAiLoading || !aiCustomQuestion.trim()}
-                className="px-4 py-2.5 rounded-xl bg-purple-600/80 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>Ask AI</span>
-              </button>
-            </form>
-
-            {/* AI Error Alert */}
-            {aiError && (
-              <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-500/50 flex items-center gap-2.5 text-red-200 text-xs">
-                <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                <span className="flex-1">{aiError}</span>
-                <button
-                  onClick={() => handleRequestAiAnalysis()}
-                  className="px-2.5 py-1 rounded-lg bg-red-900/80 hover:bg-red-800 text-[11px] font-bold"
-                >
-                  Retry
-                </button>
-              </div>
-            )}
-
-            {/* AI Response Output Console */}
-            {isAiLoading ? (
-              <div className="min-h-[220px] rounded-xl bg-slate-900/60 border border-purple-500/20 p-8 flex flex-col items-center justify-center space-y-3 text-center animate-pulse">
-                <div className="w-12 h-12 rounded-2xl bg-purple-950/80 border border-purple-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-                  <Loader2 className="w-6 h-6 text-purple-300 animate-spin" />
-                </div>
-                <div className="font-dota font-bold text-sm text-purple-200 uppercase tracking-wider">
-                  Oracle Deep-Think Analysis in Progress...
-                </div>
-                <p className="text-xs text-slate-400 max-w-md">
-                  Synthesizing drafting algorithms, hero facets, counter intensity, and Patch 7.37d telemetry with Google Gemini.
-                </p>
-              </div>
-            ) : aiAnalysis ? (
-              <div className="rounded-xl bg-slate-900/80 border border-purple-500/30 p-4 sm:p-5 text-slate-200 text-xs leading-relaxed space-y-3 shadow-inner max-h-[550px] overflow-y-auto">
-                <div className="whitespace-pre-wrap font-sans text-slate-200 leading-relaxed">
-                  {aiAnalysis}
-                </div>
-              </div>
-            ) : (
-              <div className="min-h-[160px] rounded-xl bg-slate-900/40 border border-dashed border-purple-500/30 p-6 flex flex-col items-center justify-center text-center space-y-2">
-                <Sparkles className="w-8 h-8 text-purple-400/60 animate-bounce" />
-                <div className="font-dota font-bold text-xs text-purple-200 uppercase tracking-wide">
-                  Oracle Awaiting Query
-                </div>
-                <p className="text-[11px] text-slate-400 max-w-sm">
-                  Click <strong className="text-purple-300">Generate Full Breakdown</strong> or select an inquiry to receive a pro-grade tactical blueprint powered by Gemini AI.
-                </p>
-              </div>
-            )}
-
-          </div>
+        {/* TAB 5: GEMINI AI TACTICAL ORACLE (PRO ESPORTS COCKPIT) */}
+        <div className={activeAnalysisTab === 'ai' ? 'block' : 'hidden'}>
+          <EsportsOracleCockpit
+            allies={alliesData}
+            opponents={opponentsData}
+            bans={banNames}
+            aiAnalysis={aiAnalysis}
+            isAiLoading={isAiLoading}
+            aiError={aiError}
+            onRequestAnalysis={handleRequestAiAnalysis}
+            onOpenKeyModal={() => setIsApiKeyModalOpen(true)}
+          />
+        </div>
 
       </div>
 
@@ -1341,6 +1592,171 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
               })}
             </div>
 
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ========================================================= */}
+      {/* 6. GEMINI FLASH-LITE FREE TIER CONFIGURATION MODAL        */}
+      {/* ========================================================= */}
+      {isApiKeyModalOpen && createPortal(
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+          onClick={() => setIsApiKeyModalOpen(false)}
+        >
+          <div 
+            className="w-full max-w-lg bg-slate-950 border-2 border-purple-500/40 rounded-3xl p-6 shadow-2xl flex flex-col space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-purple-500/20 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-950/80 border border-purple-500/40 flex items-center justify-center text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                  <Key className="w-5 h-5 text-purple-300" />
+                </div>
+                <div>
+                  <h3 className="font-dota font-bold text-base text-white tracking-wide">
+                    Free Tier AI Configuration
+                  </h3>
+                  <p className="text-xs text-purple-300/80 font-sans">
+                    Powered by Google Gemini Flash-Lite (Cheapest & Free Tier)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsApiKeyModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Free Tier Info Card */}
+            <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-500/30 space-y-2 text-xs">
+              <div className="flex items-center justify-between text-purple-200 font-bold">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  Active Model: Gemini Flash-Lite
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-500/50 text-emerald-300 text-[10px] font-mono">
+                  100% Free ($0.00)
+                </span>
+              </div>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                Google AI Studio provides <strong>Gemini Flash-Lite</strong> completely free of charge with <strong>15 RPM</strong>, <strong>1,000,000 TPM</strong>, and <strong>1,500 daily requests</strong>. No credit card is required.
+              </p>
+              <div className="pt-1 flex items-center gap-2">
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 border border-purple-400/40 text-purple-200 text-xs font-semibold transition-all hover:scale-[1.02]"
+                >
+                  <span>Get Free Key on Google AI Studio</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+
+            {/* Current Status */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Current Key Status:
+              </label>
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-semibold text-white flex items-center gap-1.5">
+                    {keyStatus.configured ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-400" />
+                        <span>{keyStatus.source}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Info className="w-4 h-4 text-amber-400" />
+                        <span>{keyStatus.source}</span>
+                      </>
+                    )}
+                  </div>
+                  {keyStatus.maskedKey && (
+                    <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                      Key: {keyStatus.maskedKey}
+                    </div>
+                  )}
+                </div>
+
+                {keyStatus.isCustom && (
+                  <button
+                    onClick={handleClearCustomKey}
+                    className="px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-900/80 border border-red-500/40 text-red-300 text-[11px] transition-colors"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Custom Key Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Set Custom Google AI Studio Key:
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  placeholder="Paste AI Studio API key (AIzaSy...)"
+                  value={customKeyInput}
+                  onChange={(e) => setCustomKeyInput(e.target.value)}
+                  className="flex-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                />
+                <button
+                  onClick={handleSaveCustomKey}
+                  disabled={!customKeyInput.trim()}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs transition-colors shadow-sm"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+
+            {/* Test Connection Result */}
+            {testConnResult && (
+              <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                testConnResult.ok === true
+                  ? 'bg-emerald-950/40 border border-emerald-500/50 text-emerald-300'
+                  : testConnResult.ok === false
+                  ? 'bg-red-950/40 border border-red-500/50 text-red-300'
+                  : 'bg-purple-950/40 border border-purple-500/50 text-purple-200'
+              }`}>
+                {testConnResult.testing ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-purple-300" />
+                ) : testConnResult.ok ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                )}
+                <span className="flex-1 leading-snug">{testConnResult.message}</span>
+              </div>
+            )}
+
+            {/* Actions Footer */}
+            <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
+              <button
+                onClick={handleTestConnection}
+                className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-purple-500/40 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span>Test Connection</span>
+              </button>
+
+              <button
+                onClick={() => setIsApiKeyModalOpen(false)}
+                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>,
         document.body

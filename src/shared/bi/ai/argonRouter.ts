@@ -35,6 +35,7 @@ export interface RouterConfig {
   version: string;
   active: boolean;
   argonPriority: boolean;
+  zeroSetupAvailable: boolean;
   apiKeyEnvVar: string;
   defaultModel: ModelTierConfig;
   argonModel: ModelTierConfig;
@@ -45,9 +46,10 @@ export interface RouterConfig {
 
 export const DEFAULT_ROUTER_CONFIG: RouterConfig = {
   skillName: 'argon_router',
-  version: '2.1.0-priority',
+  version: '2.2.0-zero-setup',
   active: true,
   argonPriority: true,
+  zeroSetupAvailable: true,
   apiKeyEnvVar: 'GOOGLE_STUDIO_API_KEY',
   defaultModel: {
     id: 'gemini-3.8-flash',

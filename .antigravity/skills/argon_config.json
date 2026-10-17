@@ -1,10 +1,16 @@
 {
   "skill_name": "argon_router",
-  "version": "2.1.0-priority",
+  "version": "2.2.0-zero-setup",
   "active": true,
   "argon_priority": true,
+  "zero_setup_available": true,
   "priority_model": "gemini-4-argon",
   "api_key_env_var": "GOOGLE_STUDIO_API_KEY",
+  "auth_modes": {
+    "antigravity_workspace": "Built-in Google Developer session authentication (zero setup, no API key required)",
+    "dota2_assistant_web": "Native Zero-Setup Tactical Oracle synthesis mode with optional API key override",
+    "cloud_api": "GOOGLE_STUDIO_API_KEY / VITE_GEMINI_API_KEY"
+  },
   "models": {
     "default": {
       "id": "gemini-3.8-flash",
@@ -35,6 +41,7 @@
   },
   "routing_criteria": {
     "priority_policy": "Argon is priority for all conversational reasoning and project tasks; Gemini 3.8 Flash is preserved for local mechanical utilities.",
+    "zero_setup_policy": "Full operation supported without manual API key setup via Antigravity session and Native Zero-Setup Oracle.",
     "explicit_tokens": [
       "[Argon]",
       "argon:"

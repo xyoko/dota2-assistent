@@ -666,10 +666,35 @@ export default function DomeGallery({
     };
   }, [stopInertia]);
 
+  // Intercept wheel events so mouse wheel rotates the sphere dome instead of scrolling the page
+  useEffect(() => {
+    const mainEl = mainRef.current;
+    if (!mainEl) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      stopInertia();
+      const deltaX = Math.abs(e.deltaX) > 2 ? e.deltaX : 0;
+      const deltaY = e.deltaY;
+      const speed = 0.22;
+      const nextY = wrapAngleSigned(rotationRef.current.y + (deltaY + deltaX) * speed);
+      rotationRef.current = { x: rotationRef.current.x, y: nextY };
+      applyTransform(rotationRef.current.x, nextY);
+      lastTimeRef.current = performance.now();
+    };
+
+    mainEl.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      mainEl.removeEventListener('wheel', handleWheel);
+    };
+  }, [stopInertia]);
+
   return (
     <div
       ref={rootRef}
-      className="sphere-root"
+      className="sphere-root no-scrollbar"
+      data-lenis-prevent="true"
       style={{
         ['--segments-x']: segments,
         ['--segments-y']: segments,
@@ -682,7 +707,8 @@ export default function DomeGallery({
     >
       <main
         ref={mainRef}
-        className="sphere-main"
+        className="sphere-main no-scrollbar"
+        data-lenis-prevent="true"
         onPointerEnter={() => {
           isHoveredRef.current = true;
         }}
