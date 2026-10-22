@@ -71,10 +71,21 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Focus input on open
+  // Focus input on open & lock background scroll
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 40);
+      window.__lenis?.stop();
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+        window.__lenis?.start();
+      };
     }
   }, [isOpen]);
 
@@ -244,11 +255,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-28 px-4 bg-black/75 backdrop-blur-md animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-28 px-4 bg-black/75 backdrop-blur-md animate-fadeIn overscroll-contain"
+      data-lenis-prevent="true"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl bg-slate-950/95 border border-white/[0.09] shadow-[0_30px_90px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col max-h-[75vh] animate-slideUp text-slate-100"
+        className="w-full max-w-2xl rounded-2xl bg-slate-950/95 border border-white/[0.09] shadow-[0_30px_90px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col max-h-[75vh] animate-slideUp text-slate-100 overscroll-contain"
+        data-lenis-prevent="true"
         onClick={e => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >

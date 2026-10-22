@@ -1,6 +1,6 @@
 import React from 'react';
 import { RoleType } from '../../../entities/hero/bi/types';
-import { DOTA_ITEMS } from '../../../entities/item/bi/items';
+import { getItemIconUrl } from '../../../entities/item/bi/itemImages';
 import { 
   Swords, 
   Crosshair, 
@@ -174,77 +174,8 @@ export const DotaRoleIcon: React.FC<{
 /**
  * Universal Dota 2 Item Picture Resolver
  */
-export const getItemImageUrl = (itemId: string): string => {
-  // Check predefined items first
-  if (DOTA_ITEMS[itemId]?.img) {
-    return DOTA_ITEMS[itemId].img!;
-  }
-
-  // Common item slug mappings for Valve's Dota 2 CDN
-  const slugOverrides: Record<string, string> = {
-    bkb: 'black_king_bar',
-    battle_fury: 'bfury',
-    manta_style: 'manta',
-    power_treads: 'power_treads',
-    magic_wand: 'magic_wand',
-    tango: 'tango',
-    quelling_blade: 'quelling_blade',
-    circlet: 'circlet',
-    slippers_of_agility: 'slippers',
-    iron_branch: 'branches',
-    cornucopia: 'cornucopia',
-    wraith_band: 'wraith_band',
-    desolator: 'desolator',
-    satanic: 'satanic',
-    nullifier: 'nullifier',
-    abyssal_blade: 'abyssal_blade',
-    basher: 'basher',
-    mkb: 'monkey_king_bar',
-    butterfly: 'butterfly',
-    skadi: 'skadi',
-    daedalus: 'greater_crit',
-    linkens: 'sphere',
-    blade_mail: 'blade_mail',
-    heart: 'heart',
-    vanguard: 'vanguard',
-    phase_boots: 'phase_boots',
-    arcane_boots: 'arcane_boots',
-    tranquil_boots: 'tranquil_boots',
-    orchid: 'orchid',
-    witch_blade: 'witch_blade',
-    bloodstone: 'bloodstone',
-    kaya_and_sange: 'kaya_and_sange',
-    dragon_lance: 'dragon_lance',
-    hurricane_pike: 'hurricane_pike',
-    glimmer_cape: 'glimmer_cape',
-    force_staff: 'force_staff',
-    blink_dagger: 'blink',
-    echo_sabre: 'echo_sabre',
-    mask_of_madness: 'mask_of_madness',
-    silver_edge: 'silver_edge',
-    spirit_vessel: 'spirit_vessel',
-    scythe_of_vyse: 'sheepstick',
-    bloodthorn: 'bloodthorn',
-    halberd: 'heavens_halberd',
-    lotus_orb: 'lotus_orb',
-    ghost_scepter: 'ghost',
-    euls: 'cyclone',
-    wind_waker: 'wind_waker',
-    diffusal_blade: 'diffusal_blade',
-    shivas_guard: 'shivas_guard',
-    gleipnir: 'gleipnir',
-    aeon_disk: 'aeon_disk',
-    assault_cuirass: 'assault',
-    dagon: 'dagon',
-    pipe_of_insight: 'pipe',
-    mage_slayer: 'mage_slayer',
-    dust_of_appearance: 'dust',
-    sentry_ward: 'ward_sentry',
-    gem_of_true_sight: 'gem'
-  };
-
-  const cleanSlug = slugOverrides[itemId.toLowerCase()] || itemId.toLowerCase().replace(/[^a-z0-9]/g, '_');
-  return `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/${cleanSlug}.png`;
+export const getItemImageUrl = (itemId: string, itemName?: string): string => {
+  return getItemIconUrl(itemId, itemName);
 };
 
 /**

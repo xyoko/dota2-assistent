@@ -17,3 +17,8 @@
 
 3. **Subagent Orchestration**:
    - When launching autonomous subagents or background tasks requiring multi-step reasoning, specify high reasoning effort and Argon prioritization.
+
+## Engineering Standards & Domain Glossary
+- Detailed agent engineering skills (TDD, Code Review, Diagnosing Bugs, Codebase Design): see [`AGENTS.md`](./AGENTS.md).
+- Canonical domain vocabulary and terminology rules: see [`GLOSSARY.md`](./GLOSSARY.md).
+- Architectural Decision Records: see [`docs/adr/`](./docs/adr/).

@@ -22,6 +22,8 @@ import {
   Coins,
   Flame,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   PictureInPicture
 } from 'lucide-react';
 
@@ -64,14 +66,88 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
     setTimeout(() => setNoteSaved(false), 2000);
   };
 
+  const [isDoctrineExpanded, setIsDoctrineExpanded] = useState<boolean>(false);
+
+  // Bulletproof Background Scroll Locking for both Desktop (Lenis, Body, Wheel) and Mobile (Touchmove, Safari elasticity)
+  useEffect(() => {
+    // 1. Freeze Lenis global smooth scroll
+    const lenis = window.__lenis;
+    if (lenis) {
+      lenis.stop();
+    }
+
+    // 2. Lock standard browser scroll on html and body
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalBodyPaddingRight = document.body.style.paddingRight;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalOverscrollBehavior = document.body.style.overscrollBehavior;
+
+    // Compensate for scrollbar disappearance on desktop to avoid layout shift
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+
+    // 3. Prevent touch propagation on mobile when touching backdrop or non-scrollable areas
+    const preventBackdropTouch = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      // Allow scrolling inside elements with overflow-y-auto, overflow-x-auto, or form controls
+      const scrollable = target.closest('.overflow-y-auto, .overflow-x-auto, textarea, input, select');
+      if (!scrollable) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener('touchmove', preventBackdropTouch, { passive: false });
+
+    // 4. Keyboard ESC to close
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.body.style.paddingRight = originalBodyPaddingRight;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.overscrollBehavior = originalOverscrollBehavior;
+      document.removeEventListener('touchmove', preventBackdropTouch);
+      window.removeEventListener('keydown', handleKeyDown);
+      if (lenis) {
+        lenis.start();
+      }
+    };
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-lg flex items-center justify-center p-2 sm:p-4 md:p-6 animate-fadeIn">
+    <div 
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-lg flex items-center justify-center p-0 sm:p-4 md:p-6 animate-fadeIn overscroll-contain"
+      data-lenis-prevent="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          SoundEngine.playHover();
+          onClose();
+        }
+      }}
+    >
       
-      {/* Modal Container */}
-      <div className="relative w-full max-w-5xl bg-dota-panel border-2 border-dota-gold/40 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[92vh]">
+      {/* Modal Container: Fullscreen on mobile, elevated rounded card on desktop */}
+      <div 
+        className="relative w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] max-w-5xl bg-dota-panel border-0 sm:border-2 border-dota-gold/40 rounded-none sm:rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col overscroll-contain"
+        data-lenis-prevent="true"
+      >
         
-        {/* Header Hero Showcase Banner (Crisp Foreground Portrait & Proper Hero Info) */}
-        <div className="relative bg-gradient-to-b from-slate-950 via-[#0e131d] to-[#121722] border-b-2 border-dota-border overflow-hidden p-5 sm:p-6 flex-shrink-0">
+        {/* Header Hero Showcase Banner (Responsive mobile banner + full desktop portrait showcase) */}
+        <div className="relative bg-gradient-to-b from-slate-950 via-[#0e131d] to-[#121722] border-b-2 border-dota-border overflow-hidden p-4 sm:p-5 md:p-6 flex-shrink-0">
           
           {/* Subtle atmospheric ambient glow matching primary attribute */}
           <div className={`absolute top-0 right-0 w-96 h-96 rounded-full opacity-20 filter blur-3xl pointer-events-none ${
@@ -81,17 +157,17 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
             'bg-purple-600'
           }`} />
 
-          <div className="relative z-10 flex flex-col md:flex-row items-start gap-6">
+          {/* Desktop Showcase (md: and above) */}
+          <div className="relative z-10 hidden md:flex items-start gap-6">
             
-            {/* 1. PROPER HERO FULL-BODY PORTRAIT SHOWCASE (Full character silhouette head-to-toe, pristine frame dimensions preserved) */}
-            <div className={`relative w-44 sm:w-52 md:w-60 h-64 sm:h-72 md:h-80 rounded-2xl overflow-hidden border-2 ${
+            {/* 1. PROPER HERO FULL-BODY PORTRAIT SHOWCASE (Head-to-toe render on desktop) */}
+            <div className={`relative w-52 md:w-60 h-72 md:h-80 rounded-2xl overflow-hidden border-2 ${
               hero.attribute === 'str' ? 'border-red-600/70 shadow-[0_0_35px_rgba(236,61,61,0.35)]' :
               hero.attribute === 'agi' ? 'border-emerald-600/70 shadow-[0_0_35px_rgba(44,227,71,0.35)]' :
               hero.attribute === 'int' ? 'border-cyan-600/70 shadow-[0_0_35px_rgba(0,210,255,0.35)]' :
               'border-purple-600/70 shadow-[0_0_35px_rgba(217,70,239,0.35)]'
             } flex-shrink-0 bg-slate-950 shadow-2xl group select-none flex flex-col justify-start`}>
               
-              {/* Atmospheric Background & Hero Attribute Lighting */}
               <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-[#0a0e17] to-black" />
               <div className={`absolute inset-0 opacity-45 bg-[radial-gradient(circle_at_50%_42%,_var(--tw-gradient-stops))] ${
                 hero.attribute === 'str' ? 'from-red-600/35 via-red-950/20 to-transparent' :
@@ -108,7 +184,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                 'bg-purple-500/60 shadow-[0_0_20px_#d946ef]'
               }`} />
 
-              {/* Floating Attribute Badge (Top Left - Never obscures hero body) */}
+              {/* Floating Attribute Badge */}
               <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-white/10 shadow-lg">
                 <span className={`w-2.5 h-2.5 rounded-full ${
                   hero.attribute === 'str' ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' :
@@ -123,12 +199,12 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                 </span>
               </div>
 
-              {/* Floating Attack Type Badge (Top Right) */}
+              {/* Floating Attack Type Badge */}
               <div className="absolute top-2.5 right-2.5 z-20 px-2 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-white/10 shadow-lg text-[10px] font-bold text-slate-300">
                 {hero.attackType}
               </div>
 
-              {/* Full-Body Hero Render (Crisp 1440x1440 Official Render, Head-to-Toe, placed 1rem from top border) */}
+              {/* Full-Body Hero Render */}
               <div className="relative z-10 w-full h-full flex items-start justify-center overflow-hidden pt-4">
                 <img
                   src={getHeroFullBodyRenderUrl(hero.avatarUrl)}
@@ -144,11 +220,10 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                 />
               </div>
 
-              {/* Ground Pedestal Vignette Shadow (Grounds the feet smoothly into the card) */}
               <div className="absolute bottom-0 inset-x-0 h-8 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none z-15" />
             </div>
 
-            {/* 2. PROPER HERO INFORMATION PANEL (Right of Portrait) */}
+            {/* 2. HERO INFORMATION PANEL (Desktop) */}
             <div className="flex-1 min-w-0 flex flex-col justify-between space-y-4">
               
               {/* Top Row: Hero Title & Right Controls */}
@@ -185,7 +260,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                         SoundEngine.playPick();
                         onOpenPip(hero);
                       }}
-                      className="p-2 sm:px-3 sm:py-2 rounded-xl bg-dota-gold/15 hover:bg-dota-gold/25 border border-dota-gold/50 text-dota-gold shadow-dota-glow transition-all flex items-center gap-1.5 group"
+                      className="p-2 sm:px-3 sm:py-2 rounded-xl bg-dota-gold/15 hover:bg-dota-gold/25 border border-dota-gold/50 text-dota-gold shadow-dota-glow transition-all flex items-center gap-1.5 group active:scale-95"
                       title="Open in Picture-in-Picture Mini HUD (Shortcut: Alt+P)"
                     >
                       <PictureInPicture className="w-4 h-4 text-dota-gold" />
@@ -201,7 +276,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       onToggleFavorite(hero.id);
                       SoundEngine.playHover();
                     }}
-                    className={`p-2 rounded-xl border transition-all ${
+                    className={`p-2 rounded-xl border transition-all active:scale-95 ${
                       isFavorite
                         ? 'bg-amber-500/20 border-amber-500/60 text-amber-400 shadow-dota-glow'
                         : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-white'
@@ -216,7 +291,8 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       SoundEngine.playHover();
                       onClose();
                     }}
-                    className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-950/80 border border-slate-700 hover:border-red-600 text-slate-400 hover:text-red-300 transition-all"
+                    className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-950/80 border border-slate-700 hover:border-red-600 text-slate-400 hover:text-red-300 transition-all active:scale-95"
+                    title="Close (ESC)"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -289,88 +365,237 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
             </div>
           </div>
 
-          {/* Sub Navigation Tabs */}
-          <div className="relative z-10 flex border-t border-dota-border bg-dota-panel/80 overflow-x-auto">
-            <button
-              onClick={() => {
-                setActiveTab('build');
-                SoundEngine.playHover();
-              }}
-              className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all whitespace-nowrap ${
-                activeTab === 'build'
-                  ? 'border-dota-gold text-dota-gold bg-dota-gold/10'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Sword className="w-4 h-4" />
-              <span>Item Progression</span>
-            </button>
+          {/* Mobile Showcase Header (< md) */}
+          <div className="relative z-10 flex flex-col md:hidden space-y-3">
+            
+            {/* Mobile Top Controls Bar */}
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => {
+                  SoundEngine.playHover();
+                  onClose();
+                }}
+                className="px-3 py-2 min-h-[42px] rounded-xl bg-slate-900 border border-slate-700 text-slate-200 hover:text-white flex items-center gap-1.5 active:scale-95 shadow-sm"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5 text-slate-300" />
+                <span className="text-xs font-bold uppercase tracking-wider">Back</span>
+              </button>
 
-            <button
-              onClick={() => {
-                setActiveTab('skills');
-                SoundEngine.playHover();
-              }}
-              className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all whitespace-nowrap ${
-                activeTab === 'skills'
-                  ? 'border-dota-int text-dota-int bg-blue-500/10'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Zap className="w-4 h-4" />
-              <span>Skills & Talents</span>
-            </button>
+              <div className="flex items-center gap-2">
+                {onOpenPip && (
+                  <button
+                    onClick={() => {
+                      SoundEngine.playPick();
+                      onOpenPip(hero);
+                    }}
+                    className="p-2 min-h-[42px] min-w-[42px] rounded-xl bg-dota-gold/15 border border-dota-gold/50 text-dota-gold flex items-center justify-center active:scale-95 shadow-sm"
+                    title="Open in Picture-in-Picture Mini HUD"
+                  >
+                    <PictureInPicture className="w-4 h-4 text-dota-gold" />
+                  </button>
+                )}
 
-            <button
-              onClick={() => {
-                setActiveTab('matchups');
-                SoundEngine.playHover();
-              }}
-              className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all whitespace-nowrap ${
-                activeTab === 'matchups'
-                  ? 'border-dota-red text-red-400 bg-red-500/10'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Crosshair className="w-4 h-4" />
-              <span>Counters & Matchups</span>
-            </button>
+                <button
+                  onClick={() => {
+                    onToggleFavorite(hero.id);
+                    SoundEngine.playHover();
+                  }}
+                  className={`p-2 min-h-[42px] min-w-[42px] rounded-xl border flex items-center justify-center active:scale-95 shadow-sm ${
+                    isFavorite
+                      ? 'bg-amber-500/20 border-amber-500/60 text-amber-400 shadow-dota-glow'
+                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                  }`}
+                  title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <Star className={`w-5 h-5 ${isFavorite ? 'fill-amber-400 text-amber-400' : ''}`} />
+                </button>
+              </div>
+            </div>
 
-            <button
-              onClick={() => {
-                setActiveTab('strategy');
-                SoundEngine.playHover();
-              }}
-              className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all whitespace-nowrap ${
-                activeTab === 'strategy'
-                  ? 'border-dota-agi text-emerald-400 bg-emerald-500/10'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Clock className="w-4 h-4" />
-              <span>Strategy & Spikes</span>
-            </button>
+            {/* Mobile Hero Identity Row: Compact Portrait + Essential Stats */}
+            <div className="flex items-center gap-3.5 pt-1">
+              {/* Compact 80x96px Hero Portrait with Official Render */}
+              <div className={`relative w-20 h-24 sm:w-24 sm:h-28 rounded-xl overflow-hidden border-2 ${
+                hero.attribute === 'str' ? 'border-red-600/70 shadow-[0_0_20px_rgba(236,61,61,0.3)]' :
+                hero.attribute === 'agi' ? 'border-emerald-600/70 shadow-[0_0_20px_rgba(44,227,71,0.3)]' :
+                hero.attribute === 'int' ? 'border-cyan-600/70 shadow-[0_0_20px_rgba(0,210,255,0.3)]' :
+                'border-purple-600/70 shadow-[0_0_20px_rgba(217,70,239,0.3)]'
+              } flex-shrink-0 bg-slate-950 shadow-md`}>
+                <img
+                  src={getHeroFullBodyRenderUrl(hero.avatarUrl)}
+                  alt={hero.name}
+                  className="w-full h-full object-contain object-top pt-1 drop-shadow"
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement;
+                    if (target.src !== hero.avatarUrl) {
+                      target.src = hero.avatarUrl;
+                      target.className = "w-full h-full object-cover object-top";
+                    }
+                  }}
+                />
+                <div className="absolute top-1 left-1 px-1.5 py-0.2 rounded bg-black/85 text-[8px] font-extrabold uppercase font-mono tracking-wider text-white">
+                  {hero.attribute}
+                </div>
+              </div>
 
-            <button
-              onClick={() => {
-                setActiveTab('notes');
-                SoundEngine.playHover();
-              }}
-              className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-all whitespace-nowrap ${
-                activeTab === 'notes'
-                  ? 'border-dota-uni text-purple-300 bg-purple-500/10'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>My Match Notes</span>
-            </button>
+              {/* Title & Quick Badges */}
+              <div className="flex-1 min-w-0 space-y-1">
+                <h1 className="font-dota font-black text-2xl text-white truncate drop-shadow">
+                  {hero.name}
+                </h1>
+                <p className="text-xs text-slate-400 truncate italic">
+                  "{hero.title}"
+                </p>
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded text-[11px] border border-emerald-800/60">
+                    {hero.winRate}% WR
+                  </span>
+                  <span className="text-slate-300 font-semibold bg-slate-900 px-2 py-0.5 rounded text-[11px] border border-slate-800 uppercase font-mono">
+                    {hero.attackType}
+                  </span>
+                  {metaEntry && (
+                    <span className="text-amber-300 font-bold bg-amber-950/80 px-2 py-0.5 rounded text-[11px] border border-amber-600/60">
+                      Tier {metaEntry.tier}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Collapsible Doctrine & Power Spikes Drawer Toggle */}
+            <div className="pt-1">
+              <button
+                onClick={() => {
+                  SoundEngine.playHover();
+                  setIsDoctrineExpanded(prev => !prev);
+                }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-all active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-dota-gold font-bold">Tactical Summary & Spikes</span>
+                  <span className="text-[10px] text-slate-500">({isDoctrineExpanded ? 'Hide' : 'Expand'})</span>
+                </div>
+                {isDoctrineExpanded ? (
+                  <ChevronUp className="w-4 h-4 text-dota-gold" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                )}
+              </button>
+
+              {isDoctrineExpanded && (
+                <div className="mt-2 space-y-2 animate-fadeIn">
+                  <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-1.5 shadow-sm text-xs">
+                    <p className="text-slate-200 font-sans leading-relaxed">{hero.summary}</p>
+                    <div className="text-[11px] text-slate-400 pt-1.5 border-t border-slate-800">
+                      <strong className="text-dota-gold">Doctrine:</strong> {hero.playstyle}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-xs">
+                    <div className="bg-slate-950/90 border border-slate-800 rounded-lg p-2">
+                      <span className="text-[10px] font-bold text-amber-400 block uppercase">Early (0-12m)</span>
+                      <span className="text-[11px] text-slate-300">{hero.powerSpikes.early}</span>
+                    </div>
+                    <div className="bg-slate-950/90 border border-slate-800 rounded-lg p-2">
+                      <span className="text-[10px] font-bold text-cyan-400 block uppercase">Mid (12-25m)</span>
+                      <span className="text-[11px] text-slate-300">{hero.powerSpikes.mid}</span>
+                    </div>
+                    <div className="bg-slate-950/90 border border-slate-800 rounded-lg p-2">
+                      <span className="text-[10px] font-bold text-purple-400 block uppercase">Late (25m+)</span>
+                      <span className="text-[11px] text-slate-300">{hero.powerSpikes.late}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
 
         </div>
 
+        {/* Sticky Sub Navigation Tabs (Directly beneath header for fast switching) */}
+        <div className="relative z-20 flex border-y border-dota-border bg-slate-950/95 backdrop-blur-md overflow-x-auto no-scrollbar px-2 sm:px-4 py-2 gap-1.5 flex-shrink-0 shadow-md touch-pan-x">
+          <button
+            onClick={() => {
+              setActiveTab('build');
+              SoundEngine.playHover();
+            }}
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+              activeTab === 'build'
+                ? 'border border-dota-gold text-dota-gold bg-dota-gold/15 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+            }`}
+          >
+            <Sword className="w-4 h-4" />
+            <span>Item Progression</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('skills');
+              SoundEngine.playHover();
+            }}
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+              activeTab === 'skills'
+                ? 'border border-cyan-500 text-cyan-300 bg-cyan-500/15 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>Skills & Talents</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('matchups');
+              SoundEngine.playHover();
+            }}
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+              activeTab === 'matchups'
+                ? 'border border-red-500 text-red-300 bg-red-500/15 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+            }`}
+          >
+            <Crosshair className="w-4 h-4" />
+            <span>Counters & Matchups</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('strategy');
+              SoundEngine.playHover();
+            }}
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+              activeTab === 'strategy'
+                ? 'border border-emerald-500 text-emerald-300 bg-emerald-500/15 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Strategy & Spikes</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('notes');
+              SoundEngine.playHover();
+            }}
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+              activeTab === 'notes'
+                ? 'border border-purple-500 text-purple-300 bg-purple-500/15 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>My Match Notes</span>
+          </button>
+        </div>
+
         {/* Modal Scrollable Content Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+        <div 
+          className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6 overscroll-contain"
+          data-lenis-prevent="true"
+        >
           
           {/* TAB 1: ITEM PROGRESSION */}
           {activeTab === 'build' && (
@@ -744,53 +969,57 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                 <h3 className="font-dota font-bold text-sm text-cyan-300 mb-2">
                   Recommended Skill Leveling Order
                 </h3>
-                <div className="text-xs text-slate-400 mb-3 font-sans flex items-center gap-1.5 flex-wrap">
-                  <span className="font-semibold text-slate-300">Maxing priority:</span>
-                  {numberedSkillPriority.map((s, idx) => (
-                    <span key={idx} className="inline-flex items-center gap-1">
-                      <span className="bg-cyan-950/80 text-cyan-200 px-2 py-0.5 rounded-lg border border-cyan-800/70 text-[11px] font-sans flex items-center gap-1 shadow-sm">
-                        <span className="text-[9px] font-mono text-cyan-400 font-bold">#{idx + 1}</span>
-                        <span className="font-bold text-dota-gold bg-black/60 px-1 rounded border border-dota-gold/40 text-[10px]">
-                          Skill {s.skillNumber}
+                <div className="text-xs text-slate-400 mb-3 font-sans flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 touch-pan-x">
+                  <span className="font-semibold text-slate-300 flex-shrink-0">Maxing priority:</span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {numberedSkillPriority.map((s, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-1 flex-shrink-0">
+                        <span className="bg-cyan-950/80 text-cyan-200 px-2 py-0.5 rounded-lg border border-cyan-800/70 text-[11px] font-sans flex items-center gap-1 shadow-sm whitespace-nowrap">
+                          <span className="text-[9px] font-mono text-cyan-400 font-bold">#{idx + 1}</span>
+                          <span className="font-bold text-dota-gold bg-black/60 px-1 rounded border border-dota-gold/40 text-[10px]">
+                            Skill {s.skillNumber}
+                          </span>
+                          <span className="text-slate-400 font-mono text-[10px]">({s.key})</span>
+                          <span className="font-semibold text-slate-200">{s.name}</span>
                         </span>
-                        <span className="text-slate-400 font-mono text-[10px]">({s.key})</span>
-                        <span className="font-semibold text-slate-200">{s.name}</span>
-                      </span>
-                      {idx < numberedSkillPriority.length - 1 && (
-                        <span className="text-slate-600 font-bold text-xs">➔</span>
-                      )}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {hero.skillOrder.levelGuide.map((skill, index) => {
-                    const skillNum = getSkillNumberFromKey(skill);
-                    const isUlt = skill === 'R';
-                    const isTalent = skill === 'Talent';
-                    return (
-                      <div
-                        key={index}
-                        className={`flex flex-col items-center justify-center min-w-[36px] h-12 px-1 rounded-lg border text-xs font-bold transition-transform hover:scale-105 ${
-                          isUlt
-                            ? 'bg-red-950/90 border-red-500 text-red-300 shadow-sm'
-                            : isTalent
-                            ? 'bg-amber-950/90 border-amber-500 text-amber-300 text-[10px] shadow-sm'
-                            : 'bg-dota-bg border-dota-border text-slate-200'
-                        }`}
-                        title={isTalent ? `Hero Level ${index + 1}: Talent Tree Node` : `Hero Level ${index + 1}: Skill ${skillNum} (${skill})`}
-                      >
-                        <span className="text-[8px] text-slate-400 font-mono leading-none">Lv {index + 1}</span>
-                        {!isTalent ? (
-                          <>
-                            <span className="text-[11px] font-black text-white leading-tight mt-0.5">Skill {skillNum}</span>
-                            <span className="text-[8px] text-dota-gold font-mono font-bold leading-none">({skill})</span>
-                          </>
-                        ) : (
-                          <span className="text-[9px] font-bold text-amber-300 leading-tight mt-1">★ Talent</span>
+                        {idx < numberedSkillPriority.length - 1 && (
+                          <span className="text-slate-600 font-bold text-xs">➔</span>
                         )}
-                      </div>
-                    );
-                  })}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="overflow-x-auto no-scrollbar py-1 touch-pan-x">
+                  <div className="flex gap-1.5 min-w-max">
+                    {hero.skillOrder.levelGuide.map((skill, index) => {
+                      const skillNum = getSkillNumberFromKey(skill);
+                      const isUlt = skill === 'R';
+                      const isTalent = skill === 'Talent';
+                      return (
+                        <div
+                          key={index}
+                          className={`flex flex-col items-center justify-center min-w-[36px] h-12 px-1 rounded-lg border text-xs font-bold transition-transform hover:scale-105 flex-shrink-0 ${
+                            isUlt
+                              ? 'bg-red-950/90 border-red-500 text-red-300 shadow-sm'
+                              : isTalent
+                              ? 'bg-amber-950/90 border-amber-500 text-amber-300 text-[10px] shadow-sm'
+                              : 'bg-dota-bg border-dota-border text-slate-200'
+                          }`}
+                          title={isTalent ? `Hero Level ${index + 1}: Talent Tree Node` : `Hero Level ${index + 1}: Skill ${skillNum} (${skill})`}
+                        >
+                          <span className="text-[8px] text-slate-400 font-mono leading-none">Lv {index + 1}</span>
+                          {!isTalent ? (
+                            <>
+                              <span className="text-[11px] font-black text-white leading-tight mt-0.5">Skill {skillNum}</span>
+                              <span className="text-[8px] text-dota-gold font-mono font-bold leading-none">({skill})</span>
+                            </>
+                          ) : (
+                            <span className="text-[9px] font-bold text-amber-300 leading-tight mt-1">★ Talent</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -848,12 +1077,12 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                   </p>
                 </div>
 
-                <div className="space-y-4 max-w-2xl mx-auto">
+                <div className="space-y-2.5 sm:space-y-4 max-w-2xl mx-auto">
                   {hero.talents.map((t) => (
-                    <div key={t.level} className="flex items-center gap-3">
+                    <div key={t.level} className="flex items-center gap-1.5 sm:gap-3">
                       
                       {/* Left Option */}
-                      <div className={`flex-1 p-3 rounded-xl border text-right text-xs font-semibold transition-all ${
+                      <div className={`flex-1 p-2 sm:p-3 rounded-xl border text-right text-[10px] sm:text-xs font-semibold transition-all leading-snug sm:leading-normal ${
                         t.recommended === 'left'
                           ? 'bg-dota-gold/20 border-dota-gold text-amber-200 shadow-dota-glow font-bold'
                           : 'bg-dota-bg/60 border-dota-border text-slate-400'
@@ -862,12 +1091,12 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       </div>
 
                       {/* Level Circle Center */}
-                      <div className="w-10 h-10 rounded-full bg-dota-panel border-2 border-dota-gold flex items-center justify-center font-dota font-bold text-xs text-dota-gold shadow flex-shrink-0">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-dota-panel border-2 border-dota-gold flex items-center justify-center font-dota font-bold text-[10px] sm:text-xs text-dota-gold shadow flex-shrink-0">
                         {t.level}
                       </div>
 
                       {/* Right Option */}
-                      <div className={`flex-1 p-3 rounded-xl border text-left text-xs font-semibold transition-all ${
+                      <div className={`flex-1 p-2 sm:p-3 rounded-xl border text-left text-[10px] sm:text-xs font-semibold transition-all leading-snug sm:leading-normal ${
                         t.recommended === 'right'
                           ? 'bg-dota-gold/20 border-dota-gold text-amber-200 shadow-dota-glow font-bold'
                           : 'bg-dota-bg/60 border-dota-border text-slate-400'
@@ -1138,7 +1367,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                 <div className="mt-3 flex justify-end">
                   <button
                     onClick={handleSaveNote}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md active:scale-95"
                   >
                     <Save className="w-4 h-4" />
                     <span>Save Note</span>

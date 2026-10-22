@@ -34,10 +34,10 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
       <div className="flex flex-wrap items-center justify-between gap-3">
         
         {/* Attribute Selector */}
-        <div className="flex items-center gap-1 bg-dota-bg/80 p-1 rounded-lg border border-dota-border">
+        <div className="flex items-center gap-1 bg-dota-bg/80 p-1 rounded-lg border border-dota-border overflow-x-auto no-scrollbar max-w-full">
           <button
             onClick={() => setSelectedAttr('all')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
               selectedAttr === 'all'
                 ? 'bg-slate-700 text-white shadow'
                 : 'text-slate-400 hover:text-slate-200'
@@ -47,7 +47,7 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
           </button>
           <button
             onClick={() => setSelectedAttr('str')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
               selectedAttr === 'str'
                 ? 'bg-red-900/60 text-red-400 border border-red-500/50 shadow'
                 : 'text-red-400/70 hover:text-red-300'
@@ -58,7 +58,7 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
           </button>
           <button
             onClick={() => setSelectedAttr('agi')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
               selectedAttr === 'agi'
                 ? 'bg-green-900/60 text-green-400 border border-green-500/50 shadow'
                 : 'text-green-400/70 hover:text-green-300'
@@ -69,7 +69,7 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
           </button>
           <button
             onClick={() => setSelectedAttr('int')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
               selectedAttr === 'int'
                 ? 'bg-blue-900/60 text-blue-400 border border-blue-500/50 shadow'
                 : 'text-blue-400/70 hover:text-blue-300'
@@ -80,7 +80,7 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
           </button>
           <button
             onClick={() => setSelectedAttr('all')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
               selectedAttr === 'all'
                 ? 'bg-purple-900/60 text-purple-300 border border-purple-500/50 shadow'
                 : 'text-purple-400/70 hover:text-purple-300'
@@ -122,15 +122,15 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
       </div>
 
       {/* Bottom Row: Role & Attack Type Pills */}
-      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-dota-border/60">
-        <span className="text-xs font-medium text-slate-500 mr-1">Role:</span>
+      <div className="flex items-center gap-2 pt-1 border-t border-dota-border/60 overflow-x-auto no-scrollbar">
+        <span className="text-xs font-medium text-slate-500 mr-1 flex-shrink-0">Role:</span>
         {(['all', 'Carry', 'Mid', 'Offlane', 'Soft Support', 'Hard Support'] as const).map((role) => (
           <button
             key={role}
             onClick={() => setSelectedRole(role)}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap active:scale-95 flex-shrink-0 ${
               selectedRole === role
-                ? 'bg-dota-gold/20 text-dota-gold border border-dota-gold/50 font-semibold'
+                ? 'bg-dota-gold/20 text-dota-gold border border-dota-gold/50 font-semibold shadow-sm'
                 : 'bg-dota-bg/40 text-slate-400 hover:text-slate-200 border border-transparent'
             }`}
           >
@@ -138,16 +138,16 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
           </button>
         ))}
 
-        <div className="h-4 w-px bg-slate-700 mx-1 hidden sm:block" />
+        <div className="h-4 w-px bg-slate-700 mx-1 flex-shrink-0" />
 
-        <span className="text-xs font-medium text-slate-500 mr-1 hidden sm:inline">Attack:</span>
+        <span className="text-xs font-medium text-slate-500 mr-1 flex-shrink-0">Attack:</span>
         {(['all', 'Melee', 'Ranged'] as const).map((attack) => (
           <button
             key={attack}
             onClick={() => setSelectedAttack(attack)}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap active:scale-95 flex-shrink-0 ${
               selectedAttack === attack
-                ? 'bg-slate-700 text-white border border-slate-500'
+                ? 'bg-slate-700 text-white border border-slate-500 shadow-sm'
                 : 'bg-dota-bg/40 text-slate-400 hover:text-slate-200 border border-transparent'
             }`}
           >

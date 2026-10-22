@@ -401,7 +401,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
           </div>
 
           {/* Attribute Segmented Chips */}
-          <div className="flex items-center p-1 rounded-xl bg-slate-900/90 border border-white/[0.08]">
+          <div className="flex items-center p-1 rounded-xl bg-slate-900/90 border border-white/[0.08] overflow-x-auto no-scrollbar">
             {(['all', 'str', 'agi', 'int'] as const).map((attr) => (
               <button
                 key={attr}
@@ -410,7 +410,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                   setActiveHeroIndex(0);
                   SoundEngine.playHover();
                 }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all duration-100 ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all duration-100 whitespace-nowrap active:scale-95 ${
                   selectedAttribute === attr
                     ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-sm'
                     : 'text-slate-400 hover:text-white'
