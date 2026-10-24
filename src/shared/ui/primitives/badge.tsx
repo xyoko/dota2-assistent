@@ -1,13 +1,8 @@
 import * as React from "react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "../../bi/utils/cn";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "secondary" | "destructive" | "outline" | "gradient";
+  variant?: "default" | "secondary" | "destructive" | "outline" | "radiant" | "dire" | "gold" | "accent" | "gradient";
 }
 
 function Badge({
@@ -15,19 +10,23 @@ function Badge({
   variant = "default",
   ...props
 }: BadgeProps) {
-  const variantStyles = {
-    default: "border-transparent bg-indigo-600 text-white hover:bg-indigo-700",
-    secondary: "border-transparent bg-slate-800 text-slate-200 hover:bg-slate-700",
-    destructive: "border-transparent bg-red-600 text-white hover:bg-red-700",
-    outline: "text-slate-300 border-slate-700 hover:bg-slate-800/50",
-    gradient: "border-purple-500/30 bg-gradient-to-r from-purple-500/15 to-blue-500/15 text-purple-300"
+  const variantStyles: Record<string, string> = {
+    default: "border-sky-500/30 bg-sky-950/60 text-sky-300",
+    accent: "border-sky-500/30 bg-sky-950/60 text-sky-300",
+    gradient: "border-sky-500/30 bg-sky-950/60 text-sky-300",
+    radiant: "border-emerald-500/40 bg-emerald-950/60 text-emerald-300",
+    dire: "border-red-500/40 bg-red-950/60 text-red-300",
+    destructive: "border-red-500/40 bg-red-950/60 text-red-300",
+    gold: "border-amber-500/40 bg-amber-950/60 text-amber-300 font-bold",
+    secondary: "border-white/[0.08] bg-hud-raised text-slate-300",
+    outline: "border-white/[0.14] text-slate-300 bg-transparent"
   };
 
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-        variantStyles[variant],
+        "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-mono font-medium transition-colors select-none",
+        variantStyles[variant] || variantStyles.default,
         className
       )}
       {...props}

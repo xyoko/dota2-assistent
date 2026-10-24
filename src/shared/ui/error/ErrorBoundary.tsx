@@ -88,7 +88,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     if (compact) {
       return (
-        <div className="w-full h-full min-h-[160px] p-4 rounded-2xl bg-slate-950/80 border border-red-500/30 flex flex-col items-center justify-center text-center backdrop-blur-md shadow-lg space-y-3">
+        <div className="w-full h-full min-h-[160px] p-4 rounded-2xl bg-slate-950/95 border border-red-500/30 flex flex-col items-center justify-center text-center shadow-lg space-y-3">
           <div className="w-10 h-10 rounded-xl bg-red-950/60 border border-red-500/40 flex items-center justify-center text-red-400 shadow-sm">
             <AlertTriangle className="w-5 h-5 text-red-400" />
           </div>
@@ -102,7 +102,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           </div>
           <button
             onClick={this.resetErrorBoundary}
-            className="px-3 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+            className="px-3 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm active:scale-95"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Recalibrate</span>
@@ -112,10 +112,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
 
     return (
-      <div className="w-full min-h-[360px] my-6 p-8 rounded-3xl bg-slate-950/90 border border-red-600/40 flex flex-col items-center justify-center text-center shadow-2xl backdrop-blur-md space-y-6">
+      <div className="w-full min-h-[360px] my-6 p-8 rounded-3xl bg-slate-950/95 border border-red-600/40 flex flex-col items-center justify-center text-center shadow-2xl space-y-6">
         <div className="relative">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600/20 via-red-950/50 to-slate-900 border border-red-500/40 flex items-center justify-center shadow-[0_0_30px_rgba(220,38,38,0.3)]">
-            <ShieldAlert className="w-8 h-8 text-red-500 animate-pulse" />
+            <ShieldAlert className="w-8 h-8 text-red-500" />
           </div>
         </div>
 
@@ -136,7 +136,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <div className="flex items-center gap-3">
           <button
             onClick={this.resetErrorBoundary}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(220,38,38,0.4)] transition-all active:scale-95 btn-fade"
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(220,38,38,0.4)] transition-colors active:scale-95 btn-fade"
           >
             <RefreshCw className="w-4 h-4" />
             <span>Recalibrate Module</span>

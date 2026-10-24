@@ -39,26 +39,42 @@ export const CustomNotesView: React.FC<CustomNotesViewProps> = ({
     <div className="space-y-6">
       
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-950/80 via-dota-panel to-slate-900 border border-dota-uni/40 rounded-2xl p-5 sm:p-6 shadow-xl">
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-6 h-6 text-dota-uni" />
-          <h2 className="font-dota font-black text-xl sm:text-2xl text-white">
-            My Match Notes & Saved Drafts
-          </h2>
+      <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 sm:p-6 shadow-hud-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-hud-surface border border-white/[0.08] flex items-center justify-center text-hud-cyan shrink-0">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-display font-bold text-lg sm:text-xl text-slate-100 tracking-tight uppercase">
+                  Tactical Match Notes & Saved Comps
+                </h2>
+                <span className="font-mono text-[10px] text-slate-400 bg-hud-surface px-2 py-0.5 rounded border border-white/[0.08]">
+                  LOCAL CACHE
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1 max-w-2xl font-sans leading-relaxed">
+                Review your hero-specific match notes, bookmarked favorites, and saved draft compositions stored locally in browser storage.
+              </p>
+            </div>
+          </div>
         </div>
-        <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-          Review your personal build notes, favorite heroes, and saved draft compositions stored in your browser.
-        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Left Column: Hero Notes */}
-        <div className="bg-dota-panel border border-dota-border rounded-2xl p-5 shadow-xl space-y-4">
-          <h3 className="font-dota font-bold text-base text-purple-300 flex items-center gap-2 border-b border-dota-border pb-2.5">
-            <Edit3 className="w-4 h-4 text-purple-400" />
-            Hero Match Notes ({noteHeroIds.length})
-          </h3>
+        <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 shadow-hud-md space-y-4">
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+            <h3 className="font-display font-semibold text-sm text-slate-200 flex items-center gap-2">
+              <Edit3 className="w-4 h-4 text-hud-cyan" />
+              Hero Match Notes
+            </h3>
+            <span className="font-mono text-xs text-hud-cyan">
+              {noteHeroIds.length} {noteHeroIds.length === 1 ? 'RECORD' : 'RECORDS'}
+            </span>
+          </div>
 
           {noteHeroIds.length > 0 ? (
             <div className="space-y-3">
@@ -70,33 +86,41 @@ export const CustomNotesView: React.FC<CustomNotesViewProps> = ({
                 return (
                   <div
                     key={heroId}
-                    className="bg-dota-bg border border-dota-border rounded-xl p-3.5 space-y-2 shadow"
+                    className="bg-hud-surface border border-white/[0.06] rounded-xl p-3.5 space-y-2.5 shadow-hud-sm"
                   >
-                    <div className="flex items-center justify-between">
-                      <div 
+                    <div className="flex items-center justify-between gap-2">
+                      <button 
                         onClick={() => onSelectHero(hero)}
-                        className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity"
+                        className="flex items-center gap-2.5 text-left min-h-[44px] group focus-hud rounded-lg p-1"
                       >
                         <img
                           src={hero.avatarUrl}
                           alt={hero.name}
-                          className="w-8 h-8 rounded-lg object-cover border border-purple-500/50"
+                          loading="lazy"
+                          decoding="async"
+                          className="w-8 h-8 rounded-lg object-cover border border-white/[0.1] shrink-0"
                         />
-                        <span className="font-dota font-bold text-sm text-white hover:text-purple-300">
-                          {hero.name}
-                        </span>
-                      </div>
+                        <div>
+                          <span className="font-display font-semibold text-sm text-slate-200 group-hover:text-hud-cyan transition-colors block">
+                            {hero.name}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400">
+                            {hero.roles.slice(0, 2).join(' / ')}
+                          </span>
+                        </div>
+                      </button>
 
                       <button
                         onClick={() => handleDeleteNote(heroId)}
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-red-400 transition-colors"
+                        className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 touch-target p-2 rounded-lg bg-white/[0.04] hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-white/[0.06] hover:border-red-500/30 transition-colors focus-hud shrink-0"
                         title="Delete note"
+                        aria-label={`Delete note for ${hero.name}`}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 
-                    <p className="text-xs text-slate-300 whitespace-pre-wrap bg-dota-panel p-2.5 rounded-lg border border-slate-800/80 leading-relaxed font-sans">
+                    <p className="text-xs text-slate-300 whitespace-pre-wrap bg-hud-bg p-3 rounded-lg border border-white/[0.04] leading-relaxed font-sans">
                       {note}
                     </p>
                   </div>
@@ -104,8 +128,8 @@ export const CustomNotesView: React.FC<CustomNotesViewProps> = ({
               })}
             </div>
           ) : (
-            <div className="p-8 text-center text-xs text-slate-500">
-              No personal hero notes yet. Click on any hero in the Hero Builds tab and write notes in the "My Match Notes" tab.
+            <div className="p-8 text-center text-xs text-slate-400 font-sans border border-dashed border-white/[0.06] rounded-xl">
+              No personal hero notes recorded yet. Select any hero in the Hero Builds view and add tactical notes in the "My Match Notes" panel.
             </div>
           )}
         </div>
@@ -114,41 +138,47 @@ export const CustomNotesView: React.FC<CustomNotesViewProps> = ({
         <div className="space-y-6">
           
           {/* Saved Drafts */}
-          <div className="bg-dota-panel border border-dota-border rounded-2xl p-5 shadow-xl space-y-4">
-            <h3 className="font-dota font-bold text-base text-red-300 flex items-center gap-2 border-b border-dota-border pb-2.5">
-              <Crosshair className="w-4 h-4 text-red-400" />
-              Saved Draft Scenarios ({drafts.length})
-            </h3>
+          <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 shadow-hud-md space-y-4">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+              <h3 className="font-display font-semibold text-sm text-slate-200 flex items-center gap-2">
+                <Crosshair className="w-4 h-4 text-red-400" />
+                Saved Draft Scenarios
+              </h3>
+              <span className="font-mono text-xs text-slate-400">
+                {drafts.length} {drafts.length === 1 ? 'SCENARIO' : 'SCENARIOS'}
+              </span>
+            </div>
 
             {drafts.length > 0 ? (
               <div className="space-y-3">
                 {drafts.map((d) => (
                   <div
                     key={d.id}
-                    className="bg-dota-bg border border-dota-border rounded-xl p-3.5 space-y-2 shadow"
+                    className="bg-hud-surface border border-white/[0.06] rounded-xl p-3.5 space-y-2.5 shadow-hud-sm"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs sm:text-sm text-white">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <span className="font-display font-semibold text-xs sm:text-sm text-slate-200">
                         {d.title}
                       </span>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => onLoadDraftScenario(d.enemyHeroIds)}
-                          className="px-2.5 py-1 rounded bg-dota-red hover:bg-red-600 text-white text-xs font-bold transition-all shadow"
+                          className="min-h-[44px] sm:min-h-0 touch-target px-3 py-1.5 rounded-lg bg-hud-cyan hover:bg-sky-300 text-slate-950 text-xs font-mono font-bold transition-colors shadow-hud-sm focus-hud"
                         >
-                          Load in Draft Tool
+                          LOAD IN DRAFT ➔
                         </button>
                         <button
                           onClick={() => handleDeleteDraft(d.id)}
-                          className="p-1 rounded bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-red-400"
+                          className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 touch-target p-2 rounded-lg bg-white/[0.04] hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-white/[0.06] hover:border-red-500/30 transition-colors focus-hud"
+                          aria-label={`Delete draft scenario ${d.title}`}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
 
                     {/* Enemy Portraits */}
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-1.5 pt-1">
                       {d.enemyHeroIds.map((id) => {
                         const hero = HERO_MAP.get(id);
                         if (!hero) return null;
@@ -158,7 +188,9 @@ export const CustomNotesView: React.FC<CustomNotesViewProps> = ({
                             src={hero.avatarUrl}
                             alt={hero.name}
                             title={hero.name}
-                            className="w-7 h-7 rounded object-cover border border-red-500/40"
+                            loading="lazy"
+                            decoding="async"
+                            className="w-8 h-8 rounded-md object-cover border border-red-500/30"
                           />
                         );
                       })}
@@ -167,18 +199,23 @@ export const CustomNotesView: React.FC<CustomNotesViewProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="p-6 text-center text-xs text-slate-500">
-                No saved drafts. Use the "Save Scenario" button in the Draft & Counters tab.
+              <div className="p-6 text-center text-xs text-slate-400 font-sans border border-dashed border-white/[0.06] rounded-xl">
+                No saved drafts found. Use the "Save Scenario" button in the Draft Counter Studio.
               </div>
             )}
           </div>
 
           {/* Bookmarked Favorites */}
-          <div className="bg-dota-panel border border-dota-border rounded-2xl p-5 shadow-xl space-y-4">
-            <h3 className="font-dota font-bold text-base text-amber-300 flex items-center gap-2 border-b border-dota-border pb-2.5">
-              <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-              Favorite Heroes ({favorites.length})
-            </h3>
+          <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 shadow-hud-md space-y-4">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+              <h3 className="font-display font-semibold text-sm text-slate-200 flex items-center gap-2">
+                <Star className="w-4 h-4 text-hud-gold fill-hud-gold" />
+                Bookmarked Roster
+              </h3>
+              <span className="font-mono text-xs text-hud-gold">
+                {favorites.length} HEROES
+              </span>
+            </div>
 
             {favorites.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -189,14 +226,16 @@ export const CustomNotesView: React.FC<CustomNotesViewProps> = ({
                     <div
                       key={heroId}
                       onClick={() => onSelectHero(hero)}
-                      className="bg-dota-bg border border-amber-500/30 hover:border-amber-400 rounded-xl p-2 flex items-center gap-2 cursor-pointer transition-all hover:bg-slate-800"
+                      className="min-h-[44px] touch-target bg-hud-surface border border-white/[0.08] hover:border-hud-gold/50 rounded-lg p-2 flex items-center gap-2.5 cursor-pointer transition-colors focus-hud"
                     >
                       <img
                         src={hero.avatarUrl}
                         alt={hero.name}
-                        className="w-8 h-8 rounded-lg object-cover border border-amber-500/40"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-7 h-7 rounded-md object-cover border border-white/[0.1] shrink-0"
                       />
-                      <span className="font-bold text-xs text-slate-200 truncate">
+                      <span className="font-display font-medium text-xs text-slate-200 truncate">
                         {hero.name}
                       </span>
                     </div>
@@ -204,8 +243,8 @@ export const CustomNotesView: React.FC<CustomNotesViewProps> = ({
                 })}
               </div>
             ) : (
-              <div className="p-6 text-center text-xs text-slate-500">
-                Star heroes to quickly access them in your favorites list.
+              <div className="p-6 text-center text-xs text-slate-400 font-sans border border-dashed border-white/[0.06] rounded-xl">
+                Bookmark heroes with the star button in Hero Arsenal to quickly access your priority roster.
               </div>
             )}
           </div>

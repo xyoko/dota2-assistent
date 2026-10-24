@@ -40,7 +40,7 @@ export const SaaSHeroSection: React.FC<SaaSHeroSectionProps> = ({
   return (
     <section 
       onMouseMove={handleMouseMove}
-      className="relative overflow-hidden rounded-3xl border border-purple-500/25 bg-gradient-to-br from-indigo-950/70 via-purple-950/50 to-slate-950/90 shadow-2xl pt-11 pb-7 px-5 mt-3 mb-9 text-slate-100 transition-all duration-300 animate-fadeIn"
+      className="relative overflow-hidden rounded-3xl border border-purple-500/25 bg-gradient-to-br from-indigo-950/70 via-purple-950/50 to-slate-950/90 shadow-2xl pt-11 pb-7 px-5 mt-3 mb-9 text-slate-100 transition-transform duration-300 animate-fadeIn"
       style={{
         boxShadow: '0 20px 50px rgba(79, 70, 229, 0.12), 0 0 30px rgba(147, 51, 234, 0.08)'
       }}
@@ -69,8 +69,7 @@ export const SaaSHeroSection: React.FC<SaaSHeroSectionProps> = ({
             className="px-3.5 py-1 text-[11px] font-grotesk tracking-wide uppercase border border-purple-500/40 shadow-sm flex items-center gap-1.5"
           >
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-hud-cyan" />
             </span>
             <Sparkles className="w-3.5 h-3.5 text-purple-300" />
             <span>Next-Gen Autonomous Intelligence — Powered by Patch 7.37d</span>
@@ -152,7 +151,7 @@ export const SaaSHeroSection: React.FC<SaaSHeroSectionProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
             
             {/* Box 1: Purple Border Card */}
-            <Card className="glass-card border-purple-500/35 hover:border-purple-400/60 transition-all duration-300 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(168,85,247,0.12)]">
+            <Card className="glass-card border-purple-500/35 hover:border-purple-400/60 transition-transform duration-300 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(168,85,247,0.12)]">
               <CardHeader className="p-5 pb-2">
                 <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/40 flex items-center justify-center text-purple-300 mb-3 shadow-inner">
                   <BrainCircuit className="w-5 h-5 text-purple-400" />
@@ -173,7 +172,7 @@ export const SaaSHeroSection: React.FC<SaaSHeroSectionProps> = ({
             </Card>
 
             {/* Box 2: Blue Border Card */}
-            <Card className="glass-card border-blue-500/35 hover:border-blue-400/60 transition-all duration-300 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(59,130,246,0.12)]">
+            <Card className="glass-card border-blue-500/35 hover:border-blue-400/60 transition-transform duration-300 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(59,130,246,0.12)]">
               <CardHeader className="p-5 pb-2">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/40 flex items-center justify-center text-blue-300 mb-3 shadow-inner">
                   <Zap className="w-5 h-5 text-blue-400" />
@@ -194,7 +193,7 @@ export const SaaSHeroSection: React.FC<SaaSHeroSectionProps> = ({
             </Card>
 
             {/* Box 3: Cyan/Emerald Border Card */}
-            <Card className="glass-card border-cyan-500/35 hover:border-cyan-400/60 transition-all duration-300 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(6,182,212,0.12)]">
+            <Card className="glass-card border-cyan-500/35 hover:border-cyan-400/60 transition-transform duration-300 hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(6,182,212,0.12)]">
               <CardHeader className="p-5 pb-2">
                 <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-300 mb-3 shadow-inner">
                   <Shield className="w-5 h-5 text-cyan-400" />

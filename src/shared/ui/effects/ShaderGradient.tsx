@@ -106,6 +106,17 @@ void main() {
 }
 `;
 
+const SHADER_DPR = 0.6;
+const TARGET_FPS = 30;
+const FRAME_INTERVAL = 1000 / TARGET_FPS;
+
+export const StaticShaderGradient: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div
+    className={`absolute inset-0 bg-[#07090e] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(127,29,29,0.3),rgba(59,7,100,0.25),rgba(7,9,14,0.95))] pointer-events-none ${className}`}
+    aria-hidden="true"
+  />
+);
+
 export const ShaderGradient: React.FC<ShaderGradientProps> = ({
   className = '',
   speed = 1.0,
@@ -114,6 +125,17 @@ export const ShaderGradient: React.FC<ShaderGradientProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [webGlSupported, setWebGlSupported] = useState<boolean>(true);
+  const pausedRef = useRef<boolean>(paused);
+  pausedRef.current = paused;
+
+  const speedRef = useRef<number>(speed);
+  speedRef.current = speed;
+
+  const updateLoopRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    updateLoopRef.current();
+  }, [paused]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -122,12 +144,18 @@ export const ShaderGradient: React.FC<ShaderGradientProps> = ({
     let renderer: Renderer | null = null;
     let animId: number = 0;
     let isDestroyed = false;
+    let isIntersecting = true;
+    let isDocVisible = !document.hidden;
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     try {
       renderer = new Renderer({
         alpha: false,
         antialias: false,
-        dpr: Math.min(window.devicePixelRatio || 1, 1.5)
+        dpr: SHADER_DPR
       });
     } catch {
       setWebGlSupported(false);
@@ -188,35 +216,87 @@ export const ShaderGradient: React.FC<ShaderGradientProps> = ({
     const handleMouseMove = (e: MouseEvent) => {
       const x = e.clientX / window.innerWidth;
       const y = 1.0 - e.clientY / window.innerHeight;
-      // Smooth interpolation
       uniforms.uMouse.value[0] += (x - uniforms.uMouse.value[0]) * 0.05;
       uniforms.uMouse.value[1] += (y - uniforms.uMouse.value[1]) * 0.05;
     };
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
     let lastTime = performance.now();
+    let lastFrameTime = performance.now();
     let accumulatedTime = 0;
 
     const renderLoop = (time: number) => {
       if (isDestroyed) return;
 
-      const delta = (time - lastTime) / 1000;
-      lastTime = time;
+      const elapsed = time - lastFrameTime;
+      if (elapsed >= FRAME_INTERVAL) {
+        lastFrameTime = time - (elapsed % FRAME_INTERVAL);
+        const delta = (time - lastTime) / 1000;
+        lastTime = time;
 
-      if (!paused && delta < 0.2) {
-        accumulatedTime += delta * speed;
-        uniforms.uTime.value = accumulatedTime;
-        renderer?.render({ scene: mesh });
+        if (delta < 0.2) {
+          accumulatedTime += delta * speedRef.current;
+          uniforms.uTime.value = accumulatedTime;
+          renderer?.render({ scene: mesh });
+        }
       }
 
       animId = requestAnimationFrame(renderLoop);
     };
 
-    animId = requestAnimationFrame(renderLoop);
+    const startLoop = () => {
+      if (animId !== 0 || isDestroyed || prefersReducedMotion) return;
+      lastTime = performance.now();
+      lastFrameTime = performance.now();
+      animId = requestAnimationFrame(renderLoop);
+    };
+
+    const stopLoop = () => {
+      if (animId !== 0) {
+        cancelAnimationFrame(animId);
+        animId = 0;
+      }
+    };
+
+    const syncLoopState = () => {
+      const shouldRun = !pausedRef.current && isDocVisible && isIntersecting && !prefersReducedMotion;
+      if (shouldRun) {
+        startLoop();
+      } else {
+        stopLoop();
+      }
+    };
+    updateLoopRef.current = syncLoopState;
+
+    // IntersectionObserver to stop rAF loop when canvas is offscreen
+    let observer: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(([entry]) => {
+        isIntersecting = entry.isIntersecting;
+        syncLoopState();
+      }, { threshold: 0.01 });
+      observer.observe(container);
+    }
+
+    const handleVisibility = () => {
+      isDocVisible = !document.hidden;
+      syncLoopState();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    if (prefersReducedMotion) {
+      // Render single static frame and don't start the loop
+      uniforms.uTime.value = 1.0;
+      renderer.render({ scene: mesh });
+    } else {
+      syncLoopState();
+    }
 
     return () => {
       isDestroyed = true;
-      cancelAnimationFrame(animId);
+      stopLoop();
+      observer?.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
       if (canvas && canvas.parentNode) {
@@ -224,7 +304,7 @@ export const ShaderGradient: React.FC<ShaderGradientProps> = ({
       }
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, [speed, intensity, paused]);
+  }, [intensity]);
 
   return (
     <div
@@ -233,9 +313,7 @@ export const ShaderGradient: React.FC<ShaderGradientProps> = ({
       aria-hidden="true"
     >
       {/* Fallback CSS animated radial gradient in case WebGL is unavailable */}
-      {!webGlSupported && (
-        <div className="absolute inset-0 bg-[#07090e] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(127,29,29,0.3),rgba(59,7,100,0.25),rgba(7,9,14,0.95))]" />
-      )}
+      {!webGlSupported && <StaticShaderGradient />}
     </div>
   );
 };

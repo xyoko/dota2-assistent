@@ -83,13 +83,10 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
 
   const handleNavClick = (tab: ActiveTab) => {
     setIsMoreOpen(false);
-    // 1. Immediate visual response in navbar (0ms latency)
     setLocalTab(tab);
-    // 2. Play sound asynchronously to avoid main thread AudioContext block
     setTimeout(() => {
       SoundEngine.playHover();
     }, 0);
-    // 3. Transition parent view concurrently
     startTransition(() => {
       setActiveTab(tab);
     });
@@ -99,29 +96,29 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
   const activeSecondaryTab = SECONDARY_TABS.find(t => t.id === currentTab);
 
   return (
-    <header className="sticky top-0 z-40 bg-slate-950/95 border-b border-slate-800/80 shadow-md backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 bg-hud-bg/98 border-b border-white/[0.08] shadow-hud-sm">
+      <div className="max-w-7xl xl:max-w-[1500px] mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
           
-          {/* Logo & Title — Static Layout with Snap Glow on Hover */}
+          {/* Logo & Brand */}
           <div 
             onClick={() => handleNavClick('home')}
             className="flex items-center gap-3 cursor-pointer group select-none flex-shrink-0"
           >
-            <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-900 border border-slate-800 group-hover:border-slate-700 group-hover:shadow-[0_0_12px_rgba(255,255,255,0.25)] transition-all duration-75">
-              <Compass className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 group-hover:text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all duration-75" />
+            <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-hud-surface border border-white/[0.08] group-hover:border-hud-cyan/50 transition-colors">
+              <Compass className="w-5 h-5 sm:w-6 sm:h-6 text-hud-cyan" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="font-grotesk tracking-tight font-black text-lg sm:text-2xl text-slate-200 group-hover:text-white group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.85)] transition-all duration-75">
-                  AEGIS FORGE
+              <div className="flex items-center gap-2">
+                <span className="font-display tracking-tight font-bold text-base sm:text-xl text-slate-100 group-hover:text-hud-cyan transition-colors uppercase">
+                  Aegis Forge
                 </span>
-                <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-widest px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400 group-hover:text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.7)] transition-all duration-75 uppercase">
+                <span className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-sm bg-hud-surface border border-white/[0.08] text-hud-gold uppercase">
                   7.37d
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-sans tracking-wide hidden sm:block group-hover:text-slate-200 group-hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.5)] transition-all duration-75">
-                Dota 2 <span className="font-serif italic font-normal text-slate-400 group-hover:text-slate-200">tactical</span> assistant
+              <p className="text-[11px] text-slate-400 font-sans tracking-wide hidden sm:block">
+                Tactical War-Room Analytics
               </p>
             </div>
           </div>
@@ -135,10 +132,10 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                 <button
                   key={tab.id}
                   onClick={() => handleNavClick(tab.id)}
-                  className={`px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-grotesk font-semibold whitespace-nowrap transition-all duration-75 flex items-center gap-1.5 ${
+                  className={`min-h-[44px] sm:min-h-0 touch-target px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-colors flex items-center gap-1.5 focus-hud ${
                     isActive
-                      ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.85)] bg-slate-900 border border-slate-700 shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900/60 border border-transparent'
+                      ? 'text-slate-100 bg-hud-surface border border-white/[0.12] shadow-hud-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
                   }`}
                 >
                   <TabIcon className="w-3.5 h-3.5 opacity-80" />
@@ -151,12 +148,12 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
             <div className="relative" ref={moreRef}>
               <button
                 onClick={() => setIsMoreOpen(prev => !prev)}
-                className={`px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-grotesk font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all duration-75 ${
+                className={`min-h-[44px] sm:min-h-0 touch-target px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 transition-colors focus-hud ${
                   activeSecondaryTab
-                    ? 'text-amber-300 bg-amber-950/40 border border-amber-600/60 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                    ? 'text-hud-gold bg-hud-surface border border-hud-gold/40'
                     : isMoreOpen
-                    ? 'text-white bg-slate-900 border border-slate-700'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/60 border border-transparent'
+                    ? 'text-slate-100 bg-hud-surface border border-white/[0.12]'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
                 }`}
                 title="Explore additional tactical modules"
               >
@@ -166,8 +163,8 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
               </button>
 
               {isMoreOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-xl bg-slate-950/98 border border-slate-800 shadow-2xl p-1.5 z-50 animate-fadeIn backdrop-blur-xl">
-                  <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono border-b border-slate-900 mb-1">
+                <div className="absolute right-0 mt-2 w-64 rounded-xl bg-hud-panel border border-white/[0.12] shadow-hud-lg p-1.5 z-50 animate-fadeIn">
+                  <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono border-b border-white/[0.06] mb-1">
                     Tactical Modules
                   </div>
                   {SECONDARY_TABS.map((tab) => {
@@ -177,18 +174,18 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                       <button
                         key={tab.id}
                         onClick={() => handleNavClick(tab.id)}
-                        className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition-colors flex items-center gap-2.5 ${
+                        className={`w-full text-left px-2.5 py-2 min-h-[44px] rounded-lg text-xs transition-colors flex items-center gap-2.5 focus-hud ${
                           isTabActive
-                            ? 'bg-amber-500/15 border border-amber-500/40 text-amber-200'
-                            : 'hover:bg-slate-900 text-slate-300 hover:text-white'
+                            ? 'bg-hud-surface border border-hud-cyan/40 text-hud-cyan'
+                            : 'hover:bg-white/[0.04] text-slate-300 hover:text-white'
                         }`}
                       >
-                        <div className="p-1 rounded-md bg-slate-900 border border-white/5 flex-shrink-0">
-                          <TabIcon className="w-3.5 h-3.5 text-amber-300" />
+                        <div className="p-1 rounded-md bg-hud-surface border border-white/[0.08] shrink-0">
+                          <TabIcon className="w-3.5 h-3.5 text-hud-cyan" />
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-semibold">{tab.label}</span>
-                          <span className="text-[10px] text-slate-500 font-sans truncate">{tab.desc}</span>
+                          <span className="font-semibold text-slate-200">{tab.label}</span>
+                          <span className="text-[10px] text-slate-400 font-sans truncate">{tab.desc}</span>
                         </div>
                       </button>
                     );
@@ -198,22 +195,22 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
             </div>
           </nav>
 
-          {/* Spotlight Search Trigger (Emil Kowalski style Cmd+K) */}
+          {/* Spotlight Search Trigger */}
           <div className="hidden lg:flex items-center gap-1.5 mx-2">
             <button
               onClick={() => {
                 SoundEngine.playHover();
                 onOpenCommandPalette?.();
               }}
-              className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-white/[0.08] hover:border-white/[0.15] text-xs text-slate-400 hover:text-slate-200 transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] active:scale-[0.98] w-52 xl:w-60 group cursor-pointer"
+              className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.15] text-xs text-slate-400 hover:text-slate-200 transition-colors w-52 xl:w-60 group cursor-pointer focus-hud min-h-[40px]"
               title="Quick Search & Navigation (Shortcut: Cmd+K)"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <Search className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 transition-colors flex-shrink-0" />
-                <span className="truncate text-slate-500 group-hover:text-slate-300 font-sans">Search or jump to...</span>
+                <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-hud-cyan transition-colors shrink-0" />
+                <span className="truncate text-slate-400 group-hover:text-slate-300 font-sans">Search or jump to...</span>
               </div>
               <div className="flex items-center gap-0.5">
-                <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-slate-950 rounded border border-slate-800 text-slate-400 group-hover:text-amber-300">
+                <kbd className="px-1.5 py-0.5 text-[11px] font-mono font-bold bg-hud-bg rounded-sm border border-white/[0.08] text-slate-400 group-hover:text-hud-cyan">
                   ⌘K
                 </kbd>
               </div>
@@ -228,12 +225,12 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                 setTimeout(() => SoundEngine.playPick(), 0);
                 onOpenPip();
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-grotesk font-semibold tracking-wide bg-slate-900/90 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 whitespace-nowrap group transition-all duration-75 active:scale-[0.98]"
+              className="min-h-[44px] sm:min-h-0 touch-target flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono font-semibold tracking-wider bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.15] text-slate-300 hover:text-slate-100 whitespace-nowrap transition-colors active:scale-[0.98] focus-hud"
               title="Open Picture-in-Picture Mini HUD (Keyboard shortcut: Alt+P)"
             >
-              <PictureInPicture className="w-4 h-4 text-slate-400 group-hover:text-amber-300 transition-colors" />
-              <span className="hidden sm:inline group-hover:text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.85)] transition-all duration-75">PiP HUD</span>
-              <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-slate-950 rounded border border-slate-800 text-slate-500 group-hover:text-slate-300 transition-all duration-75">
+              <PictureInPicture className="w-4 h-4 text-hud-cyan" />
+              <span className="hidden sm:inline">PiP HUD</span>
+              <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[9px] font-mono font-bold bg-hud-bg rounded border border-white/[0.08] text-slate-400">
                 Alt+P
               </kbd>
             </button>
@@ -241,29 +238,30 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
             {/* Sound Mute/Unmute Toggle */}
             <button
               onClick={handleToggleSound}
-              className="p-2.5 rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-900 hover:border-slate-700 text-slate-400 hover:text-white transition-colors duration-75 active:scale-[0.96]"
+              className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 touch-target p-2.5 rounded-lg border border-white/[0.08] bg-hud-surface hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 transition-colors active:scale-[0.96] focus-hud flex items-center justify-center"
               title={soundEnabled ? 'Mute sound effects' : 'Enable sound effects'}
+              aria-label={soundEnabled ? 'Mute sound effects' : 'Enable sound effects'}
             >
               {soundEnabled ? (
                 <Volume2 className="w-4 h-4 text-slate-300" />
               ) : (
-                <VolumeX className="w-4 h-4 text-slate-500" />
+                <VolumeX className="w-4 h-4 text-slate-400" />
               )}
             </button>
           </div>
         </div>
 
         {/* Mobile Search Bar & Spotlight Trigger */}
-        <div className="lg:hidden pb-2 pt-1">
+        <div className="lg:hidden pb-2.5 pt-1">
           <button
             onClick={() => onOpenCommandPalette?.()}
-            className="w-full flex items-center justify-between px-3 py-2 bg-slate-900/80 border border-white/[0.08] rounded-xl text-xs text-slate-400 active:scale-[0.99] transition-all"
+            className="w-full min-h-[44px] touch-target flex items-center justify-between px-3 py-2 bg-hud-surface border border-white/[0.08] rounded-lg text-xs text-slate-400 active:scale-[0.99] transition-colors focus-hud"
           >
             <div className="flex items-center gap-2">
               <Search className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-slate-500">Search modules, 124+ heroes...</span>
+              <span className="text-slate-400">Search modules, 124+ heroes...</span>
             </div>
-            <kbd className="px-1.5 py-0.5 text-[9px] font-mono font-bold bg-slate-950 rounded border border-slate-800 text-slate-400">
+            <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-hud-bg rounded border border-white/[0.08] text-slate-400">
               ⌘K
             </kbd>
           </button>
@@ -278,10 +276,10 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
               <button
                 key={tab.id}
                 onClick={() => handleNavClick(tab.id)}
-                className={`px-3 py-2 min-h-[38px] rounded-xl font-grotesk font-semibold whitespace-nowrap transition-all duration-75 flex items-center gap-1.5 flex-shrink-0 active:scale-[0.95] ${
+                className={`min-h-[44px] px-3 py-2 touch-target rounded-lg font-mono text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 flex-shrink-0 active:scale-[0.95] focus-hud ${
                   isActive
-                    ? 'text-amber-200 bg-amber-950/60 border border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.25)]'
-                    : 'text-slate-400 hover:text-white bg-slate-900/80 border border-slate-800'
+                    ? 'text-hud-cyan bg-hud-surface border border-hud-cyan/40 shadow-hud-sm'
+                    : 'text-slate-400 hover:text-white bg-hud-panel border border-white/[0.06]'
                 }`}
               >
                 <TabIcon className="w-3.5 h-3.5" />

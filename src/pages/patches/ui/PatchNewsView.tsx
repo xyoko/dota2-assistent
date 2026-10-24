@@ -86,26 +86,26 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
       case 'buff':
         return {
           label: 'Buff',
-          style: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50',
+          style: 'bg-emerald-950/60 text-emerald-400 border-emerald-500/40',
           icon: <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
         };
       case 'nerf':
         return {
           label: 'Nerf',
-          style: 'bg-red-500/20 text-red-300 border-red-500/50',
+          style: 'bg-red-950/60 text-red-400 border-red-500/40',
           icon: <ArrowDownRight className="w-3.5 h-3.5 text-red-400" />
         };
       case 'fix':
         return {
           label: 'Bug Fix',
-          style: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50',
-          icon: <Bug className="w-3.5 h-3.5 text-cyan-400" />
+          style: 'bg-sky-950/60 text-sky-400 border-sky-500/40',
+          icon: <Bug className="w-3.5 h-3.5 text-sky-400" />
         };
       case 'rework':
         return {
           label: 'Rework',
-          style: 'bg-purple-500/20 text-purple-300 border-purple-500/50',
-          icon: <RefreshCw className="w-3.5 h-3.5 text-purple-400" />
+          style: 'bg-amber-950/60 text-amber-300 border-amber-500/40',
+          icon: <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
         };
     }
   };
@@ -114,23 +114,21 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
     <div className="space-y-6">
       
       {/* Top Banner */}
-      <div className="bg-gradient-to-br from-slate-900 via-dota-panel to-blue-950/40 border-2 border-dota-border rounded-2xl p-5 sm:p-7 shadow-2xl relative overflow-hidden">
-        <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-        
+      <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 sm:p-6 shadow-hud-sm relative overflow-hidden">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/50 text-cyan-400 text-xs font-bold uppercase tracking-wider shadow-sm">
-                <Newspaper className="w-3.5 h-3.5 text-cyan-400" />
-                Patch Notes & Hero Fixes
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-hud-surface border border-white/[0.08] text-hud-cyan text-xs font-mono font-bold uppercase tracking-wider">
+                <Newspaper className="w-3.5 h-3.5 text-hud-cyan" />
+                Patch Changelog
               </span>
-              <span className="text-[11px] text-slate-400 font-mono bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-slate-700 flex items-center gap-1">
+              <span className="text-[11px] text-slate-400 font-mono bg-hud-surface px-2.5 py-1 rounded-md border border-white/[0.08] flex items-center gap-1">
                 <Calendar className="w-3 h-3 text-slate-400" />
                 {currentPatch.releaseDate}
               </span>
             </div>
             
-            <h1 className="font-dota font-black text-2xl sm:text-3xl text-white tracking-wide flex items-center gap-3">
+            <h1 className="font-display font-bold text-xl sm:text-2xl text-slate-100 tracking-tight uppercase flex items-center gap-3">
               <span>Patch {currentPatch.version}: {currentPatch.title}</span>
             </h1>
             
@@ -140,24 +138,24 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
           </div>
 
           {/* Patch Version Selector Tabs */}
-          <div className="flex flex-wrap lg:flex-col gap-2 flex-shrink-0">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1">
+          <div className="flex flex-wrap lg:flex-col gap-2 shrink-0">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block mb-1">
               Select Patch:
             </span>
-            <div className="flex gap-1.5 bg-dota-bg/90 p-1.5 rounded-xl border border-slate-800">
+            <div className="flex gap-1.5 bg-hud-surface p-1.5 rounded-lg border border-white/[0.08]">
               {PATCH_NOTES_DATA.map((p) => (
                 <button
                   key={p.version}
                   onClick={() => setSelectedPatchVersion(p.version)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`min-h-[44px] sm:min-h-0 touch-target px-3 py-1.5 rounded-md text-xs font-mono font-bold uppercase tracking-wider transition-colors focus-hud ${
                     selectedPatchVersion === p.version
-                      ? 'bg-cyan-600 text-white shadow font-black'
+                      ? 'bg-hud-cyan text-slate-950 shadow-hud-sm font-black'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   Patch {p.version}
                   {p.isLatest && (
-                    <span className="ml-1.5 px-1.5 py-0.2 rounded text-[9px] bg-emerald-500 text-slate-950 font-black uppercase">
+                    <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] bg-slate-950 text-hud-cyan font-mono font-bold uppercase">
                       Latest
                     </span>
                   )}
@@ -170,72 +168,72 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
 
       {/* Patch Summary Metrics Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="bg-dota-panel border border-slate-800 p-3.5 rounded-xl text-center shadow">
-          <div className="text-xl font-black font-dota text-slate-200">{stats.total}</div>
-          <div className="text-[10px] uppercase font-bold text-slate-400">Total Hero Updates</div>
+        <div className="bg-hud-panel border border-white/[0.08] p-3.5 rounded-xl text-center shadow-hud-sm">
+          <div className="text-xl font-bold font-mono tabular-nums text-slate-200">{stats.total}</div>
+          <div className="text-[10px] uppercase font-mono text-slate-400 mt-0.5">Total Updates</div>
         </div>
 
-        <div className="bg-dota-panel border border-emerald-950/60 p-3.5 rounded-xl text-center shadow">
-          <div className="text-xl font-black font-dota text-emerald-400 flex items-center justify-center gap-1">
+        <div className="bg-hud-panel border border-emerald-500/20 p-3.5 rounded-xl text-center shadow-hud-sm">
+          <div className="text-xl font-bold font-mono tabular-nums text-emerald-400 flex items-center justify-center gap-1">
             <ArrowUpRight className="w-4 h-4 text-emerald-400" />
             <span>{stats.buffs}</span>
           </div>
-          <div className="text-[10px] uppercase font-bold text-emerald-400/80">Buffed Heroes</div>
+          <div className="text-[10px] uppercase font-mono text-emerald-400/80 mt-0.5">Buffed Heroes</div>
         </div>
 
-        <div className="bg-dota-panel border border-red-950/60 p-3.5 rounded-xl text-center shadow">
-          <div className="text-xl font-black font-dota text-red-400 flex items-center justify-center gap-1">
+        <div className="bg-hud-panel border border-red-500/20 p-3.5 rounded-xl text-center shadow-hud-sm">
+          <div className="text-xl font-bold font-mono tabular-nums text-red-400 flex items-center justify-center gap-1">
             <ArrowDownRight className="w-4 h-4 text-red-400" />
             <span>{stats.nerfs}</span>
           </div>
-          <div className="text-[10px] uppercase font-bold text-red-400/80">Nerfed Heroes</div>
+          <div className="text-[10px] uppercase font-mono text-red-400/80 mt-0.5">Nerfed Heroes</div>
         </div>
 
-        <div className="bg-dota-panel border border-cyan-950/60 p-3.5 rounded-xl text-center shadow">
-          <div className="text-xl font-black font-dota text-cyan-400 flex items-center justify-center gap-1">
-            <Bug className="w-4 h-4 text-cyan-400" />
+        <div className="bg-hud-panel border border-sky-500/20 p-3.5 rounded-xl text-center shadow-hud-sm">
+          <div className="text-xl font-bold font-mono tabular-nums text-sky-400 flex items-center justify-center gap-1">
+            <Bug className="w-4 h-4 text-sky-400" />
             <span>{stats.fixes}</span>
           </div>
-          <div className="text-[10px] uppercase font-bold text-cyan-400/80">Bug Fixes Applied</div>
+          <div className="text-[10px] uppercase font-mono text-sky-400/80 mt-0.5">Bug Fixes</div>
         </div>
 
-        <div className="bg-dota-panel border border-purple-950/60 p-3.5 rounded-xl text-center shadow col-span-2 sm:col-span-1">
-          <div className="text-xl font-black font-dota text-purple-400 flex items-center justify-center gap-1">
-            <Sparkles className="w-4 h-4 text-purple-400" />
+        <div className="bg-hud-panel border border-amber-500/20 p-3.5 rounded-xl text-center shadow-hud-sm col-span-2 sm:col-span-1">
+          <div className="text-xl font-bold font-mono tabular-nums text-hud-gold flex items-center justify-center gap-1">
+            <Sparkles className="w-4 h-4 text-hud-gold" />
             <span>{stats.facetChanges}</span>
           </div>
-          <div className="text-[10px] uppercase font-bold text-purple-400/80">Facet / Innate Tweaks</div>
+          <div className="text-[10px] uppercase font-mono text-hud-gold/80 mt-0.5">Facet / Innate</div>
         </div>
       </div>
 
       {/* System & Global Map Changes Box */}
       {currentPatch.systemChanges && currentPatch.systemChanges.length > 0 && (
-        <div className="bg-dota-panel border border-dota-border rounded-2xl p-5 shadow-xl space-y-3">
-          <div className="flex items-center gap-2 text-amber-400 font-dota font-bold text-sm uppercase tracking-wider">
-            <Zap className="w-4 h-4 text-amber-400" />
+        <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 shadow-hud-sm space-y-3">
+          <div className="flex items-center gap-2 text-hud-gold font-display font-semibold text-xs sm:text-sm uppercase tracking-wider">
+            <Zap className="w-4 h-4 text-hud-gold" />
             <span>Global Game, Map & Objective Adjustments</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {currentPatch.systemChanges.map((sys, idx) => (
-              <div key={idx} className="bg-dota-bg/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between space-y-2">
+              <div key={idx} className="bg-hud-surface border border-white/[0.06] rounded-lg p-3.5 flex flex-col justify-between space-y-2">
                 <div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-amber-300 font-bold uppercase">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-hud-bg text-hud-gold font-bold uppercase">
                     {sys.category}
                   </span>
-                  <h3 className="font-dota font-bold text-xs sm:text-sm text-slate-200 mt-1.5">
+                  <h3 className="font-display font-semibold text-xs sm:text-sm text-slate-100 mt-1.5">
                     {sys.title}
                   </h3>
                   <ul className="mt-2 space-y-1">
                     {sys.changes.map((c, i) => (
-                      <li key={i} className="text-[11px] text-slate-300 flex items-start gap-1.5">
-                        <span className="text-amber-400">•</span>
+                      <li key={i} className="text-[11px] text-slate-300 flex items-start gap-1.5 font-sans leading-relaxed">
+                        <span className="text-hud-cyan font-bold">•</span>
                         <span>{c}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-400 italic">
+                <div className="pt-2 border-t border-white/[0.06] text-[10px] text-slate-400 font-mono">
                   Impact: {sys.impact}
                 </div>
               </div>
@@ -245,19 +243,19 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
       )}
 
       {/* Search & Filter Controls */}
-      <div className="bg-dota-panel border border-dota-border rounded-2xl p-4 shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 shadow-hud-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         
         {/* Change Type Filter Pills */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1 hidden sm:inline">Filter:</span>
+          <span className="text-[10px] font-mono uppercase text-slate-400 mr-1 hidden sm:inline">Filter:</span>
           {(['all', 'buff', 'nerf', 'fix', 'rework'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setFilterType(t)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all capitalize ${
+              className={`min-h-[44px] sm:min-h-0 touch-target px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-colors focus-hud ${
                 filterType === t
-                  ? 'bg-cyan-600 text-white shadow font-black'
-                  : 'bg-dota-bg border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700'
+                  ? 'bg-hud-cyan text-slate-950 font-bold shadow-hud-sm'
+                  : 'bg-hud-surface border border-white/[0.06] text-slate-400 hover:text-slate-200'
               }`}
             >
               {t === 'all' ? 'All Updates' : t === 'fix' ? 'Bug Fixes' : `${t}s`}
@@ -271,8 +269,9 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
           {/* Role Filter */}
           <select
             value={filterRole}
+            aria-label="Filter by hero role"
             onChange={(e) => setFilterRole(e.target.value as any)}
-            className="bg-dota-bg border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+            className="min-h-[44px] sm:min-h-0 bg-hud-surface border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs font-mono uppercase text-slate-200 focus:outline-none focus:border-hud-cyan focus-hud"
           >
             <option value="all">All Roles</option>
             <option value="Carry">Carry</option>
@@ -290,7 +289,7 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
               placeholder="Search hero, spell, bugfix..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-dota-bg border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              className="w-full pl-8 pr-3 py-2 min-h-[44px] bg-hud-surface border border-white/[0.08] rounded-lg text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-hud-cyan focus-hud transition-colors"
             />
           </div>
 
@@ -307,53 +306,56 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
             return (
               <div
                 key={`${change.heroId}-${idx}`}
-                className="bg-dota-panel border-2 border-dota-border hover:border-slate-600 rounded-2xl p-4 sm:p-6 shadow-xl transition-all space-y-4"
+                className="bg-hud-panel border border-white/[0.08] hover:border-white/[0.16] rounded-xl p-4 sm:p-6 shadow-hud-sm transition-colors space-y-4"
               >
                 {/* Header: Hero Avatar, Name, Change Badge, Category */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.06]">
                   
                   <div className="flex items-center gap-3">
                     <img
                       src={change.avatarUrl}
                       alt={change.heroName}
+                      loading="lazy"
+                      decoding="async"
                       onClick={() => handleHeroClick(change.heroId)}
-                      className="w-12 h-12 rounded-xl object-cover border border-slate-700 hover:border-cyan-400 cursor-pointer transition-transform hover:scale-105"
+                      className="w-12 h-12 rounded-lg object-cover border border-white/[0.1] hover:border-hud-cyan cursor-pointer transition-colors shrink-0"
                     />
 
                     <div>
                       <div className="flex items-center gap-2">
                         <h2
                           onClick={() => handleHeroClick(change.heroId)}
-                          className="font-dota font-black text-lg text-white hover:text-cyan-300 cursor-pointer transition-colors"
+                          className="font-display font-semibold text-base sm:text-lg text-slate-100 hover:text-hud-cyan cursor-pointer transition-colors"
                         >
                           {change.heroName}
                         </h2>
-                        <span className="text-xs text-slate-400 font-sans">
+                        <span className="text-xs text-slate-400 font-mono">
                           ({change.primaryRole})
                         </span>
                       </div>
-                      <div className="text-xs text-slate-300 font-medium mt-0.5">
+                      <div className="text-xs text-slate-400 font-mono mt-0.5">
                         {change.targetName}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
-                    <span className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border ${typeBadge.style}`}>
+                    <span className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-mono font-bold uppercase border ${typeBadge.style}`}>
                       {typeBadge.icon}
                       <span>{typeBadge.label}</span>
                     </span>
 
-                    <span className="px-2.5 py-1 rounded-lg text-xs font-mono bg-slate-800 text-slate-300 border border-slate-700 capitalize">
+                    <span className="px-2.5 py-1 rounded-md text-xs font-mono bg-hud-surface text-slate-300 border border-white/[0.08] uppercase">
                       {change.category}
                     </span>
 
                     <button
                       onClick={() => handleHeroClick(change.heroId)}
-                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                      className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 touch-target p-2 rounded-lg bg-hud-surface hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 border border-white/[0.08] transition-colors focus-hud flex items-center justify-center"
                       title="Inspect Hero Build Guide"
+                      aria-label={`Inspect ${change.heroName} Build Guide`}
                     >
-                      <ExternalLink className="w-4 h-4" />
+                      <ExternalLink className="w-4 h-4 text-hud-cyan" />
                     </button>
                   </div>
 
@@ -361,26 +363,26 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
 
                 {/* Change Details */}
                 <div className="space-y-2.5">
-                  <div className="font-semibold text-xs sm:text-sm text-slate-200">
+                  <div className="font-sans font-medium text-xs sm:text-sm text-slate-200">
                     {change.summary}
                   </div>
 
                   {/* Bulleted exact numbers / changes */}
-                  <div className="bg-dota-bg/90 border border-slate-800 rounded-xl p-3.5 space-y-1.5">
+                  <div className="bg-hud-surface border border-white/[0.06] rounded-lg p-3.5 space-y-1.5">
                     {change.details.map((detail, i) => (
-                      <div key={i} className="text-xs text-slate-300 flex items-start gap-2 font-mono">
-                        <span className="text-cyan-400 mt-0.5">▸</span>
-                        <span className="font-sans">{detail}</span>
+                      <div key={i} className="text-xs text-slate-300 flex items-start gap-2 font-sans leading-relaxed">
+                        <span className="text-hud-cyan font-bold mt-0.5">▸</span>
+                        <span>{detail}</span>
                       </div>
                     ))}
                   </div>
 
                   {/* Bug Fix Context Alert Box (if present) */}
                   {change.bugfixContext && (
-                    <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl p-3 flex items-start gap-2.5">
-                      <Bug className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                    <div className="bg-sky-950/20 border border-sky-500/30 rounded-lg p-3 flex items-start gap-2.5">
+                      <Bug className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
                       <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 block">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-sky-400 block">
                           Resolved Bug Context:
                         </span>
                         <span className="text-xs text-slate-300 font-sans">
@@ -392,8 +394,8 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
 
                   {/* Tactical Meta Impact & Verdict */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-1">
-                    <div className="md:col-span-3 bg-dota-bg/50 border border-slate-800/80 rounded-xl p-3">
-                      <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block mb-0.5">
+                    <div className="md:col-span-3 bg-hud-surface border border-white/[0.06] rounded-lg p-3">
+                      <span className="text-[10px] font-mono font-bold text-hud-gold uppercase tracking-wider block mb-0.5">
                         Tactical Meta Impact & Gameplay Takeaway:
                       </span>
                       <p className="text-xs text-slate-300 font-sans leading-relaxed">
@@ -401,11 +403,11 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
                       </p>
                     </div>
 
-                    <div className="bg-dota-bg/50 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-center items-center text-center">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    <div className="bg-hud-surface border border-white/[0.06] rounded-lg p-3 flex flex-col justify-center items-center text-center">
+                      <span className="text-[10px] font-mono uppercase text-slate-400 mb-1">
                         Patch Verdict
                       </span>
-                      <span className="text-xs font-dota font-black text-cyan-300 bg-cyan-950/40 px-2.5 py-1 rounded-lg border border-cyan-500/30">
+                      <span className="text-xs font-mono font-bold text-hud-cyan bg-hud-bg px-2.5 py-1 rounded-md border border-hud-cyan/30 uppercase">
                         {change.verdict}
                       </span>
                     </div>
@@ -417,10 +419,10 @@ export const PatchNewsView: React.FC<PatchNewsViewProps> = ({ onSelectHero }) =>
             );
           })
         ) : (
-          <div className="bg-dota-panel border border-dota-border rounded-2xl p-10 text-center space-y-2">
-            <Wrench className="w-10 h-10 text-slate-500 mx-auto" />
-            <div className="font-dota font-bold text-slate-300">No Patch Notes Found</div>
-            <p className="text-xs text-slate-500">No hero changes match your current filters or search query.</p>
+          <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-10 text-center space-y-2">
+            <Wrench className="w-10 h-10 text-slate-400 mx-auto" />
+            <div className="font-display font-semibold text-slate-200">No Patch Notes Found</div>
+            <p className="text-xs text-slate-400 font-sans">No hero changes match your current filters or search query.</p>
           </div>
         )}
       </div>

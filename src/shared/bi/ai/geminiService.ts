@@ -102,7 +102,7 @@ export class GeminiService {
 
     for (const model of models) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
         const body: Record<string, any> = {
           contents: [
@@ -118,12 +118,18 @@ export class GeminiService {
           };
         }
 
+        const timeoutSignal = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal
+          ? AbortSignal.timeout(15000)
+          : undefined;
+
         const response = await fetch(url, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey
           },
-          body: JSON.stringify(body)
+          body: JSON.stringify(body),
+          signal: timeoutSignal
         });
 
         if (!response.ok) {
@@ -276,19 +282,19 @@ Provide a direct, high-level tactical coaching answer for Dota 2 Patch 7.37d. In
       const hero = heroMatch ? heroMatch[1].trim() : 'Selected Hero';
       const question = questionMatch ? questionMatch[1].trim() : 'Tactical analysis';
 
-      return `### ⚡ Zero-Setup Tactical Oracle: ${hero}
+      return `### ⚡ Zero-Setup Tactical Advisor: ${hero}
 - **Tactical Inquiry**: "${question}"
 - **Immortal Meta Guideline (Patch 7.37d)**: Focus on hero power spikes at level 6 and primary item completion (BKB / Blink / Manta).
 - **Positioning Protocol**: Maintain triangle camp control; rotate to active teamfights only when key ultimates are off cooldown.
 - **Counter-Itemization**: Prioritize dispel items (BKB/Eul's/Lotus) against chain silences and hexes.
-*(Zero-Setup Native Oracle Active • Live cloud streaming available with optional API key)*`;
+*(Zero-Setup Native Analysis Active • Live cloud streaming available with optional API key)*`;
     }
 
-    return `### ⚔️ Zero-Setup Tactical Oracle (Patch 7.37d)
+    return `### ⚔️ Zero-Setup Tactical Advisor (Patch 7.37d)
 - **Status**: Native Zero-Setup Telemetry Active
 - **Strategic Imperative**: Prioritize 6-minute power rune control and 20-minute Tormentor positioning.
 - **Team Fight Protocol**: Identify primary enemy initiator before committing tier-2 and tier-3 high-ground pushes.
 - **Itemization Anchor**: Core heroes must finish BKB before committing to Roshan pit breach.
-*(Zero-Setup Native Oracle Active • Live cloud streaming available with optional API key)*`;
+*(Zero-Setup Native Analysis Active • Live cloud streaming available with optional API key)*`;
   }
 }

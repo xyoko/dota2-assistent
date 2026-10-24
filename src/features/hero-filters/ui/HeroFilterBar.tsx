@@ -28,18 +28,18 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
   setSortBy
 }) => {
   return (
-    <div className="glass-card border border-purple-500/25 rounded-2xl p-4 mb-6 shadow-[0_8px_30px_rgba(168,85,247,0.1)] space-y-3.5">
+    <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 mb-6 shadow-hud-sm space-y-3.5">
       
       {/* Top Row: Attribute Filters + Roles */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         
         {/* Attribute Selector */}
-        <div className="flex items-center gap-1 bg-dota-bg/80 p-1 rounded-lg border border-dota-border overflow-x-auto no-scrollbar max-w-full">
+        <div className="flex items-center gap-1 bg-hud-bg p-1 rounded-lg border border-white/[0.08] overflow-x-auto no-scrollbar max-w-full">
           <button
             onClick={() => setSelectedAttr('all')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+            className={`min-h-[44px] sm:min-h-0 touch-target px-3 py-1.5 rounded-md text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-95 focus-hud ${
               selectedAttr === 'all'
-                ? 'bg-slate-700 text-white shadow'
+                ? 'bg-hud-surface text-slate-100 border border-white/[0.12] shadow-hud-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -47,46 +47,46 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
           </button>
           <button
             onClick={() => setSelectedAttr('str')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+            className={`min-h-[44px] sm:min-h-0 touch-target flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-95 focus-hud ${
               selectedAttr === 'str'
-                ? 'bg-red-900/60 text-red-400 border border-red-500/50 shadow'
+                ? 'bg-red-950/60 text-red-400 border border-red-500/50 shadow-hud-sm'
                 : 'text-red-400/70 hover:text-red-300'
             }`}
           >
-            <ShieldAlert className="w-3.5 h-3.5 text-dota-str" />
+            <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
             <span>Strength</span>
           </button>
           <button
             onClick={() => setSelectedAttr('agi')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+            className={`min-h-[44px] sm:min-h-0 touch-target flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-95 focus-hud ${
               selectedAttr === 'agi'
-                ? 'bg-green-900/60 text-green-400 border border-green-500/50 shadow'
-                : 'text-green-400/70 hover:text-green-300'
+                ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/50 shadow-hud-sm'
+                : 'text-emerald-400/70 hover:text-emerald-300'
             }`}
           >
-            <Zap className="w-3.5 h-3.5 text-dota-agi" />
+            <Zap className="w-3.5 h-3.5 text-emerald-400" />
             <span>Agility</span>
           </button>
           <button
             onClick={() => setSelectedAttr('int')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+            className={`min-h-[44px] sm:min-h-0 touch-target flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-95 focus-hud ${
               selectedAttr === 'int'
-                ? 'bg-blue-900/60 text-blue-400 border border-blue-500/50 shadow'
-                : 'text-blue-400/70 hover:text-blue-300'
+                ? 'bg-sky-950/60 text-sky-400 border border-sky-500/50 shadow-hud-sm'
+                : 'text-sky-400/70 hover:text-sky-300'
             }`}
           >
-            <Compass className="w-3.5 h-3.5 text-dota-int" />
+            <Compass className="w-3.5 h-3.5 text-sky-400" />
             <span>Intelligence</span>
           </button>
           <button
-            onClick={() => setSelectedAttr('all')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
-              selectedAttr === 'all'
-                ? 'bg-purple-900/60 text-purple-300 border border-purple-500/50 shadow'
-                : 'text-purple-400/70 hover:text-purple-300'
+            onClick={() => setSelectedAttr('uni' as any)}
+            className={`min-h-[44px] sm:min-h-0 touch-target flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-95 focus-hud ${
+              selectedAttr === ('uni' as any)
+                ? 'bg-amber-950/60 text-amber-300 border border-amber-500/50 shadow-hud-sm'
+                : 'text-amber-400/70 hover:text-amber-300'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-gradient-to-r from-teal-400 via-purple-400 to-pink-500 inline-block" />
+            <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
             <span>Universal</span>
           </button>
         </div>
@@ -95,22 +95,23 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+            className={`min-h-[44px] sm:min-h-0 touch-target flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider border transition-colors focus-hud ${
               showFavoritesOnly
-                ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-dota-glow'
-                : 'bg-dota-bg/60 border-dota-border text-slate-400 hover:text-slate-200'
+                ? 'bg-hud-surface border-hud-gold/60 text-hud-gold shadow-hud-sm'
+                : 'bg-hud-surface border-white/[0.08] text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Star className={`w-3.5 h-3.5 ${showFavoritesOnly ? 'fill-amber-400 text-amber-400' : ''}`} />
+            <Star className={`w-3.5 h-3.5 ${showFavoritesOnly ? 'fill-hud-gold text-hud-gold' : 'text-slate-400'}`} />
             <span>Favorites</span>
           </button>
 
-          <div className="flex items-center gap-1.5 bg-dota-bg/60 border border-dota-border rounded-lg px-2.5 py-1.5 text-xs text-slate-300">
-            <span className="text-slate-500 font-medium">Sort:</span>
+          <div className="min-h-[44px] sm:min-h-0 flex items-center gap-1.5 bg-hud-surface border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus-hud">
+            <span className="text-slate-400 font-mono text-[11px] uppercase">Sort:</span>
             <select
               value={sortBy}
+              aria-label="Sort heroes by"
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer"
+              className="bg-transparent text-slate-200 font-mono text-xs uppercase focus:outline-none cursor-pointer"
             >
               <option value="winRate" className="bg-slate-900">Win Rate</option>
               <option value="name" className="bg-slate-900">Hero Name</option>
@@ -122,33 +123,33 @@ export const HeroFilterBar: React.FC<HeroFilterBarProps> = React.memo(({
       </div>
 
       {/* Bottom Row: Role & Attack Type Pills */}
-      <div className="flex items-center gap-2 pt-1 border-t border-dota-border/60 overflow-x-auto no-scrollbar">
-        <span className="text-xs font-medium text-slate-500 mr-1 flex-shrink-0">Role:</span>
+      <div className="flex items-center gap-2 pt-1 border-t border-white/[0.06] overflow-x-auto no-scrollbar">
+        <span className="text-[11px] font-mono uppercase text-slate-400 mr-1 shrink-0">Role:</span>
         {(['all', 'Carry', 'Mid', 'Offlane', 'Soft Support', 'Hard Support'] as const).map((role) => (
           <button
             key={role}
             onClick={() => setSelectedRole(role)}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap active:scale-95 flex-shrink-0 ${
+            className={`min-h-[44px] sm:min-h-0 touch-target px-2.5 py-1 rounded-md text-xs font-mono uppercase tracking-wider transition-colors whitespace-nowrap active:scale-95 shrink-0 focus-hud ${
               selectedRole === role
-                ? 'bg-dota-gold/20 text-dota-gold border border-dota-gold/50 font-semibold shadow-sm'
-                : 'bg-dota-bg/40 text-slate-400 hover:text-slate-200 border border-transparent'
+                ? 'bg-hud-cyan/15 text-hud-cyan border border-hud-cyan/40 font-semibold shadow-hud-sm'
+                : 'bg-white/[0.04] text-slate-400 hover:text-slate-200 border border-transparent'
             }`}
           >
             {role === 'all' ? 'All Roles' : role}
           </button>
         ))}
 
-        <div className="h-4 w-px bg-slate-700 mx-1 flex-shrink-0" />
+        <div className="h-4 w-px bg-white/[0.1] mx-1 shrink-0" />
 
-        <span className="text-xs font-medium text-slate-500 mr-1 flex-shrink-0">Attack:</span>
+        <span className="text-[11px] font-mono uppercase text-slate-400 mr-1 shrink-0">Attack:</span>
         {(['all', 'Melee', 'Ranged'] as const).map((attack) => (
           <button
             key={attack}
             onClick={() => setSelectedAttack(attack)}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap active:scale-95 flex-shrink-0 ${
+            className={`min-h-[44px] sm:min-h-0 touch-target px-2.5 py-1 rounded-md text-xs font-mono uppercase tracking-wider transition-colors whitespace-nowrap active:scale-95 shrink-0 focus-hud ${
               selectedAttack === attack
-                ? 'bg-slate-700 text-white border border-slate-500 shadow-sm'
-                : 'bg-dota-bg/40 text-slate-400 hover:text-slate-200 border border-transparent'
+                ? 'bg-hud-surface text-slate-100 border border-white/[0.12] shadow-hud-sm'
+                : 'bg-white/[0.04] text-slate-400 hover:text-slate-200 border border-transparent'
             }`}
           >
             {attack === 'all' ? 'All Types' : attack}

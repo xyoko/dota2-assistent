@@ -121,7 +121,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
     if (!el || vaultViewMode !== 'dome') return;
 
     const handleWheel = (e: WheelEvent) => {
-      // Prevent browser / Lenis from scrolling the document
+      // Prevent browser from scrolling the document
       e.preventDefault();
       e.stopPropagation();
 
@@ -136,13 +136,18 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
     };
   }, [vaultViewMode, checkInfiniteWrap]);
 
-  // 2. Auto-Scroll Loop (Runs at 60fps, continuously loops over all heroes)
+  // 2. Auto-Scroll Loop (Stops when offscreen, hidden, or prefers-reduced-motion)
   useEffect(() => {
-    if (!isAutoScrolling || vaultViewMode !== 'dome') return;
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    if (!isAutoScrolling || vaultViewMode !== 'dome' || prefersReducedMotion) return;
     const el = scrollContainerRef.current;
     if (!el) return;
 
-    let rafId: number;
+    let rafId: number = 0;
+    let isIntersecting = true;
     let lastTime = performance.now();
     const baseSpeed = scrollSpeed === 2 ? 2.4 : 1.2;
 
@@ -159,12 +164,63 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
         checkInfiniteWrap();
       }
 
-      rafId = requestAnimationFrame(step);
+      if (isIntersecting && !document.hidden) {
+        rafId = requestAnimationFrame(step);
+      } else {
+        rafId = 0;
+      }
     };
 
-    rafId = requestAnimationFrame(step);
+    const start = () => {
+      if (rafId === 0 && isIntersecting && !document.hidden) {
+        lastTime = performance.now();
+        rafId = requestAnimationFrame(step);
+      }
+    };
+
+    const stop = () => {
+      if (rafId !== 0) {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+    };
+
+    let observer: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(([entry]) => {
+        isIntersecting = entry.isIntersecting;
+        if (isIntersecting && !document.hidden) {
+          start();
+        } else {
+          stop();
+          if (momentumRafRef.current) {
+            cancelAnimationFrame(momentumRafRef.current);
+            momentumRafRef.current = null;
+          }
+        }
+      }, { threshold: 0.01 });
+      observer.observe(el);
+    }
+
+    const handleVisibility = () => {
+      if (!document.hidden && isIntersecting) {
+        start();
+      } else {
+        stop();
+        if (momentumRafRef.current) {
+          cancelAnimationFrame(momentumRafRef.current);
+          momentumRafRef.current = null;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    start();
+
     return () => {
-      cancelAnimationFrame(rafId);
+      stop();
+      observer?.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [isAutoScrolling, scrollSpeed, vaultViewMode, checkInfiniteWrap]);
 
@@ -207,12 +263,19 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
 
-    // Apply inertia if flicked
-    if (Math.abs(velocityRef.current) > 3) {
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    // Apply inertia if flicked and motion is not reduced
+    if (!prefersReducedMotion && Math.abs(velocityRef.current) > 3) {
       let vel = -velocityRef.current * 1.4;
       const stepInertia = () => {
         const el = scrollContainerRef.current;
-        if (!el || Math.abs(vel) < 0.4 || isDraggingRef.current) return;
+        if (!el || Math.abs(vel) < 0.4 || isDraggingRef.current || document.hidden) {
+          momentumRafRef.current = null;
+          return;
+        }
         el.scrollLeft += vel;
         checkInfiniteWrap();
         vel *= 0.94;
@@ -315,11 +378,10 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
   }, [filteredHeroes]);
 
   return (
-    <div className="relative w-full rounded-3xl bg-slate-950/85 border border-white/[0.08] shadow-[0_25px_80px_rgba(0,0,0,0.95)] backdrop-blur-2xl overflow-hidden p-4 sm:p-7">
+    <div className="relative w-full rounded-3xl bg-slate-950/85 border border-white/[0.08] shadow-[0_25px_80px_rgba(0,0,0,0.95)] overflow-hidden p-4 sm:p-7">
       
       {/* Background Ambient Radial Glow */}
       <div className="absolute top-0 right-1/4 w-[500px] h-[300px] bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-[500px] h-[300px] bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* ============================================================ */}
       {/* 1. VAULT CONTROLS & ATTRIBUTE SELECTOR                       */}
@@ -336,7 +398,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
               <h2 className="text-xl font-dota font-bold text-white tracking-wide">
                 ORBITAL HERO VAULT
               </h2>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-900 border border-white/[0.08] text-amber-300">
+              <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-sm bg-slate-900 border border-white/[0.08] text-amber-300">
                 124 CHAMPIONS
               </span>
             </div>
@@ -356,7 +418,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                 setVaultViewMode('dome');
                 SoundEngine.playHover();
               }}
-              className={`px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all duration-100 flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-colors duration-100 flex items-center gap-1.5 ${
                 vaultViewMode === 'dome'
                   ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -372,7 +434,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                 setVaultViewMode('sphere');
                 SoundEngine.playHover();
               }}
-              className={`px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all duration-100 flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-colors duration-100 flex items-center gap-1.5 ${
                 vaultViewMode === 'sphere'
                   ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -388,7 +450,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                 setVaultViewMode('cards');
                 SoundEngine.playHover();
               }}
-              className={`px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all duration-100 flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-colors duration-100 flex items-center gap-1.5 ${
                 vaultViewMode === 'cards'
                   ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -410,7 +472,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                   setActiveHeroIndex(0);
                   SoundEngine.playHover();
                 }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all duration-100 whitespace-nowrap active:scale-95 ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-colors duration-100 whitespace-nowrap active:scale-95 ${
                   selectedAttribute === attr
                     ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-sm'
                     : 'text-slate-400 hover:text-white'
@@ -448,7 +510,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
         {/* Spotlight Showcase (Left 5 Cols) with Specular Hologram Tilt */}
         <div 
           onMouseMove={handleMouseMove}
-          className={`lg:col-span-5 relative rounded-2xl bg-slate-900/40 border ${attrStyles.border} p-5 backdrop-blur-xl flex flex-col justify-between space-y-4 shadow-2xl overflow-hidden specular-card`}
+          className={`lg:col-span-5 relative rounded-2xl bg-slate-900/60 border ${attrStyles.border} p-5 flex flex-col justify-between space-y-4 shadow-2xl overflow-hidden specular-card`}
         >
           {/* Specular Light Reflection Glint */}
           <div 
@@ -461,10 +523,10 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
           <div className="relative z-10 flex items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${attrStyles.border} ${attrStyles.bg} ${attrStyles.text}`}>
+                <span className={`text-[11px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm border ${attrStyles.border} ${attrStyles.bg} ${attrStyles.text}`}>
                   {attrStyles.label}
                 </span>
-                <span className="text-[10px] font-mono text-slate-400">
+                <span className="text-[11px] font-mono text-slate-400">
                   Attack: <strong className="text-white capitalize">{activeHero.attackType}</strong>
                 </span>
               </div>
@@ -481,7 +543,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
               <span className="text-xl font-mono font-black text-emerald-400">
                 {activeHero.winRate}%
               </span>
-              <span className="text-[9px] font-mono uppercase text-slate-500">
+              <span className="text-[10px] font-mono uppercase text-slate-400">
                 Patch 7.37d WR
               </span>
             </div>
@@ -499,7 +561,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
           <div className="relative z-10 flex items-center gap-3 pt-2">
             <button
               onClick={(e) => handleInspect(e, activeHero)}
-              className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500/20 via-red-500/20 to-transparent hover:from-amber-500/30 hover:to-red-500/30 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+              className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500/20 via-red-500/20 to-transparent hover:from-amber-500/30 hover:to-red-500/30 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
             >
               <span>Inspect Full Build</span>
               <ArrowUpRight className="w-4 h-4 text-amber-300" />
@@ -509,7 +571,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                 onSelectHero(activeHero);
                 SoundEngine.playPick();
               }}
-              className="py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/[0.08] text-white text-xs font-semibold active:scale-[0.98] transition-all"
+              className="py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/[0.08] text-white text-xs font-semibold active:scale-[0.98] transition-colors"
             >
               Set Main
             </button>
@@ -532,7 +594,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                       setIsAutoScrolling(!isAutoScrolling);
                       SoundEngine.playHover();
                     }}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all ${
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors ${
                       isAutoScrolling
                         ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
                         : 'bg-amber-950/60 border-amber-500/40 text-amber-300'
@@ -540,9 +602,6 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                     title="Toggle Continuous Auto-Orbit"
                   >
                     <span className="relative flex h-2 w-2">
-                      {isAutoScrolling && (
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      )}
                       <span className={`relative inline-flex rounded-full h-2 w-2 ${isAutoScrolling ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                     </span>
                     {isAutoScrolling ? (
@@ -562,7 +621,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                   <div className="flex items-center rounded-lg bg-slate-900 border border-white/[0.08] p-0.5">
                     <button
                       onClick={() => setScrollSpeed(1)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      className={`px-2 py-0.5 rounded text-[11px] font-bold ${
                         scrollSpeed === 1 ? 'bg-amber-500/20 text-amber-300' : 'text-slate-400 hover:text-white'
                       }`}
                     >
@@ -570,7 +629,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                     </button>
                     <button
                       onClick={() => setScrollSpeed(2)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      className={`px-2 py-0.5 rounded text-[11px] font-bold ${
                         scrollSpeed === 2 ? 'bg-amber-500/20 text-amber-300' : 'text-slate-400 hover:text-white'
                       }`}
                     >
@@ -580,7 +639,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                 </div>
 
                 {/* Gesture Guidance & Hero Count */}
-                <div className="hidden sm:flex items-center gap-2 text-[10px] text-slate-400">
+                <div className="hidden sm:flex items-center gap-2 text-[11px] text-slate-400">
                   <span className="px-2 py-0.5 rounded bg-slate-900/80 border border-white/[0.06]">
                     Wheel / Drag to Rotate
                   </span>
@@ -600,14 +659,14 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                 {/* Step Navigation Arrows */}
                 <button
                   onClick={scrollLeftNav}
-                  className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-slate-900/95 border border-white/[0.12] text-white hover:border-amber-500 flex items-center justify-center shadow-2xl active:scale-90 transition-all backdrop-blur-md"
+                  className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-slate-900 border border-white/[0.12] text-white hover:border-amber-500 flex items-center justify-center shadow-2xl active:scale-90 transition-[transform,colors] duration-150"
                   title="Rotate Left"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={scrollRightNav}
-                  className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-slate-900/95 border border-white/[0.12] text-white hover:border-amber-500 flex items-center justify-center shadow-2xl active:scale-90 transition-all backdrop-blur-md"
+                  className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-slate-900 border border-white/[0.12] text-white hover:border-amber-500 flex items-center justify-center shadow-2xl active:scale-90 transition-[transform,colors] duration-150"
                   title="Rotate Right"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -616,7 +675,6 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                 {/* Seamless Looping 3D Carousel Track (Has its own direct scroll, no scrollbar) */}
                 <div
                   ref={scrollContainerRef}
-                  data-lenis-prevent="true"
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
@@ -638,7 +696,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                       <div
                         key={keyId}
                         onClick={() => handleCardClick(hero, originalIndex)}
-                        className={`group relative flex-shrink-0 w-36 sm:w-40 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 select-none specular-card ${
+                        className={`group relative flex-shrink-0 w-36 sm:w-40 rounded-2xl overflow-hidden cursor-pointer transition-transform duration-200 select-none specular-card ${
                           isActive
                             ? 'border-2 border-amber-400 ring-4 ring-amber-400/25 scale-105 shadow-[0_12px_35px_rgba(200,155,60,0.5)] z-10'
                             : 'border border-white/[0.08] hover:border-white/[0.3] hover:-translate-y-1.5 opacity-70 hover:opacity-100 bg-slate-900/80'
@@ -730,7 +788,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                       onSelectHero(hero);
                       SoundEngine.playPick();
                     }}
-                    className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200 specular-card ${
+                    className={`group relative rounded-xl overflow-hidden cursor-pointer transition-transform duration-200 specular-card ${
                       isActive
                         ? 'border-2 border-amber-400 ring-2 ring-amber-400/30 scale-[1.03] shadow-lg'
                         : 'border border-white/[0.08] hover:border-white/[0.25] hover:scale-[1.02] opacity-80 hover:opacity-100 bg-slate-900/90'

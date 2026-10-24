@@ -21,20 +21,17 @@ const STORAGE_KEYS = {
 export const StorageService = {
   // Hero Notes
   getHeroNote(heroId: string): string {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.NOTES);
-      if (!data) return '';
-      const notes: Record<string, string> = JSON.parse(data);
-      return notes[heroId] || '';
-    } catch {
-      return '';
-    }
+    const notes = this.getAllHeroNotes();
+    const val = notes[heroId];
+    return typeof val === 'string' ? val : '';
   },
 
   getAllHeroNotes(): Record<string, string> {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.NOTES);
-      return data ? JSON.parse(data) : {};
+      if (!data) return {};
+      const parsed = JSON.parse(data);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
     } catch {
       return {};
     }
@@ -58,7 +55,9 @@ export const StorageService = {
   getFavorites(): string[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.FAVORITES);
-      return data ? JSON.parse(data) : [];
+      if (!data) return [];
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
     } catch {
       return [];
     }
@@ -91,7 +90,12 @@ export const StorageService = {
   getSavedDrafts(): SavedDraft[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SAVED_DRAFTS);
-      return data ? JSON.parse(data) : [];
+      if (!data) return [];
+      const parsed = JSON.parse(data);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((d): d is SavedDraft => 
+        Boolean(d && typeof d === 'object' && typeof d.id === 'string' && Array.isArray(d.enemyHeroIds))
+      );
     } catch {
       return [];
     }

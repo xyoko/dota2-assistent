@@ -94,33 +94,49 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
     <div className="space-y-6">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-red-950/80 via-dota-panel to-slate-900 border border-dota-red/50 rounded-2xl p-5 sm:p-6 shadow-dota-crimson">
-        <div className="flex items-center gap-2">
-          <Swords className="w-6 h-6 text-red-400" />
-          <h2 className="font-dota font-black text-xl sm:text-2xl text-white">
-            1v1 Matchup Arena & Power Curve Simulator
-          </h2>
+      <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 sm:p-6 shadow-hud-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-hud-surface border border-white/[0.08] flex items-center justify-center text-hud-cyan shrink-0">
+              <Swords className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-display font-bold text-lg sm:text-xl text-slate-100 tracking-tight uppercase">
+                  1v1 Matchup Arena & Curve Simulator
+                </h2>
+                <span className="font-mono text-[10px] text-slate-400 bg-hud-surface px-2 py-0.5 rounded border border-white/[0.08]">
+                  PATCH 7.37d
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1 max-w-2xl font-sans leading-relaxed">
+                Simulate head-to-head duels across different game minutes (0 to 60m) to inspect power spikes, item timings, and tactical win conditions.
+              </p>
+            </div>
+          </div>
         </div>
-        <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl font-sans">
-          Simulate head-to-head duels between any 2 heroes across different game minutes (0 to 60 min) to understand when power spikes shift, key item timings, and tactical win conditions.
-        </p>
       </div>
 
       {/* Hero Duel Selector Arena */}
-      <div className="bg-dota-panel border border-dota-border rounded-2xl p-5 sm:p-6 shadow-2xl space-y-6">
+      <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 sm:p-6 shadow-hud-md space-y-6">
         
         <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-start">
           
           {/* HERO A (YOUR PICK) */}
-          <div className="md:col-span-3 bg-dota-bg/90 border border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-lg space-y-3 relative">
+          <div className="md:col-span-3 bg-hud-surface border border-emerald-500/30 rounded-xl p-4 sm:p-5 space-y-3 relative shadow-hud-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">HERO A (YOUR PICK)</span>
-              <span className="text-xs font-bold text-slate-400">{heroA.attribute.toUpperCase()}</span>
+              <span className="text-[11px] font-mono font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Hero A (Your Pick)
+              </span>
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-sm bg-white/[0.04] border border-white/[0.1] text-slate-300 uppercase tracking-wider">
+                {heroA.attribute}
+              </span>
             </div>
 
             {/* Search Bar for Hero A */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search Hero A (e.g. Anti-Mage, Axe)..."
@@ -130,12 +146,13 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
                   setSearchQueryA(e.target.value);
                   setIsPickerOpenA(true);
                 }}
-                className="w-full pl-8 pr-8 py-1.5 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-all"
+                className="w-full pl-9 pr-8 py-2 min-h-[44px] bg-hud-bg border border-white/[0.1] focus:border-emerald-500 focus-hud rounded-lg text-xs text-slate-200 placeholder-slate-400 transition-colors"
               />
               {searchQueryA && (
                 <button
                   onClick={() => setSearchQueryA('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                  aria-label="Clear search"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -144,14 +161,14 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
 
             {/* Search Dropdown / Results for Hero A */}
             {isPickerOpenA && (
-              <div className="bg-slate-900/95 border border-emerald-500/50 rounded-xl p-2 max-h-48 overflow-y-auto space-y-1 shadow-2xl z-20">
-                <div className="flex items-center justify-between px-2 py-1 text-[10px] text-slate-400 font-bold border-b border-slate-800">
-                  <span>Matching Heroes ({filteredHeroesA.length})</span>
+              <div className="bg-hud-bg/95 border border-white/[0.12] rounded-xl p-2 max-h-56 overflow-y-auto space-y-1 shadow-hud-lg z-20">
+                <div className="flex items-center justify-between px-2 py-1 text-[11px] text-slate-400 font-mono border-b border-white/[0.06]">
+                  <span>MATCHING HEROES ({filteredHeroesA.length})</span>
                   <button 
                     onClick={() => setIsPickerOpenA(false)}
-                    className="text-slate-400 hover:text-white text-[10px]"
+                    className="text-slate-400 hover:text-white text-[11px] font-mono"
                   >
-                    Close
+                    CLOSE
                   </button>
                 </div>
                 {filteredHeroesA.length > 0 ? (
@@ -164,26 +181,28 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
                         setSearchQueryA('');
                         SoundEngine.playPick();
                       }}
-                      className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-all ${
+                      className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors min-h-[44px] ${
                         h.id === heroA.id
-                          ? 'bg-emerald-600/30 border border-emerald-500/60 text-white font-bold'
-                          : 'hover:bg-slate-800 text-slate-300'
+                          ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300'
+                          : 'hover:bg-white/[0.04] text-slate-300'
                       }`}
                     >
                       <img
                         src={h.avatarUrl}
                         alt={h.name}
-                        className="w-7 h-7 rounded-md object-cover border border-slate-700"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-8 h-8 rounded-md object-cover border border-white/[0.1] shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold truncate">{h.name}</div>
-                        <div className="text-[10px] text-slate-400 truncate">{h.roles.join(', ')}</div>
+                        <div className="text-xs font-semibold text-slate-200 truncate">{h.name}</div>
+                        <div className="text-[11px] text-slate-400 truncate">{h.roles.join(', ')}</div>
                       </div>
-                      <span className="text-[10px] font-mono text-emerald-400">{h.winRate}%</span>
+                      <span className="text-xs font-mono tabular-nums text-emerald-400 shrink-0">{h.winRate}%</span>
                     </div>
                   ))
                 ) : (
-                  <div className="p-3 text-center text-xs text-slate-500">No heroes found</div>
+                  <div className="p-3 text-center text-xs text-slate-400 font-mono">NO HEROES FOUND</div>
                 )}
               </div>
             )}
@@ -193,54 +212,64 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
               <img
                 src={heroA.avatarUrl}
                 alt={heroA.name}
-                className="w-16 h-16 rounded-xl object-cover border-2 border-emerald-500/60 shadow-lg"
+                decoding="async"
+                className="w-16 h-16 rounded-lg object-cover border border-emerald-500/40 shadow-sm shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="font-dota font-bold text-sm text-white truncate block">
+                  <span className="font-display font-bold text-sm sm:text-base text-slate-100 truncate block">
                     {heroA.name}
                   </span>
                   <button
                     onClick={() => setIsPickerOpenA(!isPickerOpenA)}
-                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30"
+                    className="min-h-[44px] sm:min-h-0 touch-target px-2.5 py-1 text-xs font-mono text-emerald-400 hover:text-emerald-300 bg-emerald-950/40 border border-emerald-500/30 rounded-md transition-colors focus-hud"
                   >
-                    Change
+                    CHANGE
                   </button>
                 </div>
                 <div className="text-xs text-slate-400 mt-0.5 font-sans truncate">{heroA.title}</div>
-                <div className="text-[11px] text-slate-400 mt-1">Role: <span className="text-slate-200">{heroA.roles.join(', ')}</span></div>
+                <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                  Role: <span className="text-slate-300 font-sans">{heroA.roles.join(', ')}</span>
+                </div>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-sans">
-              <span className="text-slate-400">Win Rate: <strong className="text-emerald-400">{heroA.winRate}%</strong></span>
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs font-sans">
+              <span className="text-slate-400">
+                Win Rate: <strong className="font-mono tabular-nums text-emerald-400">{heroA.winRate}%</strong>
+              </span>
               <button
                 onClick={() => onSelectHero(heroA)}
-                className="text-dota-gold font-bold hover:underline"
+                className="min-h-[44px] sm:min-h-0 flex items-center text-xs font-mono text-hud-cyan hover:text-sky-300 transition-colors focus-hud"
               >
-                View Full Build ➔
+                VIEW BUILD ➔
               </button>
             </div>
           </div>
 
           {/* VS Center Clasher */}
-          <div className="md:col-span-1 flex flex-col items-center justify-center text-center my-auto py-4">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-600 to-amber-600 border-2 border-amber-300 flex items-center justify-center font-dota font-black text-sm text-white shadow-dota-crimson animate-pulse">
+          <div className="md:col-span-1 flex flex-col items-center justify-center text-center my-auto py-4 gap-1.5">
+            <div className="w-10 h-10 rounded-xl bg-hud-surface border border-white/[0.15] flex items-center justify-center font-mono font-bold text-xs text-hud-gold shadow-hud-sm">
               VS
             </div>
-            <span className="text-[10px] font-bold text-slate-500 uppercase mt-1">DUEL</span>
+            <span className="text-[11px] font-mono tracking-widest text-slate-400 uppercase">1V1 DUEL</span>
           </div>
 
           {/* HERO B (OPPONENT) */}
-          <div className="md:col-span-3 bg-dota-bg/90 border border-red-500/40 rounded-2xl p-4 sm:p-5 shadow-lg space-y-3 relative">
+          <div className="md:col-span-3 bg-hud-surface border border-red-500/30 rounded-xl p-4 sm:p-5 space-y-3 relative shadow-hud-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-red-400 uppercase tracking-wider">HERO B (OPPONENT)</span>
-              <span className="text-xs font-bold text-slate-400">{heroB.attribute.toUpperCase()}</span>
+              <span className="text-[11px] font-mono font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                Hero B (Opponent)
+              </span>
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-sm bg-white/[0.04] border border-white/[0.1] text-slate-300 uppercase tracking-wider">
+                {heroB.attribute}
+              </span>
             </div>
 
             {/* Search Bar for Hero B */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search Hero B (e.g. Storm, Windranger)..."
@@ -250,12 +279,13 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
                   setSearchQueryB(e.target.value);
                   setIsPickerOpenB(true);
                 }}
-                className="w-full pl-8 pr-8 py-1.5 bg-slate-900 border border-slate-700 focus:border-red-500 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-all"
+                className="w-full pl-9 pr-8 py-2 min-h-[44px] bg-hud-bg border border-white/[0.1] focus:border-red-500 focus-hud rounded-lg text-xs text-slate-200 placeholder-slate-400 transition-colors"
               />
               {searchQueryB && (
                 <button
                   onClick={() => setSearchQueryB('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                  aria-label="Clear search"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -264,14 +294,14 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
 
             {/* Search Dropdown / Results for Hero B */}
             {isPickerOpenB && (
-              <div className="bg-slate-900/95 border border-red-500/50 rounded-xl p-2 max-h-48 overflow-y-auto space-y-1 shadow-2xl z-20">
-                <div className="flex items-center justify-between px-2 py-1 text-[10px] text-slate-400 font-bold border-b border-slate-800">
-                  <span>Matching Heroes ({filteredHeroesB.length})</span>
+              <div className="bg-hud-bg/95 border border-white/[0.12] rounded-xl p-2 max-h-56 overflow-y-auto space-y-1 shadow-hud-lg z-20">
+                <div className="flex items-center justify-between px-2 py-1 text-[11px] text-slate-400 font-mono border-b border-white/[0.06]">
+                  <span>MATCHING HEROES ({filteredHeroesB.length})</span>
                   <button 
                     onClick={() => setIsPickerOpenB(false)}
-                    className="text-slate-400 hover:text-white text-[10px]"
+                    className="text-slate-400 hover:text-white text-[11px] font-mono"
                   >
-                    Close
+                    CLOSE
                   </button>
                 </div>
                 {filteredHeroesB.length > 0 ? (
@@ -284,26 +314,28 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
                         setSearchQueryB('');
                         SoundEngine.playPick();
                       }}
-                      className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-all ${
+                      className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors min-h-[44px] ${
                         h.id === heroB.id
-                          ? 'bg-red-600/30 border border-red-500/60 text-white font-bold'
-                          : 'hover:bg-slate-800 text-slate-300'
+                          ? 'bg-red-500/15 border border-red-500/40 text-red-300'
+                          : 'hover:bg-white/[0.04] text-slate-300'
                       }`}
                     >
                       <img
                         src={h.avatarUrl}
                         alt={h.name}
-                        className="w-7 h-7 rounded-md object-cover border border-slate-700"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-8 h-8 rounded-md object-cover border border-white/[0.1] shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold truncate">{h.name}</div>
-                        <div className="text-[10px] text-slate-400 truncate">{h.roles.join(', ')}</div>
+                        <div className="text-xs font-semibold text-slate-200 truncate">{h.name}</div>
+                        <div className="text-[11px] text-slate-400 truncate">{h.roles.join(', ')}</div>
                       </div>
-                      <span className="text-[10px] font-mono text-red-400">{h.winRate}%</span>
+                      <span className="text-xs font-mono tabular-nums text-red-400 shrink-0">{h.winRate}%</span>
                     </div>
                   ))
                 ) : (
-                  <div className="p-3 text-center text-xs text-slate-500">No heroes found</div>
+                  <div className="p-3 text-center text-xs text-slate-400 font-mono">NO HEROES FOUND</div>
                 )}
               </div>
             )}
@@ -313,32 +345,37 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
               <img
                 src={heroB.avatarUrl}
                 alt={heroB.name}
-                className="w-16 h-16 rounded-xl object-cover border-2 border-red-500/60 shadow-lg"
+                decoding="async"
+                className="w-16 h-16 rounded-lg object-cover border border-red-500/40 shadow-sm shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="font-dota font-bold text-sm text-white truncate block">
+                  <span className="font-display font-bold text-sm sm:text-base text-slate-100 truncate block">
                     {heroB.name}
                   </span>
                   <button
                     onClick={() => setIsPickerOpenB(!isPickerOpenB)}
-                    className="text-[10px] text-red-400 hover:text-red-300 font-bold bg-red-950/60 px-2 py-0.5 rounded border border-red-500/30"
+                    className="min-h-[44px] sm:min-h-0 touch-target px-2.5 py-1 text-xs font-mono text-red-400 hover:text-red-300 bg-red-950/40 border border-red-500/30 rounded-md transition-colors focus-hud"
                   >
-                    Change
+                    CHANGE
                   </button>
                 </div>
                 <div className="text-xs text-slate-400 mt-0.5 font-sans truncate">{heroB.title}</div>
-                <div className="text-[11px] text-slate-400 mt-1">Role: <span className="text-slate-200">{heroB.roles.join(', ')}</span></div>
+                <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                  Role: <span className="text-slate-300 font-sans">{heroB.roles.join(', ')}</span>
+                </div>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-sans">
-              <span className="text-slate-400">Win Rate: <strong className="text-emerald-400">{heroB.winRate}%</strong></span>
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs font-sans">
+              <span className="text-slate-400">
+                Win Rate: <strong className="font-mono tabular-nums text-emerald-400">{heroB.winRate}%</strong>
+              </span>
               <button
                 onClick={() => onSelectHero(heroB)}
-                className="text-dota-gold font-bold hover:underline"
+                className="min-h-[44px] sm:min-h-0 flex items-center text-xs font-mono text-hud-cyan hover:text-sky-300 transition-colors focus-hud"
               >
-                View Full Build ➔
+                VIEW BUILD ➔
               </button>
             </div>
           </div>
@@ -346,18 +383,18 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
         </div>
 
         {/* TIMELINE SLIDER (0 TO 60 MINS) */}
-        <div className="bg-dota-bg/80 border border-dota-border rounded-2xl p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-dota-border pb-2.5">
+        <div className="bg-hud-surface border border-white/[0.08] rounded-xl p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
             <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-400" />
-              <span className="font-dota font-bold text-sm text-white">
-                Game Timeline Simulator: <strong className="text-dota-gold">{gameMinute} Minutes</strong>
+              <Clock className="w-4 h-4 text-hud-gold" />
+              <span className="font-display font-semibold text-xs sm:text-sm text-slate-200">
+                Game Timeline Simulator: <strong className="font-mono tabular-nums text-hud-gold">{gameMinute}m</strong>
               </span>
             </div>
-            <span className="text-xs text-slate-400 font-sans">
-              {gameMinute <= 12 ? 'Laning Phase (0–12m)' :
-               gameMinute <= 30 ? 'Mid Game & Core Timings (12–30m)' :
-               'Late Game & Full Items (30m+)'}
+            <span className="text-xs font-mono text-slate-400">
+              {gameMinute <= 12 ? 'LANING PHASE (0–12m)' :
+               gameMinute <= 30 ? 'MID GAME & CORE TIMINGS (12–30m)' :
+               'LATE GAME & FULL ITEMS (30m+)'}
             </span>
           </div>
 
@@ -367,65 +404,69 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
             max="60"
             step="5"
             value={gameMinute}
+            aria-label="Game Minute Timeline"
             onChange={(e) => {
               setGameMinute(Number(e.target.value));
               SoundEngine.playHover();
             }}
-            className="w-full accent-amber-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
+            className="w-full accent-amber-400 cursor-pointer h-2 bg-hud-bg rounded-lg touch-target"
           />
 
-          <div className="flex justify-between text-[11px] font-bold text-slate-500 uppercase px-1">
-            <span>0m (Laning)</span>
-            <span>15m (First Major Item)</span>
-            <span>30m (BKB Timings)</span>
-            <span>45m (Roshan / HG)</span>
-            <span>60m (6-Slot War)</span>
+          <div className="flex justify-between text-[11px] font-mono text-slate-400 uppercase tracking-wider px-1">
+            <span>0m (LANING)</span>
+            <span>15m (1ST CORE)</span>
+            <span>30m (BKB PEAK)</span>
+            <span>45m (ROSHAN/HG)</span>
+            <span>60m (6-SLOT)</span>
           </div>
         </div>
 
         {/* LIVE ADVANTAGE GAUGE */}
-        <div className="bg-dota-bg/90 border border-dota-border rounded-2xl p-5 space-y-3">
-          <div className="flex items-center justify-between text-xs font-bold font-sans">
-            <span className="text-emerald-400 flex items-center gap-1">
-              {heroA.name} Advantage: {advantageA}%
+        <div className="bg-hud-surface border border-white/[0.08] rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between text-xs font-mono font-bold">
+            <span className="text-emerald-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              {heroA.name} Advantage: <span className="tabular-nums">{advantageA}%</span>
             </span>
-            <span className="text-red-400 flex items-center gap-1">
-              {heroB.name} Advantage: {advantageB}%
+            <span className="text-red-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-red-400" />
+              {heroB.name} Advantage: <span className="tabular-nums">{advantageB}%</span>
             </span>
           </div>
 
-          <div className="w-full bg-slate-900 rounded-full h-4 overflow-hidden border border-slate-700 flex">
+          <div className="w-full bg-hud-bg rounded-full h-3 overflow-hidden border border-white/[0.1] relative">
             <div
-              className="bg-gradient-to-r from-emerald-600 to-green-400 h-full transition-all duration-500"
-              style={{ width: `${advantageA}%` }}
+              className="absolute inset-y-0 left-0 w-full bg-emerald-500 origin-left transition-transform duration-200 ease-out"
+              style={{ transform: `scaleX(${advantageA / 100})` }}
             />
             <div
-              className="bg-gradient-to-r from-red-500 to-rose-700 h-full transition-all duration-500"
-              style={{ width: `${advantageB}%` }}
+              className="absolute inset-y-0 right-0 w-full bg-red-500 origin-right transition-transform duration-200 ease-out"
+              style={{ transform: `scaleX(${advantageB / 100})` }}
             />
+            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white/40 z-10 -translate-x-1/2" />
           </div>
 
           <div className="text-center pt-2">
-            <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border font-sans ${
+            <span className={`text-xs font-mono uppercase tracking-wider px-3 py-1 rounded-md border inline-flex items-center gap-2 ${
               winningHero === 'A'
-                ? 'bg-emerald-950 text-emerald-300 border-emerald-600 shadow-dota-glow'
+                ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
                 : winningHero === 'B'
-                ? 'bg-red-950 text-red-300 border-red-600 shadow-dota-crimson'
-                : 'bg-slate-800 text-slate-300 border-slate-600'
+                ? 'bg-red-950/60 text-red-300 border-red-500/40'
+                : 'bg-white/[0.04] text-slate-300 border-white/[0.12]'
             }`}>
-              {winningHero === 'A' ? `🏆 Favored: ${heroA.name}` :
-               winningHero === 'B' ? `🏆 Favored: ${heroB.name}` :
-               '⚖️ Even Matchup'}
+              {winningHero === 'A' ? `[FAVORED: ${heroA.name.toUpperCase()}]` :
+               winningHero === 'B' ? `[FAVORED: ${heroB.name.toUpperCase()}]` :
+               '[EVEN MATCHUP]'}
             </span>
           </div>
         </div>
 
         {/* TACTICAL ANALYSIS BREAKDOWN */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
           
-          <div className="bg-dota-bg border border-emerald-900/40 rounded-xl p-4 space-y-2">
-            <h4 className="font-dota font-bold text-xs sm:text-sm text-emerald-400 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <div className="bg-hud-bg border border-emerald-500/20 rounded-xl p-4 space-y-2">
+            <h4 className="font-display font-semibold text-xs sm:text-sm text-emerald-400 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               How {heroA.name} Wins This Matchup:
             </h4>
             <p className="text-xs text-slate-300 leading-relaxed font-sans">
@@ -433,9 +474,9 @@ export const MatchupArena: React.FC<MatchupArenaProps> = ({ onSelectHero }) => {
             </p>
           </div>
 
-          <div className="bg-dota-bg border border-red-900/40 rounded-xl p-4 space-y-2">
-            <h4 className="font-dota font-bold text-xs sm:text-sm text-red-400 flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4 text-red-400" />
+          <div className="bg-hud-bg border border-red-500/20 rounded-xl p-4 space-y-2">
+            <h4 className="font-display font-semibold text-xs sm:text-sm text-red-400 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
               How {heroB.name} Can Counter:
             </h4>
             <p className="text-xs text-slate-300 leading-relaxed font-sans">

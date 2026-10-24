@@ -1,10 +1,5 @@
 import * as React from "react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "../../bi/utils/cn";
 
 const Card = React.forwardRef<
   HTMLDivElement,
@@ -13,7 +8,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl text-slate-100 shadow-xl",
+      "rounded-lg border border-white/[0.08] bg-hud-raised text-slate-100 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]",
       className
     )}
     {...props}

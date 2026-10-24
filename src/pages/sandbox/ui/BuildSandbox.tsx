@@ -144,39 +144,42 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
     <div className="space-y-6">
       
       {/* Header */}
-      <div className="bg-gradient-to-r from-amber-950/80 via-dota-panel to-slate-900 border border-dota-gold/50 rounded-2xl p-5 sm:p-6 shadow-dota-glow">
+      <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 sm:p-6 shadow-hud-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <FlaskConical className="w-6 h-6 text-dota-gold" />
-              <h2 className="font-dota font-black text-xl sm:text-2xl text-white">
-                The Secret Shop & Build Sandbox
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-hud-surface border border-white/[0.08] flex items-center justify-center text-hud-cyan shrink-0">
+                <FlaskConical className="w-4 h-4" />
+              </div>
+              <h2 className="font-display font-bold text-lg sm:text-xl text-slate-100 uppercase tracking-tight">
+                Secret Shop & Build Sandbox
               </h2>
             </div>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-              Experiment with 6-slot item loadouts for any hero. Click empty slot boxes with <span className="text-dota-gold font-bold">+</span> to search and equip items intuitively.
+            <p className="text-xs text-slate-400 mt-1 max-w-2xl font-sans leading-relaxed">
+              Experiment with 6-slot item loadouts for any hero. Click empty slot boxes with <span className="text-hud-cyan font-mono font-bold">+</span> to search and equip items.
             </p>
           </div>
 
           {/* Hero Switcher */}
-          <div className="flex items-center gap-3 bg-dota-bg/90 p-2 rounded-xl border border-dota-border">
+          <div className="flex items-center gap-3 bg-hud-surface p-2 rounded-lg border border-white/[0.08]">
             <img
               src={hero.avatarUrl}
               alt={hero.name}
-              className="w-10 h-10 rounded-lg object-cover border border-dota-gold/50"
+              className="w-10 h-10 rounded-lg object-cover border border-white/[0.1]"
             />
             <div>
-              <span className="text-[10px] text-slate-400 font-semibold uppercase">Active Hero:</span>
+              <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider block">Active Hero:</span>
               <select
                 value={selectedHeroId}
+                aria-label="Select active hero for build sandbox"
                 onChange={(e) => {
                   setSelectedHeroId(e.target.value);
                   SoundEngine.playPick();
                 }}
-                className="bg-transparent text-xs sm:text-sm font-dota font-bold text-white focus:outline-none cursor-pointer block"
+                className="bg-transparent text-xs sm:text-sm font-display font-semibold text-slate-200 focus:outline-none cursor-pointer block"
               >
                 {HEROES_DATA.map((h) => (
-                  <option key={h.id} value={h.id} className="bg-slate-900">
+                  <option key={h.id} value={h.id} className="bg-slate-900 text-slate-200">
                     {h.name} ({h.roles[0]})
                   </option>
                 ))}
@@ -192,24 +195,24 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
         <div className="lg:col-span-2 space-y-6">
           
           {/* INVENTORY SLOTS PANEL */}
-          <div className="bg-dota-panel border border-dota-border rounded-2xl p-5 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-dota-border pb-3">
+          <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 shadow-hud-md space-y-4">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
               <div className="flex items-center gap-2">
-                <h3 className="font-dota font-black text-base text-white">
+                <h3 className="font-display font-semibold text-sm sm:text-base text-slate-100">
                   Equipped Inventory Loadout
                 </h3>
-                <span className="text-xs font-bold text-dota-gold bg-amber-950/60 px-2.5 py-0.5 rounded border border-amber-700/60 flex items-center gap-1">
+                <span className="text-xs font-mono tabular-nums text-hud-gold bg-hud-surface px-2.5 py-0.5 rounded border border-white/[0.08] flex items-center gap-1.5">
                   <Coins className="w-3.5 h-3.5" />
-                  {totalGold.toLocaleString()} Net Worth
+                  {totalGold.toLocaleString()}g NET WORTH
                 </span>
               </div>
 
               <button
                 onClick={handleClearAll}
-                className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-400 font-semibold transition-colors"
+                className="min-h-[44px] sm:min-h-0 touch-target flex items-center gap-1 text-xs text-slate-400 hover:text-red-400 font-mono uppercase tracking-wider transition-colors focus-hud"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Clear Slots</span>
+                <span>Clear All</span>
               </button>
             </div>
 
@@ -225,14 +228,14 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
                       handleOpenSlotModal(idx);
                     }
                   }}
-                  className={`group relative h-28 rounded-xl border flex flex-col items-center justify-between p-2 text-center transition-all cursor-pointer select-none ${
+                  className={`group relative h-28 rounded-xl border flex flex-col items-center justify-between p-2 text-center transition-colors cursor-pointer select-none focus-hud ${
                     item
-                      ? 'bg-dota-bg/90 border-dota-gold/50 shadow-dota-glow hover:border-red-500'
-                      : 'bg-dota-bg/40 border-dashed border-slate-700 hover:border-dota-gold hover:bg-amber-500/10 hover:shadow-dota-glow'
+                      ? 'bg-hud-surface border-white/[0.12] hover:border-red-500/60 shadow-hud-sm'
+                      : 'bg-hud-bg/60 border-dashed border-white/[0.12] hover:border-hud-cyan/60 hover:bg-hud-surface'
                   }`}
                   title={item ? `${item.name} - Click to remove` : `Slot ${idx + 1} - Click to search and add item`}
                 >
-                  <span className="text-[9px] text-slate-500 font-bold uppercase self-start">
+                  <span className="text-[10px] text-slate-400 font-mono uppercase self-start">
                     Slot {idx + 1}
                   </span>
 
@@ -241,26 +244,26 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
                       <img
                         src={item.img || 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png'}
                         alt={item.name}
-                        className="w-12 h-9 rounded object-contain border border-dota-gold/40 shadow group-hover:scale-105 transition-transform"
+                        className="w-12 h-9 rounded object-contain border border-white/[0.1] shadow-sm"
                       />
                       <div className="w-full">
-                        <span className="font-bold text-[11px] text-amber-200 truncate block">
+                        <span className="font-display font-medium text-[11px] text-slate-200 truncate block">
                           {item.name}
                         </span>
-                        <span className="text-[10px] text-dota-gold font-semibold">
+                        <span className="text-[10px] font-mono tabular-nums text-hud-gold">
                           {item.cost}g
                         </span>
                       </div>
-                      <div className="absolute inset-0 bg-red-950/85 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-red-300 font-bold text-xs">
-                        Click to Remove
+                      <div className="absolute inset-0 bg-red-950/90 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-red-300 font-mono text-[10px] uppercase">
+                        REMOVE
                       </div>
                     </>
                   ) : (
-                    <div className="flex flex-col items-center justify-center my-auto text-slate-400 group-hover:text-dota-gold transition-colors">
-                      <div className="w-8 h-8 rounded-full bg-slate-800/80 group-hover:bg-amber-500/20 border border-slate-700 group-hover:border-dota-gold flex items-center justify-center mb-1 transition-all group-hover:scale-110 shadow">
-                        <Plus className="w-4 h-4 text-slate-400 group-hover:text-dota-gold" />
+                    <div className="flex flex-col items-center justify-center my-auto text-slate-400 group-hover:text-hud-cyan transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-hud-surface group-hover:bg-hud-cyan/15 border border-white/[0.08] group-hover:border-hud-cyan/40 flex items-center justify-center mb-1 transition-colors">
+                        <Plus className="w-4 h-4 text-slate-400 group-hover:text-hud-cyan" />
                       </div>
-                      <span className="text-[10px] font-bold">Add Item</span>
+                      <span className="text-[10px] font-mono uppercase tracking-wider">ADD ITEM</span>
                     </div>
                   )}
                 </div>
@@ -269,43 +272,43 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
 
             {/* Calculated Stat Modifiers */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-              <div className="bg-dota-bg/80 border border-dota-border rounded-xl p-3 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-red-950 text-red-400">
+              <div className="bg-hud-surface border border-white/[0.06] rounded-xl p-3 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-950/60 text-red-400 border border-red-500/30">
                   <Sword className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-400 font-semibold uppercase">Bonus Damage</div>
-                  <div className="font-bold text-sm text-red-300">+{bonusDamage} DMG</div>
+                  <div className="text-[10px] text-slate-400 font-mono uppercase">Bonus Damage</div>
+                  <div className="font-mono tabular-nums font-bold text-sm text-red-400">+{bonusDamage} DMG</div>
                 </div>
               </div>
 
-              <div className="bg-dota-bg/80 border border-dota-border rounded-xl p-3 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-950 text-green-400">
+              <div className="bg-hud-surface border border-white/[0.06] rounded-xl p-3 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
                   <Heart className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-400 font-semibold uppercase">Bonus Health</div>
-                  <div className="font-bold text-sm text-green-300">+{bonusHP} HP</div>
+                  <div className="text-[10px] text-slate-400 font-mono uppercase">Bonus Health</div>
+                  <div className="font-mono tabular-nums font-bold text-sm text-emerald-400">+{bonusHP} HP</div>
                 </div>
               </div>
 
-              <div className="bg-dota-bg/80 border border-dota-border rounded-xl p-3 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-950 text-blue-400">
+              <div className="bg-hud-surface border border-white/[0.06] rounded-xl p-3 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-sky-950/60 text-sky-400 border border-sky-500/30">
                   <Zap className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-400 font-semibold uppercase">Bonus Mana</div>
-                  <div className="font-bold text-sm text-blue-300">+{bonusMana} MP</div>
+                  <div className="text-[10px] text-slate-400 font-mono uppercase">Bonus Mana</div>
+                  <div className="font-mono tabular-nums font-bold text-sm text-sky-400">+{bonusMana} MP</div>
                 </div>
               </div>
 
-              <div className="bg-dota-bg/80 border border-dota-border rounded-xl p-3 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-slate-800 text-slate-300">
+              <div className="bg-hud-surface border border-white/[0.06] rounded-xl p-3 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-white/[0.04] text-slate-300 border border-white/[0.08]">
                   <Shield className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-400 font-semibold uppercase">Bonus Armor</div>
-                  <div className="font-bold text-sm text-slate-200">+{bonusArmor.toFixed(1)} Armor</div>
+                  <div className="text-[10px] text-slate-400 font-mono uppercase">Bonus Armor</div>
+                  <div className="font-mono tabular-nums font-bold text-sm text-slate-200">+{bonusArmor.toFixed(1)} Armor</div>
                 </div>
               </div>
             </div>
@@ -313,9 +316,9 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
           </div>
 
           {/* ACTIVE COUNTER CAPABILITIES GENERATED BY THIS LOADOUT */}
-          <div className="bg-dota-panel border border-dota-gold/40 rounded-2xl p-5 shadow-dota-glow space-y-4">
-            <h3 className="font-dota font-black text-base text-dota-gold flex items-center gap-2 border-b border-dota-gold/30 pb-2.5">
-              <ShieldCheck className="w-5 h-5 text-dota-gold" />
+          <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 shadow-hud-sm space-y-4">
+            <h3 className="font-display font-semibold text-sm text-slate-200 flex items-center gap-2 border-b border-white/[0.06] pb-2.5">
+              <ShieldCheck className="w-4 h-4 text-hud-cyan" />
               Active Tactical Counters in this Build ({counterBadges.length})
             </h3>
 
@@ -324,15 +327,15 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
                 {counterBadges.map((badge, idx) => (
                   <div
                     key={idx}
-                    className="bg-dota-bg/90 border border-dota-border rounded-xl p-3 space-y-1 shadow"
+                    className="bg-hud-surface border border-white/[0.06] rounded-lg p-3 space-y-1 shadow-hud-sm"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-amber-200">{badge.label}</span>
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-700">
+                      <span className="font-display font-medium text-xs text-slate-200">{badge.label}</span>
+                      <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
                         {badge.tag}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 leading-snug font-sans">
+                    <p className="text-xs text-slate-400 leading-snug font-sans">
                       {badge.desc}
                     </p>
                   </div>
@@ -348,13 +351,13 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
         </div>
 
         {/* Right Column: Secret Shop Item Catalog */}
-        <div className="bg-dota-panel border border-dota-border rounded-2xl p-5 shadow-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-dota-border pb-3">
-            <h3 className="font-dota font-bold text-base text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-dota-gold" />
+        <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 shadow-hud-md space-y-4">
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+            <h3 className="font-display font-semibold text-sm text-slate-200 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-hud-gold" />
               Shop Catalog
             </h3>
-            <span className="text-[11px] text-slate-400">Click item to equip</span>
+            <span className="text-[11px] font-mono text-slate-400 uppercase">CLICK TO EQUIP</span>
           </div>
 
           {/* Search in Catalog */}
@@ -365,7 +368,7 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
               placeholder="Search item catalog..."
               value={shopSearch}
               onChange={(e) => setShopSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-dota-bg border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-dota-gold"
+              className="w-full pl-8 pr-3 py-2 min-h-[44px] bg-hud-bg border border-white/[0.1] rounded-lg text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-hud-cyan focus-hud transition-colors"
             />
           </div>
 
@@ -375,18 +378,20 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
               <button
                 key={item.id}
                 onClick={() => handleEquipItem(item)}
-                className="group bg-dota-bg/80 hover:bg-slate-800 border border-dota-border hover:border-dota-gold/60 rounded-xl p-2.5 text-left transition-all flex items-center gap-2.5 shadow"
+                className="group bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] hover:border-hud-cyan/40 rounded-lg p-2.5 text-left transition-colors flex items-center gap-2.5 shadow-hud-sm min-h-[44px] touch-target focus-hud"
               >
                 <img
                   src={item.img || 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png'}
                   alt={item.name}
-                  className="w-9 h-7 rounded object-contain border border-slate-700 group-hover:border-dota-gold flex-shrink-0"
+                  loading="lazy"
+                  decoding="async"
+                  className="w-9 h-7 rounded object-contain border border-white/[0.1] shrink-0"
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="font-bold text-xs text-slate-200 group-hover:text-amber-300 truncate">
+                  <div className="font-display font-medium text-xs text-slate-200 group-hover:text-hud-cyan transition-colors truncate">
                     {item.name}
                   </div>
-                  <div className="text-[11px] font-semibold text-dota-gold">
+                  <div className="text-[11px] font-mono tabular-nums font-bold text-hud-gold">
                     {item.cost}g
                   </div>
                 </div>
@@ -399,43 +404,45 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
 
       {/* ON-CLICK SEARCH MODAL FOR EMPTY SLOT BOX WITH '+' */}
       {activeSlotTarget !== null && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-dota-panel border-2 border-dota-gold/60 rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4">
+          <div className="bg-hud-panel border border-white/[0.12] rounded-xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-hud-lg overflow-hidden animate-slideUp">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-dota-border bg-slate-900">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-dota-gold/20 border border-dota-gold/60 flex items-center justify-center text-dota-gold font-bold text-xs">
+            <div className="flex items-center justify-between p-4 border-b border-white/[0.08] bg-hud-surface">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-hud-bg border border-white/[0.08] flex items-center justify-center font-mono font-bold text-xs text-hud-gold">
                   {activeSlotTarget + 1}
                 </div>
-                <h3 className="font-dota font-bold text-sm sm:text-base text-white">
+                <h3 className="font-display font-semibold text-sm sm:text-base text-slate-100 uppercase tracking-tight">
                   Equip Item into Slot {activeSlotTarget + 1}
                 </h3>
               </div>
               <button
                 onClick={() => setActiveSlotTarget(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.04] transition-colors focus-hud"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Search Bar */}
-            <div className="p-4 border-b border-slate-800 bg-dota-bg/80 space-y-3">
+            <div className="p-4 border-b border-white/[0.06] bg-hud-bg space-y-3">
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dota-gold" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search item (e.g. BKB, Daedalus, Heart, Blink)..."
                   value={slotPickerSearch}
                   autoFocus
                   onChange={(e) => setSlotPickerSearch(e.target.value)}
-                  className="w-full pl-10 pr-8 py-2 bg-slate-900 border border-slate-700 focus:border-dota-gold rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-all shadow-inner"
+                  className="w-full pl-10 pr-8 py-2 min-h-[44px] bg-hud-surface border border-white/[0.1] focus:border-hud-cyan rounded-lg text-xs sm:text-sm text-slate-100 placeholder-slate-400 focus:outline-none transition-colors focus-hud"
                 />
                 {slotPickerSearch && (
                   <button
                     onClick={() => setSlotPickerSearch('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs p-1"
+                    aria-label="Clear search"
                   >
                     ✕
                   </button>
@@ -448,10 +455,10 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
                   <button
                     key={cat}
                     onClick={() => setSlotPickerCategory(cat)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold capitalize transition-all ${
+                    className={`min-h-[44px] sm:min-h-0 touch-target px-2.5 py-1 rounded-md text-xs font-mono uppercase tracking-wider transition-colors focus-hud ${
                       slotPickerCategory === cat
-                        ? 'bg-dota-gold text-slate-950 font-black shadow'
-                        : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                        ? 'bg-hud-cyan text-slate-950 font-bold shadow-hud-sm'
+                        : 'bg-hud-surface text-slate-400 hover:text-slate-200 border border-white/[0.06]'
                     }`}
                   >
                     {cat === 'all' ? 'All Items' : cat}
@@ -467,42 +474,44 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
                   <div
                     key={item.id}
                     onClick={() => handleEquipToSpecificSlot(item, activeSlotTarget)}
-                    className="group bg-dota-bg/90 hover:bg-slate-800 border border-slate-800 hover:border-dota-gold/70 rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all hover:scale-[1.01] shadow"
+                    className="group bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] hover:border-hud-cyan/40 rounded-lg p-3 flex items-center gap-3 cursor-pointer transition-colors shadow-hud-sm min-h-[44px] touch-target focus-hud"
                   >
                     <img
                       src={item.img || 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png'}
                       alt={item.name}
-                      className="w-11 h-9 rounded object-contain border border-slate-700 group-hover:border-dota-gold flex-shrink-0"
+                      loading="lazy"
+                      decoding="async"
+                      className="w-11 h-9 rounded object-contain border border-white/[0.1] shrink-0"
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="font-bold text-xs sm:text-sm text-slate-200 group-hover:text-amber-300 truncate">
+                      <div className="font-display font-medium text-xs sm:text-sm text-slate-200 group-hover:text-hud-cyan transition-colors truncate">
                         {item.name}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs font-bold text-dota-gold">{item.cost}g</span>
-                        <span className="text-[10px] text-slate-400 capitalize">{item.category}</span>
+                        <span className="text-xs font-mono tabular-nums font-bold text-hud-gold">{item.cost}g</span>
+                        <span className="text-[10px] text-slate-400 font-mono uppercase">{item.category}</span>
                       </div>
                     </div>
-                    <span className="text-[11px] font-bold text-dota-gold opacity-0 group-hover:opacity-100 transition-opacity">
-                      Equip ➔
+                    <span className="text-[11px] font-mono text-hud-cyan opacity-0 group-hover:opacity-100 transition-opacity">
+                      EQUIP ➔
                     </span>
                   </div>
                 ))
               ) : (
-                <div className="col-span-2 py-8 text-center text-xs text-slate-500">
-                  No items match your search.
+                <div className="col-span-2 py-8 text-center text-xs text-slate-400 font-mono">
+                  NO ITEMS MATCH YOUR SEARCH.
                 </div>
               )}
             </div>
 
             {/* Modal Footer */}
-            <div className="p-3 bg-slate-900 border-t border-slate-800 flex justify-between items-center text-xs text-slate-400">
-              <span>Clicking an item equips it directly into Slot {activeSlotTarget + 1}.</span>
+            <div className="p-3 bg-hud-surface border-t border-white/[0.06] flex justify-between items-center text-xs text-slate-400 font-mono">
+              <span>Equip directly into Slot {activeSlotTarget + 1}</span>
               <button
                 onClick={() => setActiveSlotTarget(null)}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                className="min-h-[44px] sm:min-h-0 touch-target px-3 py-1.5 rounded-lg bg-hud-bg hover:bg-white/[0.04] border border-white/[0.08] text-slate-300 font-mono uppercase text-xs focus-hud"
               >
-                Cancel
+                CANCEL
               </button>
             </div>
 

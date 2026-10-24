@@ -59,8 +59,6 @@ export const DurvesCurves: React.FC<DurvesCurvesProps> = ({
           strokeWidth="1.75"
           fill="none"
           strokeLinecap="round"
-          className="animate-pulse"
-          style={{ animationDuration: '6s' }}
         />
 
         {/* Secondary Harmonic Curve (Echo wave) */}

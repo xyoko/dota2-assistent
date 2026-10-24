@@ -103,10 +103,14 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
   const clickTimeoutRef = useRef<number | null>(null);
   const pointerDownPosRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
-  // Sync if initialHero changes
+  // Sync if initialHero actually changes ID without resetting user choice on parent re-renders
+  const prevHeroIdRef = useRef(initialHero.id);
   useEffect(() => {
-    setSelectedHero(initialHero);
-  }, [initialHero.id]);
+    if (prevHeroIdRef.current !== initialHero.id) {
+      prevHeroIdRef.current = initialHero.id;
+      setSelectedHero(initialHero);
+    }
+  }, [initialHero]);
 
   // Stage progression sequence
   const stages: { key: BuildStage; label: string; short: string; badge: string; timing: string }[] = [
@@ -254,7 +258,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
       selectedHero.skillOrder.maxPriority,
       selectedHero.abilities
     );
-  }, [selectedHero.id, selectedHero.skillOrder.maxPriority, selectedHero.abilities]);
+  }, [selectedHero.skillOrder.maxPriority, selectedHero.abilities]);
 
   // Current power spike window
   const currentSpikeText = useMemo(() => {
@@ -268,26 +272,29 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
   return (
     <div
       ref={containerRef}
+      role="region"
+      aria-label="Tactical Mini HUD"
       onClick={handleContainerClick}
       onPointerDown={handlePointerDown}
-      className={`select-none flex flex-col min-h-0 overflow-hidden bg-slate-950/95 text-slate-100 font-sans backdrop-blur-2xl transition-all duration-200 ${
+      className={`select-none flex flex-col min-h-0 overflow-hidden bg-hud-surface/98 text-slate-100 font-sans transition-colors duration-200 ${
         isNativePip
           ? 'w-full h-full'
-          : `${isCompact ? 'h-[240px] w-[320px]' : 'h-[540px] w-[370px]'} rounded-2xl border border-white/[0.12] shadow-[0_20px_60px_rgba(0,0,0,0.95)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] resize min-h-[200px] min-w-[280px] max-h-[85vh]`
+          : `${isCompact ? 'h-[240px] w-[320px]' : 'h-[540px] w-[370px]'} rounded-xl border border-white/[0.14] shadow-2xl resize min-h-[200px] min-w-[280px] max-h-[85vh]`
       }`}
     >
       {/* ============================================================ */}
       {/* 1. ESPORTS BROADCAST TELEMETRY HEADER                         */}
       {/* ============================================================ */}
-      <div className={`relative bg-gradient-to-r from-slate-900/90 via-slate-950/95 to-slate-900/90 border-b border-white/[0.08] ${isShrunk ? 'px-2 py-1' : 'p-2.5'} flex-shrink-0`}>
+      <div className={`relative bg-hud-panel border-b border-white/[0.08] ${isShrunk ? 'px-2 py-1' : 'p-2.5'} flex-shrink-0`}>
         <div className="flex items-center justify-between gap-1.5">
           
           {/* Hero Avatar & Identity */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <div className={`relative ${isShrunk ? 'w-7 h-7 rounded-lg' : 'w-9 h-9 rounded-xl'} overflow-hidden border ${attrStyles.border} ${attrStyles.glow} flex-shrink-0 shadow`}>
+            <div className={`relative ${isShrunk ? 'w-7 h-7 rounded' : 'w-9 h-9 rounded-lg'} overflow-hidden border ${attrStyles.border} flex-shrink-0 shadow-sm bg-black`}>
               <img
                 src={selectedHero.avatarUrl}
                 alt={selectedHero.name}
+                decoding="async"
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
@@ -297,7 +304,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1">
-                <span className={`font-dota font-black ${isShrunk ? 'text-[11px]' : 'text-xs'} text-white truncate drop-shadow-sm`}>
+                <span className={`font-display font-bold ${isShrunk ? 'text-[11px]' : 'text-xs'} text-white truncate`}>
                   {selectedHero.name}
                 </span>
                 <span className={`text-[7px] font-mono font-bold px-1 py-0.1 rounded border uppercase ${attrStyles.badge}`}>
@@ -311,11 +318,11 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                     <span className="text-slate-600">•</span>
                   </>
                 )}
-                <span className="text-emerald-400 font-bold">{selectedHero.winRate}% WR</span>
+                <span className="text-emerald-400 font-bold tabular-nums">{selectedHero.winRate}% WR</span>
                 {!isShrunk && (
                   <>
                     <span className="text-slate-600">•</span>
-                    <span className="text-amber-400 capitalize">{selectedHero.attackType}</span>
+                    <span className="text-hud-gold capitalize">{selectedHero.attackType}</span>
                   </>
                 )}
               </div>
@@ -331,10 +338,10 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                 setIsSearchOpen((prev) => !prev);
                 SoundEngine.playHover();
               }}
-              className={`p-1 rounded-lg border active:scale-[0.97] transition-all ${
+              className={`p-1 rounded-md border active:scale-[0.97] transition-colors focus-hud ${
                 isSearchOpen 
-                  ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.3)]' 
-                  : 'bg-slate-900 border-white/[0.08] text-slate-300 hover:text-white hover:border-white/[0.2]'
+                  ? 'bg-hud-gold/15 border-hud-gold/60 text-hud-gold' 
+                  : 'bg-hud-surface border-white/[0.08] text-slate-300 hover:text-white hover:border-white/[0.2]'
               }`}
               title="Search and change hero"
             >
@@ -347,14 +354,14 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                 e.stopPropagation();
                 toggleCounterMode();
               }}
-              className={`px-1.5 py-0.5 rounded-lg text-[8px] font-mono font-black uppercase tracking-wider border flex items-center gap-1 active:scale-[0.97] transition-all ${
+              className={`px-1.5 py-0.5 rounded-md text-[8px] font-mono font-bold uppercase tracking-wider border flex items-center gap-1 active:scale-[0.97] transition-colors focus-hud ${
                 isCounterMode 
-                  ? 'bg-red-600/30 text-red-200 border-red-500/80 shadow-[0_0_12px_rgba(239,68,68,0.4)]' 
-                  : 'bg-gradient-to-r from-amber-500/20 to-yellow-500/10 text-amber-300 border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                  ? 'bg-red-950/80 text-red-300 border-red-500/60' 
+                  : 'bg-hud-gold/15 text-hud-gold border-hud-gold/50'
               }`}
               title="Double-click screen or click here to toggle Counters"
             >
-              {isCounterMode ? <ShieldAlert className="w-2.5 h-2.5 text-red-400" /> : <Swords className="w-2.5 h-2.5 text-amber-400" />}
+              {isCounterMode ? <ShieldAlert className="w-2.5 h-2.5 text-red-400" /> : <Swords className="w-2.5 h-2.5 text-hud-gold" />}
               <span>{isCounterMode ? 'Counters' : 'Build'}</span>
             </button>
 
@@ -365,7 +372,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                 setIsCompact((prev) => !prev);
                 SoundEngine.playHover();
               }}
-              className="p-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-white/[0.08] text-slate-400 hover:text-white active:scale-[0.97] transition-all"
+              className="p-1 rounded-md bg-hud-surface hover:bg-hud-surfaceAlt border border-white/[0.08] text-slate-400 hover:text-white active:scale-[0.97] transition-colors focus-hud"
               title={isCompact ? 'Expand HUD (370x540)' : 'Compact HUD (320x240)'}
             >
               {isCompact ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
@@ -377,7 +384,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                 e.stopPropagation();
                 onClose();
               }}
-              className="p-1 rounded-lg bg-slate-900 hover:bg-red-950/80 border border-white/[0.08] hover:border-red-500/60 text-slate-400 hover:text-red-300 active:scale-[0.97] transition-all"
+              className="p-1 rounded-md bg-hud-surface hover:bg-red-950/80 border border-white/[0.08] hover:border-red-500/60 text-slate-400 hover:text-red-300 active:scale-[0.97] transition-colors focus-hud"
               title="Close PiP HUD"
             >
               <X className="w-3 h-3" />
@@ -389,7 +396,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
         {/* Quick Hero Switcher Strip (Hidden on shrink to conserve vertical space) */}
         {!isSearchOpen && !isShrunk && (
           <div className="mt-2 pt-1.5 border-t border-white/[0.06] flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            <span className="text-[8px] font-mono uppercase tracking-wider text-slate-500 font-bold flex-shrink-0">
+            <span className="text-[8px] font-mono uppercase tracking-wider text-slate-400 font-bold flex-shrink-0">
               Hotkeys:
             </span>
             {QUICK_HERO_IDS.map((heroId) => {
@@ -404,7 +411,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                     setSelectedHero(h);
                     SoundEngine.playHover();
                   }}
-                  className={`relative w-6 h-6 rounded-lg overflow-hidden border transition-all flex-shrink-0 active:scale-90 ${
+                  className={`relative w-6 h-6 rounded-lg overflow-hidden border transition-colors flex-shrink-0 active:scale-90 ${
                     isCurrent
                       ? 'border-amber-400 ring-2 ring-amber-400/40 shadow-[0_0_8px_rgba(245,158,11,0.5)] scale-105'
                       : 'border-white/[0.08] hover:border-white/[0.3] opacity-60 hover:opacity-100'
@@ -414,6 +421,8 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                   <img
                     src={h.avatarUrl}
                     alt={h.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
@@ -442,7 +451,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                 placeholder="Search 124+ heroes by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-950 border border-white/[0.12] focus:border-amber-500/60 rounded-xl pl-8 pr-7 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none"
+                className="w-full bg-slate-950 border border-white/[0.12] focus:border-amber-500/60 rounded-xl pl-8 pr-7 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none"
               />
               {searchQuery && (
                 <button
@@ -461,7 +470,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                   <button
                     key={attr}
                     onClick={() => setQuickAttrFilter(attr)}
-                    className={`px-2 py-0.5 rounded-lg text-[9px] font-mono font-bold uppercase transition-all ${
+                    className={`px-2 py-0.5 rounded-lg text-[9px] font-mono font-bold uppercase transition-colors ${
                       quickAttrFilter === attr
                         ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50'
                         : 'text-slate-400 hover:text-white bg-slate-900 border border-white/[0.06]'
@@ -502,7 +511,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                       setSearchQuery('');
                       SoundEngine.playPick();
                     }}
-                    className={`flex items-center gap-2 p-1.5 rounded-xl border text-left transition-all active:scale-[0.98] ${
+                    className={`flex items-center gap-2 p-1.5 rounded-xl border text-left transition-colors active:scale-[0.98] ${
                       isSelected
                         ? 'bg-amber-500/20 border-amber-500/80 text-amber-200 shadow-md'
                         : 'bg-slate-900/60 border-white/[0.06] hover:border-white/[0.2] hover:bg-slate-800/80 text-slate-300'
@@ -511,6 +520,8 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                     <img
                       src={h.avatarUrl}
                       alt={h.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-7 h-7 rounded-lg object-cover flex-shrink-0 border border-white/[0.1]"
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
@@ -547,7 +558,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                       setActiveStage(stage.key);
                       SoundEngine.playHover();
                     }}
-                    className={`${isShrunk ? 'px-1.5 py-0.5 text-[9px]' : 'px-2 py-1 text-[10px]'} rounded-lg font-mono font-bold tracking-wide uppercase transition-all whitespace-nowrap active:scale-[0.97] ${
+                    className={`${isShrunk ? 'px-1.5 py-0.5 text-[9px]' : 'px-2 py-1 text-[11px]'} rounded-lg font-mono font-bold tracking-wide uppercase transition-colors whitespace-nowrap active:scale-[0.97] ${
                       isActive
                         ? 'bg-amber-500/25 text-amber-200 border border-amber-500/50 shadow-sm'
                         : 'bg-slate-900/80 text-slate-400 hover:text-white border border-white/[0.06]'
@@ -579,7 +590,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
             {activeStage === 'neutrals' ? (
               /* NEUTRAL ITEMS BREAKDOWN (TIERS 1 - 5) */
               <div className="space-y-2">
-                <div className="flex items-center justify-between px-1 text-[10px] font-mono font-bold text-emerald-400">
+                <div className="flex items-center justify-between px-1 text-[11px] font-mono font-bold text-emerald-400">
                   <span className="uppercase tracking-wider flex items-center gap-1.5">
                     <Sparkles className="w-3 h-3 text-emerald-400" />
                     Recommended Neutral Items
@@ -605,7 +616,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                           {tierMeta.label}
                         </span>
                         <span className="text-[8px] font-mono text-slate-400 flex items-center gap-1">
-                          <Clock className="w-2.5 h-2.5 text-slate-500" />
+                          <Clock className="w-2.5 h-2.5 text-slate-400" />
                           <span>Unlocks:</span>
                           <span className="text-white font-bold">{tierMeta.time}</span>
                         </span>
@@ -615,12 +626,14 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                         {tierData.items.map((itemName, i) => (
                           <div
                             key={i}
-                            className={`bg-slate-950/80 hover:bg-slate-900 border border-white/[0.06] hover:border-amber-500/60 rounded-lg ${isShrunk ? 'p-1' : 'p-1.5'} flex flex-col items-center text-center transition-all group shadow-sm`}
+                            className={`bg-slate-950/80 hover:bg-slate-900 border border-white/[0.06] hover:border-amber-500/60 rounded-lg ${isShrunk ? 'p-1' : 'p-1.5'} flex flex-col items-center text-center transition-colors group shadow-sm`}
                             title={`${itemName} (Tier ${tierData.tier} Neutral • ${tierMeta.time})`}
                           >
                             <img
                               src={getNeutralItemIconUrl(itemName)}
                               alt={itemName}
+                              loading="lazy"
+                              decoding="async"
                               className={`${isShrunk ? 'w-8 h-5' : 'w-10 h-7'} rounded object-contain border border-white/[0.08] group-hover:border-amber-500/80 bg-black/60 shadow flex-shrink-0`}
                               onError={(e) => {
                                 const el = e.currentTarget as HTMLImageElement;
@@ -642,7 +655,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
               /* STANDARD ITEMS PROGRESSION WITH BI METRICS */
               <>
                 {/* Stage Telemetry Header: Phase Cost & Spike Window */}
-                <div className="flex items-center justify-between px-1 text-[10px] font-mono font-bold">
+                <div className="flex items-center justify-between px-1 text-[11px] font-mono font-bold">
                   <div className="flex items-center gap-1 text-amber-300">
                     <Sparkles className="w-3 h-3 text-amber-400" />
                     <span className="uppercase tracking-wider">
@@ -658,7 +671,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                       </span>
                     )}
                     {!isShrunk && (
-                      <span className="text-[9px] text-slate-500 font-mono">
+                      <span className="text-[9px] text-slate-400 font-mono">
                         {currentItems.length} items
                       </span>
                     )}
@@ -667,7 +680,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
 
                 {/* Power Spike Window Directive (Hidden when shrunk to conserve vertical room) */}
                 {!isShrunk && (
-                  <div className="px-2 py-1 rounded-lg bg-slate-900/40 border border-white/[0.06] text-[10px] text-slate-300 font-sans flex items-center justify-between gap-1">
+                  <div className="px-2 py-1 rounded-lg bg-slate-900/40 border border-white/[0.06] text-[11px] text-slate-300 font-sans flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 truncate">
                       <TrendingUp className="w-3 h-3 text-emerald-400 flex-shrink-0" />
                       <span className="text-slate-400 font-mono text-[9px] uppercase">Goal:</span>
@@ -686,12 +699,14 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                       key={`${item.id}-${idx}`}
                       className={`group bg-slate-900/60 hover:bg-slate-900/95 border border-white/[0.08] hover:border-amber-500/50 rounded-xl ${
                         isShrunk ? 'p-1.5 gap-2' : 'p-2 gap-2.5'
-                      } flex items-center transition-all shadow-sm`}
+                      } flex items-center transition-colors shadow-sm`}
                     >
                       {/* Item Thumbnail */}
                       <img
                         src={getItemIconUrl(item.id, item.name)}
                         alt={item.name}
+                        loading="lazy"
+                        decoding="async"
                         className={`${isShrunk ? 'w-8 h-6' : 'w-10 h-7'} rounded object-contain border border-white/[0.1] group-hover:border-amber-400/80 flex-shrink-0 bg-black/60 shadow`}
                         onError={(e) => {
                           const el = e.currentTarget as HTMLImageElement;
@@ -706,7 +721,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                           <span className={`font-bold ${isShrunk ? 'text-[11px]' : 'text-xs'} text-white group-hover:text-amber-200 truncate`}>
                             {item.name}
                           </span>
-                          <span className="text-[10px] font-mono font-bold text-amber-300 flex items-center gap-0.5 flex-shrink-0">
+                          <span className="text-[11px] font-mono font-bold text-amber-300 flex items-center gap-0.5 flex-shrink-0">
                             <Coins className="w-2.5 h-2.5 text-amber-400" />
                             {item.cost ? `${item.cost}g` : 'Recipe'}
                           </span>
@@ -714,7 +729,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
 
                         {/* On 320x240: Item reason/description is removed, leaving only item name */}
                         {!isShrunk && item.reason && (
-                          <p className="text-[10px] text-slate-400 line-clamp-1 group-hover:line-clamp-2 leading-tight mt-0.5 font-sans">
+                          <p className="text-[11px] text-slate-400 line-clamp-1 group-hover:line-clamp-2 leading-tight mt-0.5 font-sans">
                             {item.reason}
                           </p>
                         )}
@@ -731,14 +746,14 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                       setActiveStage('neutrals');
                       SoundEngine.playPick();
                     }}
-                    className="p-1.5 rounded-xl bg-emerald-950/30 hover:bg-emerald-950/60 border border-emerald-500/30 hover:border-emerald-500/60 flex items-center justify-between cursor-pointer transition-all text-[10px] shadow-sm"
+                    className="p-1.5 rounded-xl bg-emerald-950/30 hover:bg-emerald-950/60 border border-emerald-500/30 hover:border-emerald-500/60 flex items-center justify-between cursor-pointer transition-colors text-[11px] shadow-sm"
                     title="Click to view all Tier 1-5 Neutral Items"
                   >
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/40 text-[9px] uppercase flex-shrink-0">
                         7m+ Neutrals
                       </span>
-                      <span className="text-slate-300 truncate text-[10px]">
+                      <span className="text-slate-300 truncate text-[11px]">
                         {heroNeutrals.find((n) => n.tier === 1)?.items.slice(0, 3).join(', ')}
                       </span>
                     </div>
@@ -755,14 +770,14 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                       setActiveStage('neutrals');
                       SoundEngine.playPick();
                     }}
-                    className="p-1.5 rounded-xl bg-teal-950/30 hover:bg-teal-950/60 border border-teal-500/30 hover:border-teal-500/60 flex items-center justify-between cursor-pointer transition-all text-[10px] shadow-sm"
+                    className="p-1.5 rounded-xl bg-teal-950/30 hover:bg-teal-950/60 border border-teal-500/30 hover:border-teal-500/60 flex items-center justify-between cursor-pointer transition-colors text-[11px] shadow-sm"
                     title="Click to view all Tier 1-5 Neutral Items"
                   >
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300 font-mono font-bold border border-teal-500/40 text-[9px] uppercase flex-shrink-0">
                         17m+ Neutrals
                       </span>
-                      <span className="text-slate-300 truncate text-[10px]">
+                      <span className="text-slate-300 truncate text-[11px]">
                         {heroNeutrals.find((n) => n.tier === 2)?.items.slice(0, 3).join(', ')}
                       </span>
                     </div>
@@ -781,26 +796,26 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                   <Zap className="w-2.5 h-2.5 text-cyan-400" />
                   <span>Skill Max Priority:</span>
                 </div>
-                {!isShrunk && <span className="text-[8px] text-slate-500 font-normal">Max order 1st ➔ 4th</span>}
+                {!isShrunk && <span className="text-[8px] text-slate-400 font-normal">Max order 1st ➔ 4th</span>}
               </div>
 
               <div className="flex items-center gap-2">
                 {numberedSkills.map((s, idx) => (
                   <div key={idx} className="flex items-center gap-2">
                     <div
-                      className={`flex items-center justify-center font-mono font-black ${
-                        isShrunk ? 'w-6 h-6 text-sm rounded-lg' : 'w-7 h-7 text-base rounded-xl'
-                      } border transition-all active:scale-95 shadow-sm ${
+                      className={`flex items-center justify-center font-mono font-bold ${
+                        isShrunk ? 'w-6 h-6 text-xs rounded' : 'w-7 h-7 text-sm rounded-md'
+                      } border transition-colors active:scale-95 shadow-sm ${
                         s.isUlt
-                          ? 'bg-gradient-to-b from-red-950/90 to-red-900/70 text-red-300 border-red-500/70 shadow-[0_0_10px_rgba(239,68,68,0.25)]'
-                          : 'bg-gradient-to-b from-amber-950/80 to-slate-900/90 text-amber-300 border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
+                          ? 'bg-red-950/80 text-red-300 border-red-500/60'
+                          : 'bg-hud-surface text-hud-gold border-hud-gold/40'
                       }`}
                       title={`${s.name || `Skill ${s.skillNumber}`}: Max Priority #${idx + 1}`}
                     >
                       {s.skillNumber}
                     </div>
                     {idx < numberedSkills.length - 1 && (
-                      <span className="text-slate-500 text-xs font-bold select-none">➔</span>
+                      <span className="text-slate-600 text-xs font-bold select-none">➔</span>
                     )}
                   </div>
                 ))}
@@ -814,12 +829,12 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                       e.stopPropagation();
                       setShowTalents(!showTalents);
                     }}
-                    className="flex items-center gap-1 text-[9px] font-mono font-bold text-amber-300 hover:text-white"
+                    className="flex items-center gap-1 text-[9px] font-mono font-bold text-hud-gold hover:text-white focus-hud"
                   >
-                    <Award className="w-3 h-3 text-amber-400" />
+                    <Award className="w-3 h-3 text-hud-gold" />
                     <span>{showTalents ? 'Hide Talent Spikes' : 'View Key Talent Tree (10-25)'}</span>
                   </button>
-                  <span className="text-[8px] font-mono text-slate-500">Patch 7.37d</span>
+                  <span className="text-[8px] font-mono text-slate-400">Patch 7.37d</span>
                 </div>
               )}
 
@@ -860,7 +875,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
             <div>
               <div className="text-[9px] font-mono font-bold text-red-400 uppercase tracking-wider mb-1 flex items-center justify-between">
                 <span>Enemy Hard Counters (Ban / Watch):</span>
-                {!isShrunk && <span className="text-slate-500 font-normal">Mortal Nemesis</span>}
+                {!isShrunk && <span className="text-slate-400 font-normal">Mortal Nemesis</span>}
               </div>
 
               <div className="grid grid-cols-2 gap-1">
@@ -877,13 +892,15 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                       <img
                         src={avatar}
                         alt={w.heroName}
+                        loading="lazy"
+                        decoding="async"
                         className={`${isShrunk ? 'w-6 h-6' : 'w-8 h-8'} rounded-lg object-cover border border-red-700/60 flex-shrink-0`}
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
                         }}
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="font-bold text-[10px] text-red-200 truncate">
+                        <div className="font-bold text-[11px] text-red-200 truncate">
                           {w.heroName}
                         </div>
                         {/* On shrink: hide reason, leave only name */}
@@ -903,7 +920,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
             <div>
               <div className="text-[9px] font-mono font-bold text-amber-300 uppercase tracking-wider mb-1 flex items-center justify-between">
                 <span>Key Counter Items:</span>
-                {!isShrunk && <span className="text-slate-500 font-normal font-sans">Tactical responses</span>}
+                {!isShrunk && <span className="text-slate-400 font-normal font-sans">Tactical responses</span>}
               </div>
 
               <div className="grid grid-cols-2 gap-1">
@@ -917,6 +934,8 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                       <img
                         src={getItemIconUrl('', c.name)}
                         alt={c.name}
+                        loading="lazy"
+                        decoding="async"
                         className={`${isShrunk ? 'w-7 h-5' : 'w-9 h-7'} rounded object-contain border border-amber-700/60 flex-shrink-0 bg-black/60 shadow`}
                         onError={(e) => {
                           const el = e.currentTarget as HTMLImageElement;
@@ -925,7 +944,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                         }}
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="font-bold text-[10px] text-amber-200 truncate">
+                        <div className="font-bold text-[11px] text-amber-200 truncate">
                           {c.name}
                         </div>
                         {/* On shrink: hide reason, leave only item name */}
@@ -962,13 +981,15 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                         <img
                           src={avatar}
                           alt={s.heroName}
+                          loading="lazy"
+                          decoding="async"
                           className={`${isShrunk ? 'w-6 h-6' : 'w-8 h-8'} rounded-lg object-cover border border-emerald-700/60 flex-shrink-0`}
                           onError={(e) => {
                             (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/storm_spirit.png';
                           }}
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="font-bold text-[10px] text-emerald-200 truncate">
+                          <div className="font-bold text-[11px] text-emerald-200 truncate">
                             {s.heroName}
                           </div>
                           {!isShrunk && (
@@ -988,7 +1009,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
             {!isShrunk && (
               <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
                 {selectedHero.counterStrategy.laningAdvice && (
-                  <div className="p-2 rounded-xl bg-slate-950/80 border border-white/[0.06] text-[10px] text-slate-300 font-sans leading-relaxed">
+                  <div className="p-2 rounded-xl bg-slate-950/80 border border-white/[0.06] text-[11px] text-slate-300 font-sans leading-relaxed">
                     <span className="font-mono font-bold text-amber-300 block mb-0.5 text-[9px] uppercase">
                       Laning Phase Directive:
                     </span>
@@ -996,7 +1017,7 @@ export const PictureInPictureHUD: React.FC<PictureInPictureHUDProps> = ({
                   </div>
                 )}
                 {selectedHero.counterStrategy.teamfightAdvice && (
-                  <div className="p-2 rounded-xl bg-slate-950/80 border border-white/[0.06] text-[10px] text-slate-300 font-sans leading-relaxed">
+                  <div className="p-2 rounded-xl bg-slate-950/80 border border-white/[0.06] text-[11px] text-slate-300 font-sans leading-relaxed">
                     <span className="font-mono font-bold text-red-300 block mb-0.5 text-[9px] uppercase">
                       Teamfight Protocol:
                     </span>

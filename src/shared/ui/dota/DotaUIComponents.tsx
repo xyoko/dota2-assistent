@@ -45,7 +45,7 @@ export const DotaComplexity: React.FC<{ complexity: 1 | 2 | 3; size?: 'sm' | 'md
             <svg
               key={lvl}
               viewBox="0 0 16 16"
-              className={`${sizeClasses} transition-all ${
+              className={`${sizeClasses} transition-colors ${
                 isFilled
                   ? 'text-amber-300 fill-amber-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]'
                   : 'text-slate-700 fill-slate-800/60 stroke-slate-600 stroke-[1]'
@@ -117,7 +117,7 @@ export const DotaRoleBadge: React.FC<{ role: RoleType; showDefinition?: boolean 
 
   return (
     <div 
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] font-bold transition-all shadow-sm ${roleInfo.color}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[11px] font-bold transition-colors shadow-sm ${roleInfo.color}`}
       title={showDefinition ? `${roleInfo.label} (${roleInfo.pos}): ${roleInfo.definition}` : undefined}
     >
       <Icon className="w-3 h-3 flex-shrink-0" />
@@ -163,7 +163,7 @@ export const DotaRoleIcon: React.FC<{
 
   return (
     <div 
-      className={`inline-flex items-center justify-center rounded border transition-all shadow-sm ${roleInfo.color} ${containerSizes} hover:brightness-125 cursor-help`}
+      className={`inline-flex items-center justify-center rounded border transition-colors shadow-sm ${roleInfo.color} ${containerSizes} hover:brightness-125 cursor-help`}
       title={showTooltip ? `${roleInfo.label} (${roleInfo.pos}): ${roleInfo.definition}` : undefined}
     >
       <Icon className={`${iconSizes} flex-shrink-0`} />

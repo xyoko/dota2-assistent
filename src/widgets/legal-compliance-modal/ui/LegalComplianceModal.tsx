@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Scale, 
   ShieldCheck, 
@@ -40,21 +40,74 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
   const [dataDeletionSuccess, setDataDeletionSuccess] = useState(false);
   const [isSubscribedToAlerts, setIsSubscribedToAlerts] = useState(false);
   const [unsubscribeFeedback, setUnsubscribeFeedback] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
 
   // Sync initial tab when changed
   useEffect(() => {
     if (initialTab) setActiveTab(initialTab);
   }, [initialTab]);
 
-  // Keyboard navigation: Escape key closes modal
+  // Focus trap, escape key dismissal, and focus restoration
   useEffect(() => {
+    if (!isOpen) return;
+
+    previouslyFocusedElementRef.current = document.activeElement as HTMLElement | null;
+
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    // Focus close button or first interactive element inside container on mount
+    const timer = setTimeout(() => {
+      if (containerRef.current) {
+        const firstFocusable = containerRef.current.querySelector<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        firstFocusable?.focus();
+      }
+    }, 40);
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
         onClose();
+        return;
+      }
+
+      if (e.key === 'Tab' && containerRef.current) {
+        const focusables = containerRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        const focusableArr = Array.from(focusables).filter(el => el.offsetParent !== null);
+        if (focusableArr.length === 0) return;
+        const first = focusableArr[0];
+        const last = focusableArr[focusableArr.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first || !containerRef.current.contains(document.activeElement)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last || !containerRef.current.contains(document.activeElement)) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      previouslyFocusedElementRef.current?.focus();
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -90,30 +143,29 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/90"
       role="dialog"
       aria-modal="true"
       aria-labelledby="legal-hub-title"
     >
       <div 
-        className="glass-card w-full max-w-5xl max-h-[90vh] flex flex-col rounded-3xl border border-purple-500/30 bg-slate-900/95 shadow-2xl overflow-hidden text-slate-200"
+        ref={containerRef}
+        className="w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl border border-white/[0.14] bg-hud-surface shadow-2xl overflow-hidden text-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
         
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-purple-950/40 via-slate-900/60 to-blue-950/40">
+        <div className="p-5 sm:p-6 border-b border-white/[0.08] flex items-center justify-between bg-hud-panel">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shadow-inner">
-              <Scale className="w-5 h-5 text-purple-400" />
+            <div className="w-10 h-10 rounded-xl bg-hud-cyan/10 border border-hud-cyan/30 flex items-center justify-center text-hud-cyan shadow-inner">
+              <Scale className="w-5 h-5 text-hud-cyan" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                {/* 3. Emojis in headings + 16. Em dashes */}
-                <h2 id="legal-hub-title" className="font-grotesk text-lg sm:text-xl font-bold text-white flex items-center gap-1.5">
-                  <span>⚖️</span>
-                  <span>Legal Compliance & Consumer Protection Hub — 20 Point Audit</span>
+                <h2 id="legal-hub-title" className="font-grotesk text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                  Legal Compliance & Consumer Protection Hub — 20 Point Audit
                 </h2>
-                <Badge variant="gradient" className="text-[10px] uppercase font-mono">
+                <Badge variant="outline" className="text-[11px] uppercase font-mono border-hud-cyan/30 text-hud-cyan bg-hud-cyan/10">
                   Audited 2026
                 </Badge>
               </div>
@@ -125,7 +177,7 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors btn-fade"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-hud-cyan"
             title="Close modal (Esc)"
             aria-label="Close legal compliance dialog"
           >
@@ -134,14 +186,14 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
         </div>
 
         {/* Modal Navigation Tabs */}
-        <div className="flex items-center gap-1 sm:gap-2 px-5 py-2.5 bg-slate-950/60 border-b border-slate-800/80 overflow-x-auto text-xs">
+        <div className="flex items-center gap-1 sm:gap-2 px-5 py-2.5 bg-hud-panel/90 border-b border-white/[0.08] overflow-x-auto text-xs">
           {[
-            { id: 'overview', label: '📋 20-Point Checklist Audit', icon: ShieldCheck },
-            { id: 'privacy', label: '🔒 Privacy Policy & Data', icon: Lock },
-            { id: 'terms', label: '📜 Terms & Disclaimers', icon: FileText },
-            { id: 'cookies', label: '🍪 Cookies & SDK Audit', icon: Cookie },
-            { id: 'refunds', label: '💳 Free License & Refunds', icon: CreditCard },
-            { id: 'accessibility', label: '♿ Accessibility & IP', icon: Accessibility }
+            { id: 'overview', label: '20-Point Checklist Audit', icon: ShieldCheck },
+            { id: 'privacy', label: 'Privacy Policy & Data', icon: Lock },
+            { id: 'terms', label: 'Terms & Disclaimers', icon: FileText },
+            { id: 'cookies', label: 'Cookies & SDK Audit', icon: Cookie },
+            { id: 'refunds', label: 'Free License & Refunds', icon: CreditCard },
+            { id: 'accessibility', label: 'Accessibility & IP', icon: Accessibility }
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -149,10 +201,10 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as LegalTabType)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all btn-fade ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-hud-cyan ${
                   isActive
-                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/50 shadow-sm font-semibold'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent'
+                    ? 'bg-hud-cyan/15 text-hud-cyan border border-hud-cyan/40 shadow-sm font-semibold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -168,12 +220,12 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
           {/* TAB 1: 20-POINT CHECKLIST AUDIT OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-500/30 space-y-2">
-                <h3 className="font-grotesk font-bold text-purple-200 text-base flex items-center gap-2">
-                  <span>✨</span>
+              <div className="p-4 rounded-xl bg-hud-panel border border-white/[0.08] space-y-2">
+                <h3 className="font-grotesk font-bold text-slate-100 text-base flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-hud-cyan" />
                   <span>Certified 20/20 Legal & Trust Compliance Framework</span>
                 </h3>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   Every legal, consumer protection, and data governance requirement has been audited and embedded into AegisForge. Below is the itemized compliance audit verifying all 20 cases.
                 </p>
               </div>
@@ -203,15 +255,15 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                 ].map((item) => (
                   <div 
                     key={item.num}
-                    className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-purple-500/40 transition-colors flex items-start gap-3"
+                    className="p-3.5 rounded-xl bg-hud-panel/60 border border-white/[0.08] hover:border-white/[0.18] transition-colors flex items-start gap-3"
                   >
-                    <div className="w-6 h-6 rounded-md bg-purple-500/15 border border-purple-500/30 text-purple-300 flex items-center justify-center font-mono text-xs font-bold flex-shrink-0">
+                    <div className="w-6 h-6 rounded-md bg-hud-cyan/10 border border-hud-cyan/30 text-hud-cyan flex items-center justify-center font-mono text-xs font-bold flex-shrink-0">
                       {item.num}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
                         <span className="font-semibold text-slate-200 text-xs truncate">{item.title}</span>
-                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
+                        <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
                           {item.status}
                         </span>
                       </div>
@@ -229,9 +281,9 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
           {activeTab === 'privacy' && (
             <div className="space-y-6">
               
-              <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 space-y-2">
-                <h3 className="font-grotesk font-bold text-indigo-200 text-base flex items-center gap-2">
-                  <span>🔒</span>
+              <div className="p-4 rounded-xl bg-hud-panel border border-white/[0.08] space-y-2">
+                <h3 className="font-grotesk font-bold text-slate-100 text-base flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-hud-cyan" />
                   <span>1. Privacy Policy & Radical Data Minimization Notice</span>
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
@@ -245,7 +297,7 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span>7. No Unnecessary Data Collection (Local-First Guarantee)</span>
                 </h4>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   AegisForge is architected on a zero-backend, client-side model. We do <strong>not</strong> collect, transmit, or monetize your personally identifiable information (PII). We do not collect names, email addresses, IP logs, geolocation, or browser fingerprints. Your tactical notes, favorites, and draft predictions remain strictly inside your browser's private local storage.
                 </p>
               </div>
@@ -256,7 +308,7 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span>6. Check Form Consents & Explicit User Authorization</span>
                 </h4>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   Every user interaction requiring local persistence (such as saving custom tactical notes or creating draft scenarios) requires intentional user confirmation. No form data is submitted to remote databases.
                 </p>
               </div>
@@ -267,13 +319,13 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span>17. Children's Online Privacy Protection (COPPA & GDPR-K 13+)</span>
                 </h4>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   AegisForge is designed for players of Dota 2 aged 13 and above. We do not knowingly solicit or collect personal information from children under the age of 13. Because our platform collects zero personal data, no minor profiling occurs.
                 </p>
               </div>
 
               {/* 20. Data Deletion Request (Right to be Forgotten) */}
-              <div className="p-4 rounded-2xl bg-red-950/20 border border-red-500/30 space-y-3">
+              <div className="p-4 rounded-xl bg-red-950/20 border border-red-500/30 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-bold text-red-200 text-sm flex items-center gap-1.5">
@@ -298,7 +350,7 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                     onClick={() => setDataDeletionConfirmed(true)}
                     variant="outline"
                     size="sm"
-                    className="border-red-500/40 text-red-300 hover:bg-red-950 hover:text-white btn-fade text-xs"
+                    className="border-red-500/40 text-red-300 hover:bg-red-950/50 hover:text-white text-xs"
                   >
                     <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                     Request Immediate Local Data Purge
@@ -309,7 +361,7 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                       onClick={handleExecuteDataDeletion}
                       variant="destructive"
                       size="sm"
-                      className="text-xs btn-fade"
+                      className="text-xs"
                     >
                       Confirm: Delete All My Stored Data Now
                     </Button>
@@ -317,7 +369,7 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                       onClick={() => setDataDeletionConfirmed(false)}
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-slate-400 hover:text-slate-200 btn-fade"
+                      className="text-xs text-slate-400 hover:text-slate-200"
                     >
                       Cancel
                     </Button>
@@ -332,9 +384,9 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
           {activeTab === 'terms' && (
             <div className="space-y-6">
               
-              <div className="p-4 rounded-2xl bg-blue-950/30 border border-blue-500/30 space-y-2">
-                <h3 className="font-grotesk font-bold text-blue-200 text-base flex items-center gap-2">
-                  <span>📜</span>
+              <div className="p-4 rounded-xl bg-hud-panel border border-white/[0.08] space-y-2">
+                <h3 className="font-grotesk font-bold text-slate-100 text-base flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-hud-cyan" />
                   <span>2. Terms of Service & Legal Disclaimer Agreement</span>
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
@@ -345,10 +397,10 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
               {/* 16. Business Details & Trademark Notice */}
               <div className="space-y-2">
                 <h4 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
-                  <Building className="w-4 h-4 text-purple-400" />
+                  <Building className="w-4 h-4 text-hud-cyan" />
                   <span>16. Business & Entity Details — Valve Corporation Trademark Notice</span>
                 </h4>
-                <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-300 space-y-1 leading-relaxed">
+                <div className="p-3.5 rounded-xl bg-hud-panel/60 border border-white/[0.08] text-xs text-slate-300 space-y-1 leading-relaxed">
                   <p><strong>Operating Entity:</strong> AegisForge Tactical Open Source Collective</p>
                   <p><strong>Primary Inquiries:</strong> legal@aegisforge.gg • support@aegisforge.gg</p>
                   <p><strong>Legal Jurisdiction:</strong> Wilmington, DE, United States / Remote Guild</p>
@@ -364,7 +416,7 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                   <EyeOff className="w-4 h-4 text-emerald-400" />
                   <span>9. Certified Zero Dark Patterns</span>
                 </h4>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   We reject manipulative user experience patterns: zero fake countdown timers inducing synthetic panic, zero pre-checked consent boxes, zero hidden opt-outs, and zero deceptive confirm-shaming dialogues.
                 </p>
               </div>
@@ -375,7 +427,7 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                   <UserCheck className="w-4 h-4 text-emerald-400" />
                   <span>11. Strict Prohibition of Fabricated Reviews or Testimonials</span>
                 </h4>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   AegisForge publishes zero fabricated reviews, astroturfed player testimonials, or synthetic endorsements. All hero tier rankings and win-rate statistics originate directly from transparent mathematical algorithms parsing official Patch 7.37d high-bracket matches.
                 </p>
               </div>
@@ -386,7 +438,7 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                   <AlertTriangle className="w-4 h-4 text-amber-400" />
                   <span>12. Clarification of Unsupported Claims (Warranty & Outcome Disclaimer)</span>
                 </h4>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   Predictive draft evaluations, win percentages, and counter recommendations are heuristic estimations calculated from historical distributions. AegisForge does not guarantee in-game MMR gains, ranked win streaks, or specific tournament outcomes. Mechanical skill, player coordination, and in-game decisions determine match results.
                 </p>
               </div>
@@ -398,9 +450,9 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
           {activeTab === 'cookies' && (
             <div className="space-y-6">
               
-              <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-500/30 space-y-2">
-                <h3 className="font-grotesk font-bold text-purple-200 text-base flex items-center gap-2">
-                  <span>🍪</span>
+              <div className="p-4 rounded-xl bg-hud-panel border border-white/[0.08] space-y-2">
+                <h3 className="font-grotesk font-bold text-slate-100 text-base flex items-center gap-2">
+                  <Cookie className="w-5 h-5 text-hud-cyan" />
                   <span>4. Cookie Policy & Storage Categorization</span>
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
@@ -411,9 +463,9 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
               {/* Storage Classification Table */}
               <div className="space-y-2">
                 <h4 className="font-bold text-slate-100 text-sm">Storage Keys & Purpose</h4>
-                <div className="overflow-x-auto rounded-xl border border-slate-800">
+                <div className="overflow-x-auto rounded-xl border border-white/[0.08]">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-950 text-slate-300 font-mono text-[11px] border-b border-slate-800">
+                    <thead className="bg-hud-panel text-slate-300 font-mono text-[11px] border-b border-white/[0.08]">
                       <tr>
                         <th className="p-3">Key Name</th>
                         <th className="p-3">Category</th>
@@ -421,27 +473,27 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                         <th className="p-3">Purpose</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-sans">
+                    <tbody className="divide-y divide-white/[0.06] font-sans">
                       <tr>
-                        <td className="p-3 font-mono text-purple-300">dota2_favorites</td>
+                        <td className="p-3 font-mono text-hud-cyan">dota2_favorites</td>
                         <td className="p-3">Essential</td>
                         <td className="p-3">Persistent (Local)</td>
                         <td className="p-3">Stores your bookmarked heroes for quick draft access</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono text-purple-300">dota2_custom_notes</td>
+                        <td className="p-3 font-mono text-hud-cyan">dota2_custom_notes</td>
                         <td className="p-3">Functional</td>
                         <td className="p-3">Persistent (Local)</td>
                         <td className="p-3">Saves your personal match matchup notes</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono text-purple-300">aegis_cookie_consent</td>
+                        <td className="p-3 font-mono text-hud-cyan">aegis_cookie_consent</td>
                         <td className="p-3">Essential</td>
                         <td className="p-3">Persistent (Local)</td>
                         <td className="p-3">Remembers your cookie consent banner choice</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-mono text-purple-300">aegis_sound_enabled</td>
+                        <td className="p-3 font-mono text-hud-cyan">aegis_sound_enabled</td>
                         <td className="p-3">Essential</td>
                         <td className="p-3">Persistent (Local)</td>
                         <td className="p-3">Remembers UI sound effects audio toggle</td>
@@ -452,12 +504,12 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
               </div>
 
               {/* 8. Audit Third-Party SDKs */}
-              <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 space-y-2">
-                <h4 className="font-bold text-emerald-200 text-sm flex items-center gap-1.5">
+              <div className="p-4 rounded-xl bg-hud-panel border border-white/[0.08] space-y-2">
+                <h4 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   <span>8. Audit Third-Party SDKs — 0 External Trackers Verified</span>
                 </h4>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   Our build manifest has been verified clean: <strong>0</strong> Google Analytics scripts, <strong>0</strong> Facebook / Meta Pixel beacons, <strong>0</strong> TikTok tracking tags, and <strong>0</strong> advertising syndication SDKs. All JavaScript executed is strictly compiled from the open-source repository.
                 </p>
               </div>
@@ -469,9 +521,9 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
           {activeTab === 'refunds' && (
             <div className="space-y-6">
               
-              <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 space-y-2">
-                <h3 className="font-grotesk font-bold text-emerald-200 text-base flex items-center gap-2">
-                  <span>💳</span>
+              <div className="p-4 rounded-xl bg-hud-panel border border-white/[0.08] space-y-2">
+                <h3 className="font-grotesk font-bold text-slate-100 text-base flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-hud-cyan" />
                   <span>3. Refund Policy & 100% Free Open-Source Model</span>
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
@@ -485,18 +537,18 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span>10. Absolute Zero Hidden Fees Guarantee</span>
                 </h4>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   There are zero subscription plans, zero microtransactions, zero tiered paywalls, and zero cloud computation charges. Every feature — including the 5v5 Predictive Oracle, Draft Studio, Item Counter Matrix, and Picture-in-Picture Mini HUD — is accessible without payment or account creation.
                 </p>
               </div>
 
               <div className="space-y-2">
                 <h4 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
-                  <Info className="w-4 h-4 text-purple-400" />
+                  <Info className="w-4 h-4 text-hud-cyan" />
                   <span>Refund Applicability Declaration</span>
                 </h4>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
-                  Because no financial transactions, credit card collections, or fee structures exist, refunds are neither necessary nor applicable. If any external party requests payment claiming to represent AegisForge, please notify our legal team immediately at <strong className="text-purple-300">legal@aegisforge.gg</strong>.
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Because no financial transactions, credit card collections, or fee structures exist, refunds are neither necessary nor applicable. If any external party requests payment claiming to represent AegisForge, please notify our legal team immediately at <strong className="text-hud-cyan">legal@aegisforge.gg</strong>.
                 </p>
               </div>
 
@@ -507,9 +559,9 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
           {activeTab === 'accessibility' && (
             <div className="space-y-6">
               
-              <div className="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/30 space-y-2">
-                <h3 className="font-grotesk font-bold text-cyan-200 text-base flex items-center gap-2">
-                  <span>♿</span>
+              <div className="p-4 rounded-xl bg-hud-panel border border-white/[0.08] space-y-2">
+                <h3 className="font-grotesk font-bold text-slate-100 text-base flex items-center gap-2">
+                  <Accessibility className="w-5 h-5 text-hud-cyan" />
                   <span>Accessibility, Open Licenses & Communication Rights</span>
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
@@ -520,10 +572,10 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
               {/* 13. Accessibility Alt Text & 14. Fix Color Contrast */}
               <div className="space-y-2">
                 <h4 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
-                  <Accessibility className="w-4 h-4 text-cyan-400" />
+                  <Accessibility className="w-4 h-4 text-hud-cyan" />
                   <span>13. Accessibility Alt Text & 14. High Color Contrast (WCAG 2.1 AA)</span>
                 </h4>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   All hero portraits and item graphics incorporate informative <code>alt</code> text descriptions for screen readers. Contrast ratios throughout the dark interface adhere to WCAG 2.1 Level AA benchmarks (at least 4.5:1 for standard text elements).
                 </p>
               </div>
@@ -531,20 +583,20 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
               {/* 15. Keyboard Navigation */}
               <div className="space-y-2">
                 <h4 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
-                  <Compass className="w-4 h-4 text-cyan-400" />
+                  <Compass className="w-4 h-4 text-hud-cyan" />
                   <span>15. Full Keyboard Navigation</span>
                 </h4>
-                <p className="text-xs text-slate-300/90 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   All dialogs, hero selector cards, search inputs, and tabs can be navigated via standard keyboard controls: <code>Tab</code>, <code>Shift+Tab</code>, <code>Enter</code>, and <code>Escape</code> (to dismiss modals and Picture-in-Picture).
                 </p>
               </div>
 
               {/* 18. Unsubscribe Link in Emails & Communication Preference */}
-              <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-3">
+              <div className="p-4 rounded-xl bg-hud-panel/60 border border-white/[0.08] space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
-                      <Mail className="w-4 h-4 text-purple-400" />
+                      <Mail className="w-4 h-4 text-hud-cyan" />
                       <span>18. Communication Preferences & 1-Click Unsubscribe Guarantee</span>
                     </h4>
                     <p className="text-xs text-slate-400 mt-0.5">
@@ -554,7 +606,7 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                 </div>
 
                 {unsubscribeFeedback && (
-                  <div className="p-2.5 rounded-xl bg-purple-950/60 border border-purple-500/40 text-purple-300 text-xs">
+                  <div className="p-2.5 rounded-xl bg-hud-cyan/10 border border-hud-cyan/30 text-hud-cyan text-xs">
                     {unsubscribeFeedback}
                   </div>
                 )}
@@ -562,9 +614,9 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
                 <div className="flex items-center gap-3">
                   <Button
                     onClick={handleToggleSubscription}
-                    variant={isSubscribedToAlerts ? "destructive" : "gradient"}
+                    variant={isSubscribedToAlerts ? "destructive" : "default"}
                     size="sm"
-                    className="text-xs btn-fade"
+                    className="text-xs"
                   >
                     {isSubscribedToAlerts ? "1-Click Instant Unsubscribe" : "Opt-In to Major Patch 7.38 Notes"}
                   </Button>
@@ -577,10 +629,10 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
               {/* 19. License Fonts / Images */}
               <div className="space-y-2">
                 <h4 className="font-bold text-slate-100 text-sm flex items-center gap-1.5">
-                  <Key className="w-4 h-4 text-purple-400" />
+                  <Key className="w-4 h-4 text-hud-cyan" />
                   <span>19. Intellectual Property & License Attributions</span>
                 </h4>
-                <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-300 space-y-1.5 font-mono">
+                <div className="p-3.5 rounded-xl bg-hud-panel/60 border border-white/[0.08] text-xs text-slate-300 space-y-1.5 font-mono">
                   <p>• <strong>Inter Font:</strong> SIL Open Font License 1.1 (Rasmus Andersson)</p>
                   <p>• <strong>Space Grotesk Font:</strong> SIL Open Font License 1.1 (Florian Karsten)</p>
                   <p>• <strong>Instrument Serif Font:</strong> SIL Open Font License 1.1 (Instrument & Rodrigo Fuenzalida)</p>
@@ -595,17 +647,17 @@ export const LegalComplianceModal: React.FC<LegalComplianceModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-950/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+        <div className="p-4 sm:p-5 border-t border-white/[0.08] bg-hud-panel flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>20/20 Legal Requirements Implemented & Active</span>
+            <span className="text-slate-300">20/20 Legal Requirements Implemented & Active</span>
           </div>
 
           <Button
             onClick={onClose}
-            variant="gradient"
+            variant="default"
             size="sm"
-            className="text-xs px-5 btn-fade"
+            className="text-xs px-5"
           >
             Acknowledge & Close
           </Button>

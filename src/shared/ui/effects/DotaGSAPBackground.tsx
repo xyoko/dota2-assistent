@@ -1,26 +1,50 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, Suspense } from 'react';
 import gsap from 'gsap';
-import { ShaderGradient } from './ShaderGradient';
 import { DurvesCurves } from './DurvesCurves';
+
+export const StaticShaderGradient: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div
+    className={`absolute inset-0 bg-[#07090e] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(127,29,29,0.3),rgba(59,7,100,0.25),rgba(7,9,14,0.95))] pointer-events-none ${className}`}
+    aria-hidden="true"
+  />
+);
+
+const LazyShaderGradient = React.lazy(() => import('./ShaderGradient'));
 
 interface DotaGSAPBackgroundProps {
   isActive?: boolean;
+  isHome?: boolean;
+  isModalOpen?: boolean;
 }
 
-export const DotaGSAPBackground: React.FC<DotaGSAPBackgroundProps> = ({ isActive = true }) => {
+export const DotaGSAPBackground: React.FC<DotaGSAPBackgroundProps> = ({
+  isActive = true,
+  isHome = true,
+  isModalOpen = false
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLImageElement>(null);
   const ringsRef = useRef<SVGSVGElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const ringsTweenRef = useRef<gsap.core.Tween | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !logoRef.current) return;
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+      // Respect prefers-reduced-motion: no animation
+      return;
+    }
 
     // Create GSAP Timeline for organic ambient motion
     const tl = gsap.timeline({ repeat: -1, yoyo: true });
     timelineRef.current = tl;
 
-    // 1. Logo breathing and floating
+    // 1. Logo breathing and floating (transform only: y, scale, rotation)
     tl.to(logoRef.current, {
       y: -20,
       scale: 1.04,
@@ -29,16 +53,16 @@ export const DotaGSAPBackground: React.FC<DotaGSAPBackgroundProps> = ({ isActive
       ease: 'sine.inOut'
     }, 0);
 
-    // 2. Ambient glow pulsing
+    // 2. Subtle opacity breathing (GPU-composited, avoids filter repainting)
     tl.to(logoRef.current, {
-      filter: 'drop-shadow(0 0 50px rgba(220, 38, 38, 0.45)) drop-shadow(0 0 100px rgba(168, 85, 247, 0.25))',
+      opacity: 0.22,
       duration: 3.5,
-      ease: 'power1.inOut'
+      ease: 'sine.inOut'
     }, 0);
 
-    // 3. Ambient rings rotation
+    // 3. Ambient rings rotation - stored in ref so it can be killed in cleanup
     if (ringsRef.current) {
-      gsap.to(ringsRef.current, {
+      ringsTweenRef.current = gsap.to(ringsRef.current, {
         rotation: 360,
         transformOrigin: '50% 50%',
         duration: 90,
@@ -47,26 +71,45 @@ export const DotaGSAPBackground: React.FC<DotaGSAPBackgroundProps> = ({ isActive
       });
     }
 
-    // Lifecycle: pause on inactive tab to conserve battery and CPU
-    if (!isActive) {
-      tl.pause();
-    } else {
-      tl.play();
+    let isIntersecting = true;
+
+    const syncPlayback = () => {
+      const shouldPlay = isActive && !document.hidden && isIntersecting;
+      if (shouldPlay) {
+        tl.play();
+        ringsTweenRef.current?.play();
+      } else {
+        tl.pause();
+        ringsTweenRef.current?.pause();
+      }
+    };
+
+    // Initial play/pause state
+    syncPlayback();
+
+    // Pause offscreen with IntersectionObserver
+    let observer: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== 'undefined' && containerRef.current) {
+      observer = new IntersectionObserver(([entry]) => {
+        isIntersecting = entry.isIntersecting;
+        syncPlayback();
+      }, { threshold: 0.01 });
+      observer.observe(containerRef.current);
     }
 
     const handleVisibility = () => {
-      if (document.hidden || !isActive) {
-        tl.pause();
-      } else {
-        tl.play();
-      }
+      syncPlayback();
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
+      observer?.disconnect();
       tl.kill();
+      ringsTweenRef.current?.kill();
+      timelineRef.current = null;
+      ringsTweenRef.current = null;
     };
   }, [isActive]);
 
@@ -76,8 +119,14 @@ export const DotaGSAPBackground: React.FC<DotaGSAPBackgroundProps> = ({ isActive
       className="fixed inset-0 z-0 pointer-events-none overflow-hidden select-none bg-[#07090e]"
       aria-hidden="true"
     >
-      {/* 1. Underlying WebGL Shader Gradient */}
-      <ShaderGradient paused={!isActive} speed={0.9} intensity={0.85} />
+      {/* 1. Underlying WebGL Shader Gradient - mounted only on Home tab, unmounted on other tabs */}
+      {isHome ? (
+        <Suspense fallback={<StaticShaderGradient />}>
+          <LazyShaderGradient paused={!isActive || isModalOpen} speed={0.9} intensity={0.85} />
+        </Suspense>
+      ) : (
+        <StaticShaderGradient />
+      )}
 
       {/* 2. Generative Durves Bezier Streamlines */}
       <DurvesCurves variant="tactical" />
@@ -123,13 +172,16 @@ export const DotaGSAPBackground: React.FC<DotaGSAPBackgroundProps> = ({ isActive
           </defs>
         </svg>
 
-        {/* Floating Dota 2 Logo */}
+        {/* Floating Dota 2 Logo - static drop-shadow with hardware-accelerated transform/opacity animation */}
         <div className="absolute">
           <img
             ref={logoRef}
             src={`${import.meta.env.BASE_URL}dota2.svg`}
             alt="Dota 2 Emblem"
-            className="w-[280px] sm:w-[380px] lg:w-[460px] opacity-[0.14] transition-all object-contain will-change-transform"
+            className="w-[280px] sm:w-[380px] lg:w-[460px] opacity-[0.14] object-contain will-change-transform"
+            style={{
+              filter: 'drop-shadow(0 0 50px rgba(220, 38, 38, 0.45)) drop-shadow(0 0 100px rgba(168, 85, 247, 0.25))'
+            }}
             onError={(e) => {
               // Graceful fallback if relative path differs
               (e.currentTarget as HTMLImageElement).src = '/dota2.svg';

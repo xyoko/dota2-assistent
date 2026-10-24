@@ -138,52 +138,56 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
   return (
     <div className="space-y-6">
       
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-red-950/80 via-dota-panel to-slate-900 border border-dota-red/50 rounded-2xl p-5 sm:p-6 shadow-dota-crimson">
+      {/* Top Tactical Command Header */}
+      <div className="bg-hud-surface border border-white/[0.10] rounded-xl p-4 sm:p-5 shadow-hud-card">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
+          <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Crosshair className="w-6 h-6 text-red-400" />
-              <h2 className="font-dota font-black text-xl sm:text-2xl text-white">
-                Draft Analysis & Counter Assistant
-              </h2>
+              <span className="px-2 py-0.5 rounded bg-red-950/70 border border-red-500/40 text-[10px] font-mono font-bold text-red-300 uppercase tracking-wider">
+                DIRE ENEMY TARGETS
+              </span>
+              <span className="text-slate-600">•</span>
+              <span className="text-xs font-mono text-slate-400">COUNTER MATRIX</span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-              Select up to 5 enemy heroes. Aegis Forge calculates the collective threat profile, essential counter items, enemy vulnerabilities, and optimal counter-picks for each role.
+            <h2 className="font-dota font-bold text-lg sm:text-xl text-white">
+              Draft Analysis & Counter Blueprint
+            </h2>
+            <p className="text-xs text-slate-400 max-w-2xl font-sans leading-relaxed">
+              Assign up to 5 opponent heroes. AegisForge calculates collective damage profiles, critical itemization timings, and optimal counter-picks for each position.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <input
               type="text"
-              placeholder="Scenario Name (Optional)..."
+              placeholder="Scenario name..."
               value={draftTitle}
               onChange={(e) => setDraftTitle(e.target.value)}
-              className="px-3 py-1.5 bg-dota-bg/80 border border-dota-border rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-red-500 w-44"
+              className="h-9 px-3 bg-hud-raised border border-white/[0.12] rounded-lg text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 w-44 transition-colors"
             />
             {enemyHeroIds.length > 0 && (
               <>
                 <button
                   onClick={handleClearDraft}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition-all border border-slate-700"
+                  className="h-9 flex items-center gap-1.5 px-3 rounded-lg bg-slate-800/80 hover:bg-slate-750 text-xs font-medium text-slate-300 transition-colors border border-white/[0.08] active:scale-[0.98]"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Clear</span>
                 </button>
                 <button
                   onClick={handleSaveDraft}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-dota-red hover:bg-red-600 text-xs font-bold text-white transition-all shadow-dota-crimson"
+                  className="h-9 flex items-center gap-1.5 px-3.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-xs font-semibold text-slate-950 transition-colors active:scale-[0.98]"
                 >
                   {draftSaved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-                  <span>{draftSaved ? 'Saved!' : 'Save Scenario'}</span>
+                  <span>{draftSaved ? 'Saved' : 'Save'}</span>
                 </button>
               </>
             )}
           </div>
         </div>
 
-        {/* 5 Enemy Draft Slots with Onclick Select/Search Hero */}
-        <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        {/* 5 Enemy Draft Slots (Dire Tactical Roster) */}
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
           {[0, 1, 2, 3, 4].map((index) => {
             const heroId = enemyHeroIds[index];
             const hero = heroId ? HERO_MAP.get(heroId) : null;
@@ -192,16 +196,16 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
               <div
                 key={index}
                 onClick={() => handleOpenSlotModal(index)}
-                className={`group relative h-32 rounded-xl border flex flex-col items-center justify-between p-2.5 text-center transition-all cursor-pointer select-none ${
+                className={`group relative h-28 rounded-lg border flex flex-col items-center justify-between p-2 text-center transition-colors cursor-pointer select-none ${
                   hero
-                    ? 'bg-red-950/40 border-red-500/70 shadow-dota-crimson hover:border-red-400 hover:scale-[1.02]'
-                    : 'bg-dota-bg/60 border-dashed border-slate-700 hover:border-red-500 hover:bg-red-500/10 hover:shadow-dota-crimson text-slate-500'
+                    ? 'bg-red-950/20 border-red-500/50 hover:border-red-400'
+                    : 'bg-hud-surface/40 border-dashed border-white/[0.14] hover:border-red-500/60 hover:bg-red-950/10 text-slate-400'
                 }`}
-                title={hero ? `${hero.name} (Enemy #${index + 1}) - Click to change hero` : `Enemy #${index + 1} - Click to search and select hero`}
+                title={hero ? `${hero.name} (Enemy #${index + 1}) - Click to change` : `Enemy #${index + 1} - Click to select hero`}
               >
                 <div className="w-full flex items-center justify-between">
-                  <span className="text-[9px] text-red-400 font-bold uppercase tracking-wider">
-                    Enemy #{index + 1}
+                  <span className="text-[11px] text-red-400/90 font-mono font-bold uppercase tracking-wider">
+                    Enemy 0{index + 1}
                   </span>
                   {hero && (
                     <button
@@ -209,7 +213,7 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
                         e.stopPropagation();
                         handleRemoveEnemy(hero.id);
                       }}
-                      className="p-1 rounded-full bg-black/70 hover:bg-red-600 text-slate-300 hover:text-white transition-colors"
+                      className="p-1 rounded bg-black/60 hover:bg-red-600 text-slate-300 hover:text-white transition-colors"
                       title="Remove hero"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -222,30 +226,26 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
                     <img
                       src={hero.avatarUrl}
                       alt={hero.name}
-                      className="w-12 h-12 rounded-lg object-cover border border-red-500/60 shadow group-hover:scale-105 transition-transform"
+                      decoding="async"
+                      className="w-11 h-11 rounded object-cover border border-red-500/50 shadow-sm"
                     />
                     <div className="w-full">
-                      <span className="font-bold text-xs text-white truncate block">
+                      <span className="font-medium text-xs text-slate-100 truncate block">
                         {hero.name}
                       </span>
-                      <span className="text-[9px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Click to change
+                      <span className="text-[11px] text-red-300/80 font-mono">
+                        {hero.attribute.toUpperCase()}
                       </span>
                     </div>
                   </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center flex-1 gap-1.5 py-1">
-                    <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 group-hover:border-red-500 group-hover:bg-red-500/20 flex items-center justify-center transition-all group-hover:scale-110 shadow">
-                      <Plus className="w-5 h-5 text-slate-400 group-hover:text-red-400 transition-colors" />
+                  <div className="flex flex-col items-center justify-center flex-1 gap-1 py-1">
+                    <div className="w-8 h-8 rounded-md bg-hud-raised border border-white/[0.08] group-hover:border-red-500/60 group-hover:bg-red-950/30 flex items-center justify-center transition-colors">
+                      <Plus className="w-4 h-4 text-slate-400 group-hover:text-red-400 transition-colors" />
                     </div>
-                    <div>
-                      <span className="text-xs font-bold text-slate-300 group-hover:text-red-300 transition-colors block">
-                        Add Enemy
-                      </span>
-                      <span className="text-[10px] text-slate-500 group-hover:text-slate-400">
-                        Click to search
-                      </span>
-                    </div>
+                    <span className="text-[11px] font-medium text-slate-400 group-hover:text-slate-200 transition-colors">
+                      + Add Enemy
+                    </span>
                   </div>
                 )}
               </div>
@@ -256,56 +256,58 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
       </div>
 
       {/* Hero Selection Pool (Quick Add) */}
-      <div className="bg-dota-panel border border-dota-border rounded-xl p-4 shadow-xl space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-hud-surface border border-white/[0.10] rounded-xl p-3.5 shadow-hud-card space-y-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
-            <h3 className="font-dota font-bold text-sm text-slate-200 uppercase tracking-wider">
-              Add Enemy Pick:
+            <h3 className="font-mono font-bold text-xs text-slate-200 uppercase tracking-wider">
+              Quick Pick:
             </h3>
-            <span className="text-xs text-slate-500">
-              ({enemyHeroIds.length}/5 Selected)
+            <span className="text-xs text-slate-400 font-mono">
+              ({enemyHeroIds.length}/5)
             </span>
             <button
               onClick={() => handleOpenSlotModal(enemyHeroIds.length < 5 ? enemyHeroIds.length : 0)}
-              className="ml-2 px-2.5 py-1 rounded-lg bg-red-950 hover:bg-red-900 border border-red-800/80 text-xs font-bold text-red-300 flex items-center gap-1.5 transition-all shadow-sm"
+              className="ml-2 px-2.5 py-1 rounded bg-hud-raised hover:bg-hud-elevated border border-white/[0.12] text-xs font-medium text-sky-400 flex items-center gap-1.5 transition-colors"
             >
-              <Search className="w-3.5 h-3.5 text-red-400" />
-              <span>Search Modal</span>
+              <Search className="w-3.5 h-3.5" />
+              <span>Browse All 124</span>
             </button>
           </div>
 
           <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search hero to add..."
+              placeholder="Filter roster..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-dota-bg border border-dota-border rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-red-500"
+              className="w-full h-8 pl-8 pr-3 bg-hud-raised border border-white/[0.10] rounded-md text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-400 transition-colors"
             />
           </div>
         </div>
 
         {/* Hero Pool Grid */}
-        <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1">
+        <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-0.5 custom-scrollbar">
           {availableHeroes.map((hero) => (
             <button
               key={hero.id}
               onClick={() => handleAddEnemy(hero.id)}
               disabled={enemyHeroIds.length >= 5}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2 py-1 rounded border text-xs font-medium transition-colors ${
                 enemyHeroIds.length >= 5
-                  ? 'opacity-40 cursor-not-allowed bg-slate-900 border-slate-800'
-                  : 'bg-dota-panelAlt hover:bg-red-950/60 border-slate-700 hover:border-red-500/60 text-slate-300 hover:text-white'
+                  ? 'opacity-40 cursor-not-allowed bg-hud-surface border-white/[0.04]'
+                  : 'bg-hud-raised hover:bg-red-950/30 border-white/[0.08] hover:border-red-500/50 text-slate-300 hover:text-white'
               }`}
             >
               <img
                 src={hero.avatarUrl}
                 alt={hero.name}
-                className="w-5 h-5 rounded object-cover"
+                loading="lazy"
+                decoding="async"
+                className="w-4 h-4 rounded object-cover"
               />
-              <span>{hero.name}</span>
-              <Plus className="w-3 h-3 text-red-400 ml-0.5" />
+              <span className="truncate max-w-[100px]">{hero.name}</span>
+              <Plus className="w-3 h-3 text-red-400/80 ml-0.5" />
             </button>
           ))}
         </div>
@@ -319,70 +321,70 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
           <div className="lg:col-span-2 space-y-6">
             
             {/* MUST HAVE COUNTER ITEMS */}
-            <div className="bg-dota-panel border border-dota-gold/40 rounded-xl p-5 shadow-dota-glow">
-              <div className="flex items-center justify-between mb-4 border-b border-dota-gold/30 pb-2.5">
-                <h3 className="font-dota font-bold text-base text-dota-gold flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-dota-gold" />
-                  Essential Counter Items Needed
+            <div className="bg-hud-surface border border-white/[0.08] rounded-lg p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-4 border-b border-white/[0.08] pb-3">
+                <h3 className="font-sans font-semibold text-xs uppercase tracking-wider text-hud-text-secondary flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  Essential Counter Items
                 </h3>
-                <span className="text-xs text-amber-300 font-semibold">Team Itemization Blueprint</span>
+                <span className="text-[11px] font-mono text-amber-400/90 uppercase tracking-wide">Itemization Blueprint</span>
               </div>
 
               {analysis.mustHaveItems.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {analysis.mustHaveItems.map((item, idx) => (
                     <div
                       key={idx}
-                      className="bg-dota-bg/90 border border-dota-border rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow"
+                      className="bg-hud-bg/70 border border-white/[0.06] hover:border-amber-500/30 rounded-md p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-sm text-amber-200">{item.item}</span>
-                          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border ${
+                          <span className="font-semibold text-sm text-hud-text">{item.item}</span>
+                          <span className={`text-[11px] font-mono uppercase px-1.5 py-0.5 rounded border ${
                             item.priority === 'CRITICAL'
-                              ? 'bg-red-950 text-red-400 border-red-700'
-                              : 'bg-amber-950 text-amber-400 border-amber-700'
+                              ? 'bg-red-500/10 text-red-400 border-red-500/30 font-semibold'
+                              : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                           }`}>
                             {item.priority}
                           </span>
-                          <span className="text-xs font-bold text-dota-gold">{item.cost}g</span>
+                          <span className="font-mono text-xs font-semibold text-amber-400 tabular-nums">{item.cost}g</span>
                         </div>
-                        <p className="text-xs text-slate-300 leading-relaxed">
+                        <p className="text-xs text-hud-text-muted leading-relaxed">
                           {item.reason}
                         </p>
-                        <div className="text-[11px] text-slate-400">
-                          <strong className="text-slate-300">Target Enemies:</strong> {item.targets.join(', ')}
+                        <div className="text-[11px] text-hud-text-muted">
+                          <span className="text-hud-text-secondary font-medium">Targets:</span> {item.targets.join(', ')}
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400">Add more enemy heroes to reveal key counter item priorities.</p>
+                <p className="text-xs text-hud-text-muted py-2">Add more enemy heroes to reveal key counter item priorities.</p>
               )}
             </div>
 
             {/* TOP RECOMMENDED COUNTER HEROES */}
-            <div className="bg-dota-panel border border-dota-border rounded-xl p-5 shadow-xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-dota-border pb-3">
+            <div className="bg-hud-surface border border-white/[0.08] rounded-lg p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-white/[0.08] pb-3">
                 <div>
-                  <h3 className="font-dota font-bold text-base text-white flex items-center gap-2">
-                    <Crosshair className="w-4 h-4 text-red-400" />
-                    Top Recommended Counter Heroes
+                  <h3 className="font-sans font-semibold text-xs uppercase tracking-wider text-hud-text-secondary flex items-center gap-2">
+                    <Crosshair className="w-4 h-4 text-hud-accent" />
+                    Recommended Counter Heroes
                   </h3>
-                  <p className="text-xs text-slate-400">Ranked by tactical advantage & matchup synergy</p>
+                  <p className="text-xs text-hud-text-muted mt-0.5">Ranked by tactical advantage & matchup synergy</p>
                 </div>
 
                 {/* Role Filter Tabs */}
-                <div className="flex items-center gap-1 bg-dota-bg p-1 rounded-lg border border-dota-border text-xs">
+                <div className="flex items-center gap-0.5 bg-hud-bg p-0.5 rounded-md border border-white/[0.08] text-xs">
                   {(['all', 'Carry', 'Mid', 'Offlane', 'Support'] as const).map((r) => (
                     <button
                       key={r}
                       onClick={() => setSelectedRoleFilter(r)}
-                      className={`px-2 py-1 rounded font-medium transition-all ${
+                      className={`px-2.5 py-1 rounded text-xs transition-colors ${
                         selectedRoleFilter === r
-                          ? 'bg-dota-red text-white'
-                          : 'text-slate-400 hover:text-slate-200'
+                          ? 'bg-hud-surface-raised text-hud-text font-medium shadow-sm'
+                          : 'text-hud-text-muted hover:text-hud-text'
                       }`}
                     >
                       {r === 'all' ? 'All' : r}
@@ -392,7 +394,7 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
               </div>
 
               {/* Recommended Heroes List */}
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {filteredRecommendedHeroes.map((rec) => {
                   const hero = HERO_MAP.get(rec.heroId);
                   if (!hero) return null;
@@ -401,31 +403,33 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
                     <div
                       key={rec.heroId}
                       onClick={() => onSelectHero(hero)}
-                      className="group bg-dota-bg/80 hover:bg-slate-800/90 border border-dota-border hover:border-dota-gold/60 rounded-xl p-3.5 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow"
+                      className="group bg-hud-bg/70 hover:bg-hud-surface-raised border border-white/[0.06] hover:border-hud-accent/40 rounded-md p-3 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
                       <div className="flex items-start gap-3">
                         <img
                           src={hero.avatarUrl}
                           alt={hero.name}
-                          className="w-12 h-12 rounded-lg object-cover border border-slate-700 group-hover:border-dota-gold transition-colors flex-shrink-0"
+                          loading="lazy"
+                          decoding="async"
+                          className="w-11 h-11 rounded object-cover border border-white/[0.1] group-hover:border-hud-accent/70 transition-colors flex-shrink-0"
                         />
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-dota font-bold text-sm text-white group-hover:text-dota-gold transition-colors">
+                            <span className="font-semibold text-sm text-hud-text group-hover:text-hud-accent transition-colors">
                               {hero.name}
                             </span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                            <span className="font-mono text-[11px] uppercase px-1.5 py-0.5 rounded-sm bg-hud-surface text-hud-text-muted border border-white/[0.08]">
                               {rec.role}
                             </span>
-                            <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
-                              {rec.score}% Counter Rating
+                            <span className="font-mono text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 tabular-nums">
+                              {rec.score}% Rating
                             </span>
                           </div>
 
                           {/* Reasons list */}
                           <div className="mt-1.5 space-y-0.5">
                             {rec.reasons.map((reason, i) => (
-                              <p key={i} className="text-xs text-slate-300 flex items-start gap-1.5 leading-tight">
+                              <p key={i} className="text-xs text-hud-text-muted flex items-start gap-1.5 leading-tight">
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
                                 <span>{reason}</span>
                               </p>
@@ -435,16 +439,15 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
                       </div>
 
                       <div className="flex items-center justify-end">
-                        <button className="flex items-center gap-1 text-xs font-bold text-dota-gold group-hover:translate-x-1 transition-transform">
+                        <button className="flex items-center gap-1 text-xs font-mono text-hud-accent group-hover:translate-x-0.5 transition-transform touch-target">
                           <span>View Guide</span>
-                          <ChevronRight className="w-4 h-4" />
+                          <ChevronRight className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
                   );
                 })}
               </div>
-
             </div>
 
           </div>
@@ -452,76 +455,47 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
           {/* Right Column: Threat Profile & Identified Weaknesses */}
           <div className="space-y-6">
             
-            {/* Enemy Threat Breakdown Radar */}
-            <div className="bg-dota-panel border border-dota-border rounded-xl p-5 shadow-xl space-y-4">
-              <h3 className="font-dota font-bold text-base text-slate-200 flex items-center gap-2 border-b border-dota-border pb-2">
+            {/* Enemy Threat Breakdown */}
+            <div className="bg-hud-surface border border-white/[0.08] rounded-lg p-4 sm:p-5 space-y-4">
+              <h3 className="font-sans font-semibold text-xs uppercase tracking-wider text-hud-text-secondary flex items-center gap-2 border-b border-white/[0.08] pb-3">
                 <ShieldAlert className="w-4 h-4 text-red-400" />
                 Enemy Threat Breakdown
               </h3>
 
               <div className="space-y-3">
-                <div>
-                  <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span className="text-slate-300">Magic Burst</span>
-                    <span className="text-blue-400">{analysis.threatScores.magicDamage}%</span>
+                {[
+                  { label: 'Magic Burst', value: analysis.threatScores.magicDamage, color: 'bg-cyan-500', text: 'text-cyan-400' },
+                  { label: 'Physical Damage', value: analysis.threatScores.physicalDamage, color: 'bg-red-500', text: 'text-red-400' },
+                  { label: 'Crowd Control', value: analysis.threatScores.crowdControl, color: 'bg-amber-500', text: 'text-amber-400' },
+                  { label: 'Mobility', value: analysis.threatScores.mobility, color: 'bg-sky-400', text: 'text-sky-300' },
+                  { label: 'Sustain & Healing', value: analysis.threatScores.healingSustain, color: 'bg-emerald-500', text: 'text-emerald-400' },
+                ].map((threat, idx) => (
+                  <div key={idx}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-hud-text-muted">{threat.label}</span>
+                      <span className={`font-mono font-medium tabular-nums ${threat.text}`}>{threat.value}%</span>
+                    </div>
+                    <div className="w-full bg-hud-bg rounded-sm h-1.5 overflow-hidden border border-white/[0.06] relative">
+                      <div
+                        className={`${threat.color} absolute inset-y-0 left-0 w-full rounded-sm origin-left transition-transform duration-200 ease-out`}
+                        style={{ transform: `scaleX(${Math.max(0, Math.min(100, threat.value)) / 100})` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
-                    <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${analysis.threatScores.magicDamage}%` }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span className="text-slate-300">Physical Damage</span>
-                    <span className="text-red-400">{analysis.threatScores.physicalDamage}%</span>
-                  </div>
-                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
-                    <div className="bg-red-500 h-full rounded-full transition-all duration-500" style={{ width: `${analysis.threatScores.physicalDamage}%` }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span className="text-slate-300">Crowd Control & Stuns</span>
-                    <span className="text-amber-400">{analysis.threatScores.crowdControl}%</span>
-                  </div>
-                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
-                    <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${analysis.threatScores.crowdControl}%` }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span className="text-slate-300">Mobility & Elusiveness</span>
-                    <span className="text-cyan-400">{analysis.threatScores.mobility}%</span>
-                  </div>
-                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
-                    <div className="bg-cyan-500 h-full rounded-full transition-all duration-500" style={{ width: `${analysis.threatScores.mobility}%` }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span className="text-slate-300">Healing & Sustain</span>
-                    <span className="text-emerald-400">{analysis.threatScores.healingSustain}%</span>
-                  </div>
-                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
-                    <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${analysis.threatScores.healingSustain}%` }} />
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
             {/* Identified Enemy Weaknesses */}
-            <div className="bg-dota-panel border border-dota-border rounded-xl p-5 shadow-xl space-y-3">
-              <h3 className="font-dota font-bold text-base text-emerald-300 flex items-center gap-2 border-b border-dota-border pb-2">
+            <div className="bg-hud-surface border border-white/[0.08] rounded-lg p-4 sm:p-5 space-y-3">
+              <h3 className="font-sans font-semibold text-xs uppercase tracking-wider text-hud-text-secondary flex items-center gap-2 border-b border-white/[0.08] pb-3">
                 <Zap className="w-4 h-4 text-emerald-400" />
-                Exploitable Enemy Weaknesses
+                Exploitable Weaknesses
               </h3>
 
               <div className="space-y-2">
                 {analysis.keyWeaknesses.map((w, idx) => (
-                  <div key={idx} className="bg-dota-bg/80 border border-emerald-900/30 rounded-lg p-2.5 text-xs text-slate-300 leading-snug">
+                  <div key={idx} className="bg-hud-bg/60 border border-emerald-500/20 rounded-md p-2.5 text-xs text-hud-text-secondary leading-snug">
                     • {w}
                   </div>
                 ))}
@@ -532,65 +506,65 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
 
         </div>
       ) : (
-        <div className="bg-dota-panel border border-dota-border rounded-xl p-12 text-center space-y-3">
-          <Crosshair className="w-12 h-12 text-slate-600 mx-auto" />
-          <h3 className="font-dota font-bold text-lg text-slate-300">
+        <div className="bg-hud-surface border border-white/[0.08] rounded-lg p-12 text-center space-y-3">
+          <Crosshair className="w-10 h-10 text-hud-text-muted/40 mx-auto" />
+          <h3 className="font-semibold text-sm text-hud-text">
             No Enemy Heroes Selected
           </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            Click on any hero in the quick pool above to begin analyzing enemy draft counters, itemization recommendations, and team vulnerabilities.
+          <p className="text-xs text-hud-text-muted max-w-md mx-auto">
+            Click on any hero in the quick pool above or click a draft slot to analyze enemy counters, team itemization, and vulnerabilities.
           </p>
         </div>
       )}
 
-      {/* ONCLICK HERO SEARCH & SELECTION MODAL (JUST LIKE IN BUILD LAB) */}
+      {/* ONCLICK HERO SEARCH & SELECTION MODAL */}
       {activeSlotTarget !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border-2 border-red-500/70 rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-fadeIn">
+          <div className="bg-hud-surface border border-white/[0.14] rounded-xl max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
             
             {/* Modal Header */}
-            <div className="p-4 bg-gradient-to-r from-red-950 via-slate-900 to-slate-950 border-b border-red-900/50 flex items-center justify-between">
+            <div className="p-4 bg-hud-surface-raised border-b border-white/[0.08] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <Crosshair className="w-5 h-5 text-red-400" />
+                <Crosshair className="w-4 h-4 text-red-400" />
                 <div>
-                  <h3 className="font-dota font-bold text-base text-white flex items-center gap-2">
-                    <span>Select Hero for Enemy #{activeSlotTarget + 1}</span>
+                  <h3 className="font-semibold text-sm text-hud-text flex items-center gap-2">
+                    <span>Select Enemy #{activeSlotTarget + 1}</span>
                     {enemyHeroIds[activeSlotTarget] && (
-                      <span className="text-xs font-sans px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800">
+                      <span className="font-mono text-[11px] px-1.5 py-0.5 rounded-sm bg-red-500/10 text-red-400 border border-red-500/30">
                         Replacing: {HERO_MAP.get(enemyHeroIds[activeSlotTarget])?.name}
                       </span>
                     )}
                   </h3>
-                  <p className="text-xs text-slate-400">
-                    Search by hero name, alias, or role to assign into this draft slot
+                  <p className="text-xs text-hud-text-muted">
+                    Assign a hero into this enemy draft position
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setActiveSlotTarget(null)}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-white transition-colors"
+                className="p-1.5 rounded-md hover:bg-white/[0.08] text-hud-text-muted hover:text-hud-text transition-colors touch-target"
                 title="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Filter Controls: Search Bar + Attribute Filters */}
-            <div className="p-4 bg-slate-950 border-b border-slate-800 space-y-3">
+            <div className="p-4 bg-hud-surface border-b border-white/[0.08] space-y-3">
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-hud-text-muted" />
                 <input
                   type="text"
                   autoFocus
-                  placeholder="Search heroes by name, title, alias, or role (e.g. Anti-Mage, Magina, Carry, Stun)..."
+                  placeholder="Search by name, role, or alias..."
                   value={slotPickerSearch}
                   onChange={(e) => setSlotPickerSearch(e.target.value)}
-                  className="w-full pl-10 pr-9 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 shadow-inner"
+                  className="w-full pl-10 pr-9 py-2 bg-hud-bg border border-white/[0.1] rounded-md text-xs sm:text-sm text-hud-text placeholder-hud-text-muted focus-hud"
                 />
                 {slotPickerSearch && (
                   <button
                     onClick={() => setSlotPickerSearch('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs p-1"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-hud-text-muted hover:text-hud-text text-xs p-1"
                   >
                     ✕
                   </button>
@@ -598,7 +572,7 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
               </div>
 
               {/* Attribute Filter Pills */}
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 {[
                   { id: 'all', label: 'All Heroes' },
                   { id: 'str', label: 'Strength' },
@@ -609,10 +583,10 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
                   <button
                     key={attr.id}
                     onClick={() => setSlotPickerAttr(attr.id === 'all_attr' ? 'all' : attr.id as any)}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    className={`px-2.5 py-1 rounded text-xs transition-colors ${
                       (slotPickerAttr === attr.id || (attr.id === 'all_attr' && slotPickerAttr === 'all'))
-                        ? 'bg-dota-red text-white font-black shadow'
-                        : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                        ? 'bg-hud-surface-raised text-hud-text font-medium border border-white/[0.12]'
+                        : 'text-hud-text-muted hover:text-hud-text'
                     }`}
                   >
                     {attr.label}
@@ -622,7 +596,7 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
             </div>
 
             {/* Modal Heroes Grid */}
-            <div className="p-4 overflow-y-auto max-h-[50vh] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+            <div className="p-4 overflow-y-auto max-h-[50vh] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
               {filteredModalHeroes.length > 0 ? (
                 filteredModalHeroes.map((h) => {
                   const isCurrentSlotHero = enemyHeroIds[activeSlotTarget] === h.id;
@@ -632,63 +606,66 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
                     <div
                       key={h.id}
                       onClick={() => handleAssignHeroToSlot(h.id, activeSlotTarget)}
-                      className={`group bg-dota-bg/90 hover:bg-slate-850 border rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-all hover:scale-[1.01] shadow ${
+                      style={{ contentVisibility: 'auto', containIntrinsicSize: '64px' }}
+                      className={`group bg-hud-bg/80 hover:bg-hud-surface-raised border rounded-md p-2.5 flex items-center gap-2.5 cursor-pointer transition-colors ${
                         isCurrentSlotHero
-                          ? 'border-red-500 bg-red-950/30'
+                          ? 'border-red-500/60 bg-red-500/10'
                           : isOtherSlotHero
-                          ? 'border-slate-800 hover:border-amber-500'
-                          : 'border-slate-800 hover:border-red-500/70'
+                          ? 'border-white/[0.08] hover:border-amber-500/50'
+                          : 'border-white/[0.08] hover:border-hud-accent/60'
                       }`}
                     >
                       <img
                         src={h.avatarUrl}
                         alt={h.name}
-                        className="w-12 h-12 rounded-lg object-cover border border-slate-700 group-hover:border-red-500 flex-shrink-0"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-10 h-10 rounded object-cover border border-white/[0.08] group-hover:border-hud-accent/60 flex-shrink-0"
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="font-bold text-xs sm:text-sm text-slate-200 group-hover:text-red-300 truncate">
+                          <span className="font-medium text-xs text-hud-text group-hover:text-hud-accent truncate">
                             {h.name}
                           </span>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded flex-shrink-0">
+                          <span className="font-mono text-[9px] uppercase font-semibold text-hud-text-muted bg-hud-surface px-1 py-0.5 rounded flex-shrink-0 border border-white/[0.06]">
                             {h.attribute}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[11px] text-slate-400 truncate">
+                          <span className="text-[11px] text-hud-text-muted truncate">
                             {h.roles.slice(0, 2).join(', ')}
                           </span>
                         </div>
                         {isOtherSlotHero && (
-                          <span className="text-[10px] text-amber-400 font-semibold block mt-0.5">
+                          <span className="text-[11px] text-amber-400 font-medium block mt-0.5">
                             Swap from other slot
                           </span>
                         )}
                         {isCurrentSlotHero && (
-                          <span className="text-[10px] text-emerald-400 font-semibold block mt-0.5">
+                          <span className="text-[11px] text-emerald-400 font-medium block mt-0.5">
                             Currently assigned
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] font-bold text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Pick ➔
+                      <span className="text-[11px] font-mono font-medium text-hud-accent opacity-0 group-hover:opacity-100 transition-opacity">
+                        Pick
                       </span>
                     </div>
                   );
                 })
               ) : (
-                <div className="col-span-full py-8 text-center text-xs text-slate-500">
+                <div className="col-span-full py-8 text-center text-xs text-hud-text-muted">
                   No heroes match your search.
                 </div>
               )}
             </div>
 
             {/* Modal Footer */}
-            <div className="p-3 bg-slate-900 border-t border-slate-800 flex justify-between items-center text-xs text-slate-400">
+            <div className="p-3 bg-hud-surface-raised border-t border-white/[0.08] flex justify-between items-center text-xs text-hud-text-muted">
               <span>Clicking a hero assigns them directly to Enemy Slot #{activeSlotTarget + 1}.</span>
               <button
                 onClick={() => setActiveSlotTarget(null)}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                className="px-3 py-1.5 rounded-md bg-hud-surface hover:bg-white/[0.08] text-hud-text font-medium border border-white/[0.1] transition-colors touch-target"
               >
                 Cancel
               </button>

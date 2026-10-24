@@ -203,14 +203,14 @@ export const HeroCard: React.FC<HeroCardProps> = React.memo(({
         >
           {/* Skeleton Placeholder while image loads - guarantees card is NEVER blank */}
           {!isImageLoaded && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-3 bg-slate-950/80 animate-pulse">
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-3 bg-slate-950/90">
               <div 
                 className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center shadow-lg mb-1"
                 style={{ backgroundColor: `${attrConfig.accent}20` }}
               >
                 <span className="font-dota font-bold text-lg text-white/40">{hero.name.charAt(0)}</span>
               </div>
-              <span className="text-[9px] font-mono font-bold tracking-widest text-slate-500 uppercase">{attrConfig.short}</span>
+              <span className="text-[10px] font-mono font-bold tracking-widest text-slate-400 uppercase">{attrConfig.short}</span>
             </div>
           )}
 
@@ -351,7 +351,7 @@ export const HeroCard: React.FC<HeroCardProps> = React.memo(({
           {/* Meta Tier Badge */}
           {isMeta && (
             <div 
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/70 text-amber-300 font-black text-[10px] tracking-wide uppercase shadow-[0_0_8px_rgba(245,158,11,0.3)] backdrop-blur-sm"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-sm bg-amber-500/20 border border-amber-500/70 text-amber-300 font-bold text-[11px] tracking-wide uppercase shadow-[0_0_8px_rgba(245,158,11,0.3)]"
               title={`Meta Tier ${metaTier} in Patch 7.37d`}
             >
               <Flame className="w-3 h-3 text-amber-400 fill-amber-400" />
@@ -368,7 +368,7 @@ export const HeroCard: React.FC<HeroCardProps> = React.memo(({
                   setTimeout(() => SoundEngine.playPick(), 0);
                   onOpenPip(hero);
                 }}
-                className={`p-1.5 rounded-full bg-slate-950/85 hover:bg-amber-500/25 border border-white/20 hover:border-amber-400/80 text-slate-300 hover:text-amber-300 transition-all shadow-sm backdrop-blur-sm ${
+                className={`p-1.5 rounded-full bg-slate-950/90 hover:bg-amber-500/25 border border-white/20 hover:border-amber-400/80 text-slate-300 hover:text-amber-300 transition-colors shadow-sm ${
                   isHovered ? 'opacity-100 scale-100' : 'opacity-80 scale-95'
                 }`}
                 title={`Launch ${hero.name} Picture-in-Picture Mini HUD`}
@@ -385,7 +385,7 @@ export const HeroCard: React.FC<HeroCardProps> = React.memo(({
                 onToggleFavorite(hero.id);
                 setTimeout(() => SoundEngine.playHover(), 0);
               }}
-              className="p-1.5 rounded-full bg-slate-950/85 hover:bg-slate-900 border border-white/20 text-slate-300 hover:text-amber-400 transition-colors shadow-sm backdrop-blur-sm"
+              className="p-1.5 rounded-full bg-slate-950/90 hover:bg-slate-900 border border-white/20 text-slate-300 hover:text-amber-400 transition-colors shadow-sm"
               title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
               aria-label={`Favorite ${hero.name}`}
             >
@@ -432,7 +432,7 @@ export const HeroCard: React.FC<HeroCardProps> = React.memo(({
 
         {/* HOVER TACTICAL HUD DRAWER: Rich details with comfortable reading typography */}
         <div 
-          className={`absolute inset-x-0 bottom-0 p-3 sm:p-3.5 z-20 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 space-y-1.5 text-xs font-sans ${
+          className={`absolute inset-x-0 bottom-0 p-3 sm:p-3.5 z-20 bg-hud-surface border-t border-white/[0.1] space-y-1.5 text-xs font-sans ${
             isHovered ? 'pointer-events-auto' : 'pointer-events-none'
           }`}
           style={{
@@ -449,7 +449,7 @@ export const HeroCard: React.FC<HeroCardProps> = React.memo(({
               {hero.name}
             </h3>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-[10px] font-mono font-bold text-slate-300 bg-black/70 px-1.5 py-0.5 rounded border border-white/15 uppercase">
+              <span className="text-[11px] font-mono font-bold text-slate-300 bg-black/70 px-1.5 py-0.5 rounded-sm border border-white/15 uppercase">
                 {attrConfig.short}
               </span>
               <span className="text-xs font-mono font-bold text-emerald-400">
@@ -462,13 +462,13 @@ export const HeroCard: React.FC<HeroCardProps> = React.memo(({
           <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-800/90 text-xs">
             {/* Damage Type Badge */}
             <div 
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] sm:text-xs font-bold ${dmgConfig.bg} ${dmgConfig.border} ${dmgConfig.text}`}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[11px] sm:text-xs font-bold ${dmgConfig.bg} ${dmgConfig.border} ${dmgConfig.text}`}
               title={`Primary Damage Profile: ${dmgConfig.label} Damage`}
             >
               {dmgType === 'Physical' && <Swords className="w-3 h-3 text-amber-400" />}
               {dmgType === 'Magical' && <Zap className="w-3 h-3 text-cyan-400" />}
               {dmgType === 'Pure' && <Target className="w-3 h-3 text-yellow-400" />}
-              {dmgType === 'Mixed' && <Layers className="w-3 h-3 text-purple-400" />}
+              {dmgType === 'Mixed' && <Layers className="w-3 h-3 text-cyan-400" />}
               <span>{dmgConfig.label}</span>
             </div>
 
@@ -491,7 +491,7 @@ export const HeroCard: React.FC<HeroCardProps> = React.memo(({
             {hero.roles.slice(0, 3).map((r) => (
               <span 
                 key={r}
-                className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-700/80 text-slate-300 font-medium"
+                className="text-[11px] px-2 py-0.5 rounded-sm bg-hud-bg border border-white/[0.08] text-slate-300 font-mono"
               >
                 {r}
               </span>

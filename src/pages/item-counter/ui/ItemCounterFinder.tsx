@@ -102,17 +102,19 @@ export const ItemCounterFinder: React.FC = () => {
     <div className="space-y-6">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-blue-950/80 via-dota-panel to-slate-900 border border-dota-int/40 rounded-2xl p-5 sm:p-6 shadow-dota-mana">
+      <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 sm:p-6 shadow-hud-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-dota-int" />
-              <h2 className="font-dota font-black text-xl sm:text-2xl text-white">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-hud-surface border border-white/[0.08] flex items-center justify-center text-hud-cyan shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <h2 className="font-display font-bold text-lg sm:text-xl text-slate-100 uppercase tracking-tight">
                 Item & Threat Counter Matrix
               </h2>
             </div>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-              Understand exact mechanics, item counters, and counterplay strategies against every game-breaking mechanic in Dota 2. Inspect key threat hero profile pictures (PFP) and counter items.
+            <p className="text-xs text-slate-400 mt-1 max-w-2xl font-sans leading-relaxed">
+              Understand exact mechanics, item counters, and counterplay strategies against every game-breaking mechanic in Dota 2. Inspect key threat hero profiles and item counters.
             </p>
           </div>
 
@@ -124,7 +126,7 @@ export const ItemCounterFinder: React.FC = () => {
               placeholder="Search threat or hero..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-dota-bg border border-dota-border rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-dota-int"
+              className="w-full pl-9 pr-3 py-2 min-h-[44px] bg-hud-bg border border-white/[0.1] rounded-lg text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-hud-cyan focus-hud transition-colors"
             />
           </div>
         </div>
@@ -135,7 +137,7 @@ export const ItemCounterFinder: React.FC = () => {
         
         {/* Left Column: List of Threat Problems */}
         <div className="space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 px-1">
+          <h3 className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-2 px-1">
             Common Threat Mechanics:
           </h3>
           {filteredThreats.map((threat) => {
@@ -146,19 +148,19 @@ export const ItemCounterFinder: React.FC = () => {
               <button
                 key={threat.id}
                 onClick={() => setSelectedThreatId(threat.id)}
-                className={`w-full text-left p-3 rounded-xl border transition-all flex items-center gap-3 ${
+                className={`w-full text-left p-3 min-h-[44px] touch-target rounded-lg border transition-colors flex items-center gap-3 focus-hud ${
                   isSelected
-                    ? 'bg-blue-950/70 border-dota-int text-white shadow-dota-mana'
-                    : 'bg-dota-panel hover:bg-slate-800/80 border-dota-border text-slate-300'
+                    ? 'bg-hud-surface border-hud-cyan/40 text-slate-100 shadow-hud-sm'
+                    : 'bg-hud-panel hover:bg-white/[0.04] border-white/[0.06] text-slate-300'
                 }`}
               >
-                <div className={`p-2 rounded-lg ${isSelected ? 'bg-dota-int text-slate-950' : 'bg-slate-800 text-dota-int'}`}>
+                <div className={`p-2 rounded-lg shrink-0 ${isSelected ? 'bg-hud-cyan text-slate-950' : 'bg-hud-bg text-hud-cyan border border-white/[0.06]'}`}>
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-xs sm:text-sm truncate">{threat.title}</div>
+                  <div className="font-display font-semibold text-xs sm:text-sm truncate">{threat.title}</div>
                   
-                  {/* Hero PFP Avatars Row instead of plain text names */}
+                  {/* Hero PFP Avatars Row */}
                   <div className="flex items-center -space-x-1.5 mt-1.5 overflow-hidden">
                     {threat.heroExamples.slice(0, 4).map((h, i) => {
                       const heroInfo = getHeroAvatar(h);
@@ -168,12 +170,14 @@ export const ItemCounterFinder: React.FC = () => {
                           src={heroInfo.avatarUrl}
                           alt={heroInfo.displayName}
                           title={heroInfo.displayName}
-                          className="w-5 h-5 rounded-full object-cover border border-slate-700 shadow-sm"
+                          loading="lazy"
+                          decoding="async"
+                          className="w-5 h-5 rounded-full object-cover border border-white/[0.1] shadow-sm"
                         />
                       );
                     })}
                     {threat.heroExamples.length > 4 && (
-                      <span className="w-5 h-5 rounded-full bg-slate-800 text-[9px] font-bold text-slate-400 flex items-center justify-center border border-slate-700 z-10">
+                      <span className="w-5 h-5 rounded-full bg-hud-bg text-[9px] font-mono font-bold text-slate-400 flex items-center justify-center border border-white/[0.1] z-10">
                         +{threat.heroExamples.length - 4}
                       </span>
                     )}
@@ -188,25 +192,25 @@ export const ItemCounterFinder: React.FC = () => {
         {/* Right 2 Columns: Solutions & Tactical Breakdown */}
         <div className="lg:col-span-2 space-y-6">
           
-          <div className="bg-dota-panel border border-dota-border rounded-xl p-5 sm:p-6 shadow-xl space-y-5">
+          <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-5 sm:p-6 shadow-hud-sm space-y-5">
             
             {/* Title Header */}
-            <div className="flex items-start gap-4 border-b border-dota-border pb-4">
-              <div className="p-3 rounded-xl bg-dota-int/20 border border-dota-int/50 text-dota-int shadow-dota-mana">
+            <div className="flex items-start gap-4 border-b border-white/[0.06] pb-4">
+              <div className="p-3 rounded-xl bg-hud-surface border border-white/[0.08] text-hud-cyan shrink-0">
                 <ThreatIcon className="w-6 h-6" />
               </div>
               <div className="flex-1">
-                <h3 className="font-dota font-black text-lg sm:text-xl text-white">
+                <h3 className="font-display font-bold text-lg sm:text-xl text-slate-100 uppercase tracking-tight">
                   {currentThreat.title}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed font-sans">
                   {currentThreat.description}
                 </p>
 
-                {/* Hero PFPs instead of plain text tags */}
-                <div className="mt-3.5 pt-3 border-t border-slate-800">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
-                    Key Threat Heroes (PFP):
+                {/* Hero PFPs */}
+                <div className="mt-3.5 pt-3 border-t border-white/[0.06]">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block mb-2">
+                    Key Threat Heroes:
                   </span>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                     {currentThreat.heroExamples.map((hero, idx) => {
@@ -214,19 +218,21 @@ export const ItemCounterFinder: React.FC = () => {
                       return (
                         <div
                           key={idx}
-                          className="bg-slate-900/90 border border-slate-800 hover:border-dota-int/60 rounded-xl p-2 flex items-center gap-2.5 shadow transition-all group"
+                          className="bg-hud-surface border border-white/[0.08] rounded-lg p-2 flex items-center gap-2.5 transition-colors group"
                         >
                           <img
                             src={heroInfo.avatarUrl}
                             alt={heroInfo.displayName}
-                            className="w-8 h-8 rounded-lg object-cover border border-slate-700 group-hover:border-dota-int flex-shrink-0 shadow-sm"
+                            loading="lazy"
+                            decoding="async"
+                            className="w-8 h-8 rounded-lg object-cover border border-white/[0.1] shrink-0 shadow-sm"
                           />
                           <div className="min-w-0 flex-1">
-                            <div className="font-bold text-xs text-white group-hover:text-cyan-300 truncate">
+                            <div className="font-display font-medium text-xs text-slate-200 group-hover:text-hud-cyan transition-colors truncate">
                               {heroInfo.displayName}
                             </div>
                             {heroInfo.note && (
-                              <div className="text-[10px] text-amber-300/90 truncate font-mono">
+                              <div className="text-[10px] text-hud-gold truncate font-mono">
                                 {heroInfo.note}
                               </div>
                             )}
@@ -242,18 +248,18 @@ export const ItemCounterFinder: React.FC = () => {
 
             {/* Counter Items */}
             <div>
-              <h4 className="font-dota font-bold text-sm text-dota-gold mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-dota-gold" />
+              <h4 className="font-display font-semibold text-xs sm:text-sm text-hud-gold mb-3 flex items-center gap-2 uppercase tracking-wide">
+                <Sparkles className="w-4 h-4 text-hud-gold" />
                 Definitive Counter Items
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {currentThreat.counterItems.map((item, idx) => (
-                  <div key={idx} className="bg-dota-bg border border-dota-border rounded-xl p-3.5 space-y-1.5 shadow">
+                  <div key={idx} className="bg-hud-surface border border-white/[0.08] rounded-lg p-3.5 space-y-1.5 shadow-hud-sm">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs sm:text-sm text-amber-200">{item.name}</span>
-                      {item.cost > 0 && <span className="text-xs font-bold text-dota-gold">{item.cost}g</span>}
+                      <span className="font-display font-semibold text-xs sm:text-sm text-slate-100">{item.name}</span>
+                      {item.cost > 0 && <span className="font-mono tabular-nums text-xs font-bold text-hud-gold">{item.cost}g</span>}
                     </div>
-                    <p className="text-xs text-slate-300 leading-snug">
+                    <p className="text-xs text-slate-400 leading-snug font-sans">
                       {item.why}
                     </p>
                   </div>
@@ -262,14 +268,14 @@ export const ItemCounterFinder: React.FC = () => {
             </div>
 
             {/* Tactical Advice & Playstyle Rules */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-2">
-              <h4 className="font-dota font-bold text-xs sm:text-sm text-emerald-400 flex items-center gap-1.5">
+            <div className="bg-hud-bg border border-white/[0.06] rounded-lg p-4 space-y-2">
+              <h4 className="font-display font-semibold text-xs sm:text-sm text-emerald-400 flex items-center gap-1.5 uppercase tracking-wide">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 Tactical Playstyle & Map Strategy
               </h4>
               <ul className="space-y-1.5">
                 {currentThreat.tacticalAdvice.map((advice, idx) => (
-                  <li key={idx} className="text-xs text-slate-300 flex items-start gap-2 leading-relaxed">
+                  <li key={idx} className="text-xs text-slate-300 flex items-start gap-2 leading-relaxed font-sans">
                     <span className="text-emerald-400 font-bold">•</span>
                     <span>{advice}</span>
                   </li>

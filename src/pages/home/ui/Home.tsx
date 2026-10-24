@@ -35,53 +35,47 @@ export const Home: React.FC<HomeProps> = React.memo(({
   const [mainHero, setMainHero] = useState<HeroData>(HEROES_DATA[0]);
 
   return (
-    <div className="relative min-h-screen bg-transparent text-slate-100 overflow-hidden w-full selection:bg-red-500 selection:text-white">
-
+    <div className="relative min-h-screen bg-transparent text-slate-100 overflow-hidden w-full selection:bg-hud-cyan selection:text-slate-950">
 
       {/* ============================================================ */}
-      {/* 2. HERO COMMAND DECK (EMIL KOWALSKI CRAFT & OPTICAL HARMONY) */}
+      {/* 1. HERO COMMAND DECK (TACTICAL HUD WAR-ROOM) */}
       {/* ============================================================ */}
-      <div className="relative z-10 w-full pt-8 sm:pt-14 lg:pt-20 px-4 sm:px-6 lg:px-8 max-w-7xl xl:max-w-[1500px] mx-auto">
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+      <div className="relative z-10 w-full pt-8 sm:pt-12 lg:pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl xl:max-w-[1500px] mx-auto">
+        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-14">
           
           {/* Left Column: Hero Headline, Telemetry Pill & Tactical CTAs */}
-          <div className="flex-1 space-y-6 sm:space-y-8 animate-fadeIn text-center lg:text-left">
+          <div className="flex-1 space-y-6 animate-fadeIn text-center lg:text-left">
             
             {/* Live Telemetry Status Pill */}
-            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] text-xs font-mono backdrop-blur-xl">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <span className="text-slate-300 font-medium">LIVE TACTICAL TELEMETRY</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-hud-surface border border-white/[0.08] text-xs font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="text-slate-300 font-medium tracking-wide">LIVE TACTICAL TELEMETRY</span>
               <span className="text-slate-600">•</span>
-              <span className="text-amber-400 font-bold tracking-wider">PATCH 7.37d</span>
+              <span className="text-hud-gold font-bold tracking-wider">PATCH 7.37d</span>
             </div>
 
-            {/* High-Impact Headline with Optical Kerning */}
+            {/* Tactical Headline */}
             <div className="space-y-3">
-              <h1 className="text-4xl sm:text-6xl xl:text-7xl font-dota font-black text-white tracking-tight leading-[1.05] drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-                AUTONOMOUS <br className="hidden sm:block" />
-                <span className="bg-gradient-to-r from-red-500 via-rose-400 to-amber-400 bg-clip-text text-transparent">
-                  TACTICAL ORACLE
-                </span>
+              <h1 className="text-3xl sm:text-5xl xl:text-6xl font-display font-bold text-slate-100 tracking-tight leading-[1.1] uppercase">
+                Tactical Command & <br className="hidden sm:block" />
+                <span className="text-hud-cyan">Draft Engine</span>
               </h1>
-              <p className="text-base sm:text-lg text-slate-300 font-sans leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                Deterministic counter-drafting algorithms, real-time threat telemetry, and dynamic situational builds — 100% client-side, zero-latency, and privacy-first.
+              <p className="text-sm sm:text-base text-slate-300 font-sans leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                Deterministic counter-drafting algorithms, situational item progressions, and real-time lane telemetry — zero latency, 100% client-side execution.
               </p>
             </div>
 
-            {/* Tactile Action Buttons with Emil Kowalski micro-press states */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2">
+            {/* Tactile Action Buttons with 44px hit targets */}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-1">
               <button
                 onClick={() => {
                   SoundEngine.playPick();
                   onNavigateTab('predictive');
                 }}
-                className="px-7 py-3.5 bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-2xl shadow-[0_4px_25px_rgba(239,68,68,0.4)] hover:shadow-[0_6px_30px_rgba(239,68,68,0.6)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3)] active:scale-[0.98] transition-all flex items-center gap-2 group cursor-pointer select-none"
+                className="min-h-[44px] touch-target px-6 py-3 bg-hud-cyan hover:bg-sky-300 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider rounded-lg shadow-hud-sm active:scale-[0.98] transition-[transform,colors] duration-150 flex items-center gap-2 group cursor-pointer focus-hud"
               >
-                <Sparkles className="w-4 h-4 text-amber-200" />
-                <span>Launch Oracle 5v5</span>
+                <Sparkles className="w-4 h-4 text-slate-950" />
+                <span>Launch 5v5 Draft Analyzer</span>
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
 
@@ -90,11 +84,11 @@ export const Home: React.FC<HomeProps> = React.memo(({
                   SoundEngine.playHover();
                   onNavigateTab('heroes');
                 }}
-                className="px-6 py-3.5 bg-slate-900/80 hover:bg-slate-800/90 border border-white/[0.09] hover:border-amber-500/50 text-slate-200 hover:text-white font-semibold rounded-2xl backdrop-blur-xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer select-none"
+                className="min-h-[44px] touch-target px-5 py-3 bg-hud-surface hover:bg-white/[0.06] border border-white/[0.1] hover:border-white/[0.2] text-slate-200 hover:text-white font-mono text-xs uppercase tracking-wider rounded-lg active:scale-[0.98] transition-[transform,colors] duration-150 flex items-center gap-2 cursor-pointer focus-hud"
               >
-                <Crown className="w-4 h-4 text-amber-300" />
+                <Crown className="w-4 h-4 text-hud-gold" />
                 <span>Hero Arsenal</span>
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-950 border border-slate-700 text-slate-400">
+                <span className="font-mono text-[11px] tabular-nums px-1.5 py-0.5 rounded-sm bg-hud-bg border border-white/[0.08] text-slate-400">
                   124
                 </span>
               </button>
@@ -104,9 +98,9 @@ export const Home: React.FC<HomeProps> = React.memo(({
                   SoundEngine.playHover();
                   onNavigateTab('draft');
                 }}
-                className="px-5 py-3.5 bg-slate-900/50 hover:bg-slate-800/60 border border-white/[0.06] hover:border-slate-700 text-slate-400 hover:text-slate-200 font-semibold rounded-2xl backdrop-blur-xl active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer select-none text-xs"
+                className="min-h-[44px] touch-target px-4 py-3 bg-transparent hover:bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] text-slate-400 hover:text-slate-200 font-mono text-xs uppercase tracking-wider rounded-lg active:scale-[0.98] transition-[transform,colors] duration-150 flex items-center gap-1.5 cursor-pointer focus-hud"
               >
-                <Swords className="w-3.5 h-3.5" />
+                <Swords className="w-3.5 h-3.5 text-hud-cyan" />
                 <span>Draft Studio</span>
               </button>
             </div>
@@ -114,28 +108,25 @@ export const Home: React.FC<HomeProps> = React.memo(({
             {/* Quick Micro-Features Bar */}
             <div className="pt-3 border-t border-white/[0.06] flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs text-slate-400 font-mono">
               <div className="flex items-center gap-2">
-                <Cpu className="w-3.5 h-3.5 text-amber-400" />
-                <span>V8 Optimized</span>
+                <Cpu className="w-3.5 h-3.5 text-hud-gold" />
+                <span>V8 HEURISTICS</span>
               </div>
               <div className="flex items-center gap-2">
                 <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                <span>0.04ms Heuristics</span>
+                <span>0.04ms LATENCY</span>
               </div>
               <div className="flex items-center gap-2">
-                <Lock className="w-3.5 h-3.5 text-purple-400" />
-                <span>100% Client-Side</span>
+                <Lock className="w-3.5 h-3.5 text-hud-cyan" />
+                <span>100% LOCAL CACHE</span>
               </div>
             </div>
 
           </div>
 
-          {/* Right Column: Hero Animation Display with dark.design frame */}
-          <div className="flex-1 relative w-full flex justify-center items-center perspective-1000">
+          {/* Right Column: Hero Animation Display with Tactical HUD Frame */}
+          <div className="flex-1 relative w-full flex justify-center items-center">
             <div className="relative w-full max-w-[500px]">
-              {/* Subtle ambient back-glow behind hero portrait */}
-              <div className="absolute -inset-4 bg-gradient-to-r from-red-600/20 via-purple-600/20 to-amber-600/20 rounded-3xl blur-2xl opacity-60 pointer-events-none" />
-
-              <div className="relative rounded-3xl bg-slate-950/70 border border-white/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.9)] p-2 backdrop-blur-2xl overflow-hidden">
+              <div className="relative rounded-xl bg-hud-panel border border-white/[0.08] shadow-hud-md p-2 overflow-hidden">
                 <ErrorBoundary compact title="Selected Hero Animation">
                   <HeroAnimationDisplay
                     hero={mainHero}
@@ -151,62 +142,54 @@ export const Home: React.FC<HomeProps> = React.memo(({
       </div>
 
       {/* ============================================================ */}
-      {/* 3. TACTICAL ACTION CARDS (THE 4 CORE PILLARS) */}
+      {/* 2. TACTICAL ACTION CARDS (THE 4 CORE MODULES) */}
       {/* ============================================================ */}
-      <div className="relative z-10 w-full max-w-7xl xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 mt-20 sm:mt-28">
-        <div className="mb-6 flex items-center justify-between">
+      <div className="relative z-10 w-full max-w-7xl xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 mt-16 sm:mt-24">
+        <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-2 h-6 bg-gradient-to-b from-red-500 to-amber-500 rounded-full" />
-            <h2 className="text-xl sm:text-2xl font-dota font-bold text-white tracking-wide">
-              TACTICAL SUITE
+            <div className="w-1.5 h-5 bg-hud-cyan rounded-full" />
+            <h2 className="text-base sm:text-lg font-display font-bold text-slate-100 uppercase tracking-wide">
+              Tactical Modules
             </h2>
           </div>
-          <span className="text-xs text-slate-500 font-mono uppercase tracking-widest hidden sm:inline">
-            Fast Launch Modules
+          <span className="text-[11px] text-slate-400 font-mono uppercase tracking-widest hidden sm:inline">
+            Tactical Navigation
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               id: 'predictive' as ActiveTab,
               num: '01',
-              title: 'Predictive Oracle 5v5',
-              tag: 'Neural Drafting',
-              desc: 'Algorithmic 5-hero drafting engine with lane advantages and threat spikes.',
-              icon: <Sparkles className="w-5 h-5 text-purple-400" />,
-              border: 'hover:border-purple-500/60',
-              glow: 'hover:shadow-[0_8px_30px_rgba(168,85,247,0.2)]'
+              title: '5v5 Draft Analyzer',
+              tag: '5V5 DRAFT',
+              desc: 'Algorithmic 5-hero drafting engine evaluating lane advantage splits and threat spikes.',
+              icon: <Sparkles className="w-4 h-4 text-hud-cyan" />
             },
             {
               id: 'draft' as ActiveTab,
               num: '02',
               title: 'Draft Counter Studio',
-              tag: 'Pick / Ban Matrix',
-              desc: 'Direct enemy counters, ally synergies, and composition vulnerability checks.',
-              icon: <Swords className="w-5 h-5 text-red-400" />,
-              border: 'hover:border-red-500/60',
-              glow: 'hover:shadow-[0_8px_30px_rgba(239,68,68,0.2)]'
+              tag: 'PICK & BAN',
+              desc: 'Direct enemy counters, ally synergies, and team composition vulnerability metrics.',
+              icon: <Swords className="w-4 h-4 text-red-400" />
             },
             {
               id: 'arena' as ActiveTab,
               num: '03',
               title: '1v1 Matchup Arena',
-              tag: 'Combat Simulator',
-              desc: 'Detailed head-to-head matchup kill threats, timings, and item interactions.',
-              icon: <Radar className="w-5 h-5 text-amber-400" />,
-              border: 'hover:border-amber-500/60',
-              glow: 'hover:shadow-[0_8px_30px_rgba(245,158,11,0.2)]'
+              tag: 'COMBAT SIMULATOR',
+              desc: 'Head-to-head duel power curves, item timing spikes, and advantage trajectories.',
+              icon: <Radar className="w-4 h-4 text-hud-gold" />
             },
             {
               id: 'sandbox' as ActiveTab,
               num: '04',
               title: 'Build Sandbox Lab',
-              tag: 'DPS & Item Lab',
+              tag: 'DPS & ITEM LAB',
               desc: 'Experiment with custom item builds, damage calculations, and stat curves.',
-              icon: <FlaskConical className="w-5 h-5 text-cyan-400" />,
-              border: 'hover:border-cyan-500/60',
-              glow: 'hover:shadow-[0_8px_30px_rgba(6,182,212,0.2)]'
+              icon: <FlaskConical className="w-4 h-4 text-emerald-400" />
             }
           ].map((card) => (
             <div
@@ -215,14 +198,14 @@ export const Home: React.FC<HomeProps> = React.memo(({
                 SoundEngine.playPick();
                 onNavigateTab(card.id);
               }}
-              className={`group relative p-5 rounded-2xl bg-slate-900/50 hover:bg-slate-900/80 border border-white/[0.07] ${card.border} ${card.glow} transition-all duration-200 cursor-pointer backdrop-blur-xl shadow-lg flex flex-col justify-between active:scale-[0.98] select-none`}
+              className="group relative p-4 sm:p-5 rounded-xl bg-hud-panel hover:bg-hud-surface border border-white/[0.08] hover:border-hud-cyan/40 transition-colors cursor-pointer shadow-hud-sm flex flex-col justify-between active:scale-[0.98] select-none min-h-[44px]"
             >
               {/* Card Header: Tag & Number */}
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-950/80 border border-white/[0.08] text-slate-400">
+              <div className="flex items-center justify-between mb-3.5">
+                <span className="text-[11px] font-mono tracking-wider px-2 py-0.5 rounded-sm bg-hud-surface border border-white/[0.06] text-slate-400">
                   {card.tag}
                 </span>
-                <span className="text-xs font-mono font-extrabold text-slate-600 group-hover:text-slate-400 transition-colors">
+                <span className="text-xs font-mono font-bold text-slate-400 group-hover:text-slate-300 transition-colors">
                   {card.num}
                 </span>
               </div>
@@ -230,10 +213,10 @@ export const Home: React.FC<HomeProps> = React.memo(({
               {/* Card Body */}
               <div className="space-y-2 mb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-slate-950/80 border border-white/[0.08] group-hover:scale-105 transition-transform">
+                  <div className="p-2 rounded-lg bg-hud-surface border border-white/[0.08] group-hover:border-hud-cyan/30 transition-colors shrink-0">
                     {card.icon}
                   </div>
-                  <h3 className="font-dota font-bold text-base text-white group-hover:text-amber-200 transition-colors">
+                  <h3 className="font-display font-semibold text-sm sm:text-base text-slate-100 group-hover:text-hud-cyan transition-colors truncate">
                     {card.title}
                   </h3>
                 </div>
@@ -243,9 +226,9 @@ export const Home: React.FC<HomeProps> = React.memo(({
               </div>
 
               {/* Card Footer: Launch Link */}
-              <div className="pt-3 border-t border-white/[0.05] flex items-center justify-between text-xs font-semibold text-slate-400 group-hover:text-white transition-colors">
-                <span>Enter Module</span>
-                <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <div className="pt-3 border-t border-white/[0.04] flex items-center justify-between text-xs font-mono text-slate-400 group-hover:text-slate-200 transition-colors">
+                <span>OPEN MODULE</span>
+                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform text-hud-cyan" />
               </div>
             </div>
           ))}
@@ -253,9 +236,9 @@ export const Home: React.FC<HomeProps> = React.memo(({
       </div>
 
       {/* ============================================================ */}
-      {/* 4. ORBITAL HERO VAULT & 3D INTERACTIVE ROSTER */}
+      {/* 3. ORBITAL HERO VAULT & 3D INTERACTIVE ROSTER */}
       {/* ============================================================ */}
-      <div className="relative z-10 w-full max-w-7xl xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 mt-20 sm:mt-28 mb-24">
+      <div className="relative z-10 w-full max-w-7xl xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 mt-16 sm:mt-24 mb-20">
         <ErrorBoundary compact title="Orbital Hero Vault">
           <OrbitalHeroVault 
             onSelectHero={setMainHero} 
@@ -265,43 +248,43 @@ export const Home: React.FC<HomeProps> = React.memo(({
       </div>
 
       {/* ============================================================ */}
-      {/* 5. TACTICAL VALUE PROPOSITIONS */}
+      {/* 4. TACTICAL VALUE PROPOSITIONS */}
       {/* ============================================================ */}
-      <div className="relative z-10 w-full max-w-7xl xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pb-24">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="relative z-10 w-full max-w-7xl xl:max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {[
             { 
               num: '01',
-              title: "Predictive Neural Heuristics", 
+              title: "Predictive Draft Heuristics", 
               desc: "Isolates enemy roles, timings, and facets to suggest the mathematically ideal response before the draft closes.",
-              icon: <Radar className="w-5 h-5 text-red-400" />
+              icon: <Radar className="w-4 h-4 text-hud-cyan" />
             },
             { 
               num: '02',
-              title: "Dynamic Situational Builds", 
-              desc: "Item progressions adapt continuously to enemy damage types, spell immunities, and critical match phases.",
-              icon: <Layers className="w-5 h-5 text-amber-400" />
+              title: "Situational Item Progressions", 
+              desc: "Build paths adapt continuously to enemy damage profiles, spell immunities, and critical match phases.",
+              icon: <Layers className="w-4 h-4 text-hud-gold" />
             },
             { 
               num: '03',
               title: "Picture-in-Picture Mini HUD", 
-              desc: "Native Document PiP window keeps vital build phases and hard counters floating above Dota 2 on any monitor.",
-              icon: <Cpu className="w-5 h-5 text-emerald-400" />
+              desc: "Native Document PiP window keeps vital build phases and hard counters floating above Dota 2 on any display.",
+              icon: <Cpu className="w-4 h-4 text-emerald-400" />
             }
           ].map((vp, i) => (
             <div 
               key={i} 
-              className="p-6 rounded-2xl bg-slate-900/40 border border-white/[0.07] hover:border-white/[0.15] transition-all duration-200 backdrop-blur-xl shadow-lg"
+              className="p-5 rounded-xl bg-hud-panel border border-white/[0.08] shadow-hud-sm"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-950 border border-white/[0.08] flex items-center justify-center">
+              <div className="flex items-center justify-between mb-3.5">
+                <div className="w-8 h-8 rounded-lg bg-hud-surface border border-white/[0.08] flex items-center justify-center shrink-0">
                   {vp.icon}
                 </div>
-                <span className="font-mono text-xs font-bold text-slate-500">
+                <span className="font-mono text-xs font-bold text-slate-400">
                   {vp.num}
                 </span>
               </div>
-              <h3 className="text-base font-dota font-bold text-white mb-2">{vp.title}</h3>
+              <h3 className="text-sm font-display font-semibold text-slate-100 mb-1.5">{vp.title}</h3>
               <p className="text-xs text-slate-400 leading-relaxed font-sans">{vp.desc}</p>
             </div>
           ))}

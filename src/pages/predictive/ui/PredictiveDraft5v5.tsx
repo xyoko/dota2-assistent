@@ -252,7 +252,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             opponents: opponentsData,
             bans: banNames
           });
-          setAiAnalysis(`${fallbackAdvice}\n\n> 💡 **Custom Question Answered**: For *"${customQ.trim()}"*, prioritize lane control, active defensive itemization, and timing smoke ganks around enemy ultimate cooldowns.\n> *To unlock live neural generation with Gemini Flash-Lite (Google AI Studio Free Tier), click "Free Tier Config" above.*`);
+          setAiAnalysis(`${fallbackAdvice}\n\n> 💡 **Custom Question Answered**: For *"${customQ.trim()}"*, prioritize lane control, active defensive itemization, and timing smoke ganks around enemy ultimate cooldowns.\n> *To unlock live AI match analysis with Gemini Flash-Lite (Google AI Studio Free Tier), click "Free Tier Config" above.*`);
         } else {
           const res = await GeminiService.generateText(fullPrompt, 'You are an elite Dota 2 coach and drafting analyst for Patch 7.37d. Provide concise, tactical advice.');
           setAiAnalysis(res);
@@ -465,26 +465,24 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
       {/* ========================================================= */}
       {/* 1. TOP BANNER & ADVANTAGE METRICS                         */}
       {/* ========================================================= */}
-      <div className="bg-gradient-to-r from-dota-panel via-slate-900 to-dota-bg border-2 border-dota-border rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-hud-surface border border-white/[0.08] rounded-lg p-3 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
         
         {/* Title & Perspective Toggle */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-amber-500 p-0.5 flex items-center justify-center flex-shrink-0 shadow-dota-glow">
-            <div className="w-full h-full bg-dota-bg rounded-[10px] flex items-center justify-center">
-              <BrainCircuit className="w-5 h-5 text-amber-300" />
-            </div>
+          <div className="w-8 h-8 rounded-md bg-hud-accent/10 border border-hud-accent/30 flex items-center justify-center flex-shrink-0">
+            <BrainCircuit className="w-4 h-4 text-hud-accent" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-dota text-base sm:text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-400">
-                5v5 PREDICTIVE DRAFT ORACLE
+              <h1 className="font-sans text-xs sm:text-sm font-semibold tracking-wider uppercase text-hud-text">
+                5v5 Predictive Draft Oracle
               </h1>
-              <span className="text-[9px] uppercase font-black px-2 py-0.5 rounded-full bg-indigo-500/25 text-indigo-200 border border-indigo-500/40 font-mono">
+              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-hud-surface-raised text-hud-text-secondary border border-white/[0.08]">
                 Dedicated Roles
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-sans">
-              Allies vs Opponents lineup engine. Switch between Active Focus and Full Overview on demand.
+            <p className="text-xs text-hud-text-muted mt-0.5">
+              Lineup advantage & lane simulation engine. Switch between Active Focus and Full Overview.
             </p>
           </div>
         </div>
@@ -492,47 +490,48 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
         {/* Advantage Progress Bar & Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 max-w-xl">
           <div className="flex-1 space-y-1">
-            <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="text-emerald-400 flex items-center gap-1 font-mono">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-emerald-400 flex items-center gap-1 font-mono font-medium tabular-nums">
                 <Crown className="w-3 h-3 text-emerald-400" /> ALLIES {analysis.draftAdvantage.radiantScore}%
               </span>
-              <div className="flex items-center gap-2 text-[10px] text-slate-400 font-sans">
-                <span>E: <strong className={analysis.draftAdvantage.earlyAdvantage === 'Radiant' ? 'text-emerald-400' : 'text-rose-400'}>{analysis.draftAdvantage.earlyAdvantage === 'Radiant' ? 'Allies' : analysis.draftAdvantage.earlyAdvantage === 'Dire' ? 'Opponents' : 'Even'}</strong></span>
-                <span>M: <strong className={analysis.draftAdvantage.midAdvantage === 'Radiant' ? 'text-emerald-400' : 'text-rose-400'}>{analysis.draftAdvantage.midAdvantage === 'Radiant' ? 'Allies' : analysis.draftAdvantage.midAdvantage === 'Dire' ? 'Opponents' : 'Even'}</strong></span>
-                <span>L: <strong className={analysis.draftAdvantage.lateAdvantage === 'Radiant' ? 'text-emerald-400' : 'text-rose-400'}>{analysis.draftAdvantage.lateAdvantage === 'Radiant' ? 'Allies' : analysis.draftAdvantage.lateAdvantage === 'Dire' ? 'Opponents' : 'Even'}</strong></span>
+              <div className="flex items-center gap-2 text-[10px] font-mono text-hud-text-muted">
+                <span>E: <strong className={analysis.draftAdvantage.earlyAdvantage === 'Radiant' ? 'text-emerald-400' : 'text-red-400'}>{analysis.draftAdvantage.earlyAdvantage === 'Radiant' ? 'Allies' : analysis.draftAdvantage.earlyAdvantage === 'Dire' ? 'Opponents' : 'Even'}</strong></span>
+                <span>M: <strong className={analysis.draftAdvantage.midAdvantage === 'Radiant' ? 'text-emerald-400' : 'text-red-400'}>{analysis.draftAdvantage.midAdvantage === 'Radiant' ? 'Allies' : analysis.draftAdvantage.midAdvantage === 'Dire' ? 'Opponents' : 'Even'}</strong></span>
+                <span>L: <strong className={analysis.draftAdvantage.lateAdvantage === 'Radiant' ? 'text-emerald-400' : 'text-red-400'}>{analysis.draftAdvantage.lateAdvantage === 'Radiant' ? 'Allies' : analysis.draftAdvantage.lateAdvantage === 'Dire' ? 'Opponents' : 'Even'}</strong></span>
               </div>
-              <span className="text-rose-400 flex items-center gap-1 font-mono">
+              <span className="text-red-400 flex items-center gap-1 font-mono font-medium tabular-nums">
                 OPPONENTS {analysis.draftAdvantage.direScore}% <Swords className="w-3 h-3" />
               </span>
             </div>
 
-            <div className="relative h-2.5 w-full bg-slate-900 rounded-full overflow-hidden flex border border-dota-border">
+            <div className="relative h-2 w-full bg-hud-bg rounded-sm overflow-hidden border border-white/[0.08]">
               <div 
-                className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-500"
-                style={{ width: `${analysis.draftAdvantage.radiantScore}%` }}
+                className="absolute inset-y-0 left-0 w-full bg-emerald-500 origin-left transition-transform duration-200 ease-out"
+                style={{ transform: `scaleX(${Math.max(0, Math.min(100, analysis.draftAdvantage.radiantScore)) / 100})` }}
               />
               <div 
-                className="h-full bg-gradient-to-r from-rose-500 to-rose-700 transition-all duration-500"
-                style={{ width: `${analysis.draftAdvantage.direScore}%` }}
+                className="absolute inset-y-0 right-0 w-full bg-red-500 origin-right transition-transform duration-200 ease-out"
+                style={{ transform: `scaleX(${Math.max(0, Math.min(100, analysis.draftAdvantage.direScore)) / 100})` }}
               />
+              <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-hud-surface z-10" />
             </div>
           </div>
 
           {/* Active / Passive Focus Mode Toggle */}
-          <div className="flex items-center p-1 rounded-xl bg-slate-900/90 border border-slate-800">
+          <div className="flex items-center p-0.5 rounded-md bg-hud-bg border border-white/[0.08]">
             <button
               onClick={() => {
                 SoundEngine.playHover();
                 setDraftFocusMode('active');
               }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
                 draftFocusMode === 'active'
-                  ? 'bg-amber-500/25 text-amber-200 border border-amber-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-hud-surface-raised text-hud-text font-medium border border-white/[0.12] shadow-sm'
+                  : 'text-hud-text-muted hover:text-hud-text'
               }`}
               title="Active Cockpit: Focus on selected draft slot and collapse passive elements"
             >
-              <Compass className="w-3.5 h-3.5" />
+              <Compass className="w-3.5 h-3.5 text-hud-accent" />
               <span>Active</span>
             </button>
             <button
@@ -540,14 +539,14 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                 SoundEngine.playHover();
                 setDraftFocusMode('passive');
               }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold uppercase transition-all flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
                 draftFocusMode === 'passive'
-                  ? 'bg-amber-500/25 text-amber-200 border border-amber-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-hud-surface-raised text-hud-text font-medium border border-white/[0.12] shadow-sm'
+                  : 'text-hud-text-muted hover:text-hud-text'
               }`}
               title="Passive Overview: Expand complete 10-hero lineup board and ban rosters"
             >
-              <Layers className="w-3.5 h-3.5" />
+              <Layers className="w-3.5 h-3.5 text-hud-accent" />
               <span>Full Board</span>
             </button>
           </div>
@@ -555,7 +554,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
           {/* Reset Draft Button */}
           <button
             onClick={handleClearDraft}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-red-950/60 text-slate-300 hover:text-red-300 border border-slate-700 text-xs font-bold transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-hud-surface hover:bg-red-500/10 text-hud-text-muted hover:text-red-400 border border-white/[0.08] text-xs font-medium transition-colors touch-target"
             title="Reset Draft to blank initial state"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -573,63 +572,63 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
         <div className="space-y-3">
           
           {/* Active Slot Focus Card & Mini Lineup Navigator */}
-          <div className="bg-slate-950/85 border-2 border-amber-500/40 rounded-2xl p-3 sm:p-4 shadow-2xl backdrop-blur-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div className="bg-hud-surface border border-white/[0.08] rounded-lg p-3 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
             
             {/* Left: Current Active Slot Detail */}
             <div className="flex items-center gap-3.5">
               <div 
                 onClick={() => handleOpenSlotModal(activeTargetSlot.team, activeTargetMode, activeTargetSlot.pos)}
-                className={`w-14 h-14 rounded-xl border-2 flex items-center justify-center relative cursor-pointer group transition-all overflow-hidden ${
+                className={`w-12 h-12 rounded-md border flex items-center justify-center relative cursor-pointer group transition-colors overflow-hidden ${
                   activeSlotHero 
-                    ? activeTargetSlot.team === 'allies' ? 'border-emerald-400 bg-emerald-950/50' : 'border-rose-400 bg-rose-950/50'
-                    : 'border-dashed border-amber-400 bg-amber-500/10 hover:bg-amber-500/20'
+                    ? activeTargetSlot.team === 'allies' ? 'border-emerald-500/60 bg-emerald-500/10' : 'border-red-500/60 bg-red-500/10'
+                    : 'border-dashed border-white/[0.2] bg-hud-bg hover:border-hud-accent/60'
                 }`}
                 title="Click to assign hero to this active slot"
               >
                 {activeSlotHero ? (
                   <>
                     <img src={activeSlotHero.avatarUrl} alt={activeSlotHero.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                    <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
                   </>
                 ) : (
-                  <div className="flex flex-col items-center text-amber-300">
-                    <Plus className="w-5 h-5 animate-pulse" />
-                    <span className="text-[7px] font-mono font-bold">PICK</span>
+                  <div className="flex flex-col items-center text-hud-accent">
+                    <Plus className="w-4 h-4" />
+                    <span className="text-[7px] font-mono font-semibold">PICK</span>
                   </div>
                 )}
               </div>
 
               <div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
+                  <span className={`text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border ${
                     activeTargetSlot.team === 'allies' 
-                      ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40' 
-                      : 'bg-rose-950 text-rose-300 border-rose-500/40'
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                      : 'bg-red-500/10 text-red-400 border-red-500/30'
                   }`}>
                     {activeTargetSlot.team === 'allies' ? 'Allies Team' : 'Opponents Team'}
                   </span>
-                  <span className="text-[10px] font-mono font-bold text-amber-400">
+                  <span className="text-xs font-mono text-hud-text-secondary">
                     Pos {activeTargetSlot.pos} • {activeSlotDef.name}
                   </span>
                 </div>
 
-                <h3 className="text-base sm:text-lg font-dota font-black text-white mt-0.5">
+                <h3 className="text-sm sm:text-base font-semibold text-hud-text mt-0.5">
                   {activeSlotHero ? activeSlotHero.name : `Select ${activeSlotDef.role}`}
                 </h3>
 
-                <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                  <span>Lane: <strong className="text-slate-200">{activeSlotDef.lane}</strong></span>
+                <div className="flex items-center gap-2 text-xs text-hud-text-muted mt-0.5">
+                  <span>Lane: <strong className="text-hud-text-secondary">{activeSlotDef.lane}</strong></span>
                   {activeSlotHero && (
                     <>
                       <span>•</span>
-                      <span className="text-emerald-400 font-bold">{activeSlotHero.winRate}% WR</span>
+                      <span className="text-emerald-400 font-mono tabular-nums">{activeSlotHero.winRate}% WR</span>
                       <span>•</span>
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveHero(activeTargetSlot.team, 'pick', activeTargetSlot.pos);
                         }}
-                        className="text-red-400 hover:text-red-300 underline text-[11px]"
+                        className="text-red-400 hover:text-red-300 underline text-xs"
                       >
                         Clear
                       </button>
@@ -642,8 +641,8 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             {/* Right: Dual Team Quick Lineup Strip (P1-P5) */}
             <div className="flex flex-col sm:flex-row items-center gap-3">
               {/* Allies Mini Slots (P1 - P5) */}
-              <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-900/90 border border-emerald-500/30">
-                <span className="text-[9px] font-mono font-bold text-emerald-400 uppercase px-1">Rad</span>
+              <div className="flex items-center gap-1 p-1 rounded-md bg-hud-bg border border-emerald-500/20">
+                <span className="text-[9px] font-mono font-semibold text-emerald-400 uppercase px-1">Rad</span>
                 {([1, 2, 3, 4, 5] as PositionNumber[]).map(pos => {
                   const hId = allySlots[pos - 1];
                   const h = hId ? HERO_MAP.get(hId) : null;
@@ -656,28 +655,28 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                         setActiveTargetSlot({ team: 'allies', pos });
                         setActiveTargetMode('pick');
                       }}
-                      className={`w-8 h-8 rounded-lg overflow-hidden relative border transition-all ${
+                      className={`w-7 h-7 rounded overflow-hidden relative border transition-colors ${
                         isSelected 
-                          ? 'border-amber-400 ring-2 ring-amber-400/50 scale-105 z-10' 
-                          : h ? 'border-emerald-500/50 opacity-90' : 'border-dashed border-emerald-500/30 bg-emerald-950/20 text-slate-500'
+                          ? 'border-hud-accent ring-1 ring-hud-accent/60 scale-105 z-10' 
+                          : h ? 'border-emerald-500/40 opacity-90' : 'border-dashed border-emerald-500/30 bg-emerald-500/5 text-hud-text-muted'
                       }`}
                       title={`Ally Pos ${pos} - ${h?.name || 'Vacant'}`}
                     >
                       {h ? (
                         <img src={h.avatarUrl} alt={h.name} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-[9px] font-mono font-bold text-emerald-400">P{pos}</span>
+                        <span className="text-[9px] font-mono font-medium text-emerald-400">P{pos}</span>
                       )}
                     </button>
                   );
                 })}
               </div>
 
-              <div className="text-slate-600 font-mono text-xs font-bold">VS</div>
+              <div className="text-hud-text-muted font-mono text-xs">VS</div>
 
               {/* Opponents Mini Slots (P1 - P5) */}
-              <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-slate-900/90 border border-rose-500/30">
-                <span className="text-[9px] font-mono font-bold text-rose-400 uppercase px-1">Dire</span>
+              <div className="flex items-center gap-1 p-1 rounded-md bg-hud-bg border border-red-500/20">
+                <span className="text-[9px] font-mono font-semibold text-red-400 uppercase px-1">Dire</span>
                 {([1, 2, 3, 4, 5] as PositionNumber[]).map(pos => {
                   const hId = opponentSlots[pos - 1];
                   const h = hId ? HERO_MAP.get(hId) : null;
@@ -690,17 +689,17 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                         setActiveTargetSlot({ team: 'opponents', pos });
                         setActiveTargetMode('pick');
                       }}
-                      className={`w-8 h-8 rounded-lg overflow-hidden relative border transition-all ${
+                      className={`w-7 h-7 rounded overflow-hidden relative border transition-colors ${
                         isSelected 
-                          ? 'border-amber-400 ring-2 ring-amber-400/50 scale-105 z-10' 
-                          : h ? 'border-rose-500/50 opacity-90' : 'border-dashed border-rose-500/30 bg-rose-950/20 text-slate-500'
+                          ? 'border-hud-accent ring-1 ring-hud-accent/60 scale-105 z-10' 
+                          : h ? 'border-red-500/40 opacity-90' : 'border-dashed border-red-500/30 bg-red-500/5 text-hud-text-muted'
                       }`}
                       title={`Opponent Pos ${pos} - ${h?.name || 'Vacant'}`}
                     >
                       {h ? (
                         <img src={h.avatarUrl} alt={h.name} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-[9px] font-mono font-bold text-rose-400">P{pos}</span>
+                        <span className="text-[9px] font-mono font-medium text-red-400">P{pos}</span>
                       )}
                     </button>
                   );
@@ -711,38 +710,38 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
           </div>
 
           {/* Collapsible Ban Deck Accordion (Hides passive ban clutter) */}
-          <div className="rounded-xl bg-slate-900/60 border border-slate-800 overflow-hidden">
+          <div className="rounded-lg bg-hud-surface border border-white/[0.08] overflow-hidden">
             <button
               onClick={() => {
                 SoundEngine.playHover();
                 setShowBansDeck(!showBansDeck);
               }}
-              className="w-full px-4 py-2 flex items-center justify-between text-xs text-slate-400 hover:text-white transition-colors"
+              className="w-full px-3.5 py-2 flex items-center justify-between text-xs text-hud-text-muted hover:text-hud-text transition-colors"
             >
               <div className="flex items-center gap-2">
                 <Lock className="w-3.5 h-3.5 text-red-400" />
-                <span className="font-bold">
+                <span className="font-medium text-hud-text">
                   Bans Roster ({allyBanIds.length + opponentBanIds.length}/14 Active)
                 </span>
-                <span className="text-[10px] text-slate-500">
+                <span className="text-[10px] text-hud-text-muted font-mono tabular-nums">
                   Allies: {allyBanIds.length} • Opponents: {opponentBanIds.length}
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
+              <div className="flex items-center gap-1 text-xs text-hud-text-muted">
                 <span>{showBansDeck ? 'Hide Bans Deck' : 'Expand Bans Deck'}</span>
                 {showBansDeck ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               </div>
             </button>
 
             {showBansDeck && (
-              <div className="p-3 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-950/60 animate-fadeIn">
+              <div className="p-3 border-t border-white/[0.08] grid grid-cols-1 md:grid-cols-2 gap-3 bg-hud-bg/50 animate-fadeIn">
                 {/* Allies Bans */}
                 <div className="flex items-center gap-1.5 flex-wrap text-xs">
-                  <span className="text-emerald-400 font-bold text-[10px] uppercase font-mono">Allies Bans:</span>
+                  <span className="text-emerald-400 font-medium text-[10px] uppercase font-mono">Allies Bans:</span>
                   {allyBanIds.map((banId, idx) => {
                     const h = HERO_MAP.get(banId);
                     return (
-                      <span key={`a-ban-${banId}-${idx}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-950/70 border border-red-500/40 text-red-200 text-[10px]">
+                      <span key={`a-ban-${banId}-${idx}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-300 text-[10px] font-mono">
                         {h && <img src={h.avatarUrl} alt={h.name} className="w-3.5 h-3.5 rounded object-cover grayscale" />}
                         <span className="line-through">{h?.name || banId}</span>
                         <button onClick={() => handleRemoveHero('allies', 'ban', idx)} className="text-red-400 hover:text-white font-bold ml-0.5">×</button>
@@ -752,7 +751,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                   {allyBanIds.length < 7 && (
                     <button
                       onClick={() => handleOpenSlotModal('allies', 'ban')}
-                      className="text-red-400 hover:text-red-300 font-bold text-[10px] px-2 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10"
+                      className="text-red-400 hover:text-red-300 font-medium text-[10px] px-2 py-0.5 rounded border border-dashed border-red-500/30 hover:bg-red-500/10 transition-colors"
                     >
                       + Ban
                     </button>
@@ -761,11 +760,11 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
 
                 {/* Opponents Bans */}
                 <div className="flex items-center gap-1.5 flex-wrap text-xs">
-                  <span className="text-rose-400 font-bold text-[10px] uppercase font-mono">Opponent Bans:</span>
+                  <span className="text-red-400 font-medium text-[10px] uppercase font-mono">Opponent Bans:</span>
                   {opponentBanIds.map((banId, idx) => {
                     const h = HERO_MAP.get(banId);
                     return (
-                      <span key={`o-ban-${banId}-${idx}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-950/70 border border-red-500/40 text-red-200 text-[10px]">
+                      <span key={`o-ban-${banId}-${idx}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-300 text-[10px] font-mono">
                         {h && <img src={h.avatarUrl} alt={h.name} className="w-3.5 h-3.5 rounded object-cover grayscale" />}
                         <span className="line-through">{h?.name || banId}</span>
                         <button onClick={() => handleRemoveHero('opponents', 'ban', idx)} className="text-red-400 hover:text-white font-bold ml-0.5">×</button>
@@ -775,7 +774,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                   {opponentBanIds.length < 7 && (
                     <button
                       onClick={() => handleOpenSlotModal('opponents', 'ban')}
-                      className="text-red-400 hover:text-red-300 font-bold text-[10px] px-2 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10"
+                      className="text-red-400 hover:text-red-300 font-medium text-[10px] px-2 py-0.5 rounded border border-dashed border-red-500/30 hover:bg-red-500/10 transition-colors"
                     >
                       + Ban
                     </button>
@@ -791,16 +790,16 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 animate-fadeIn">
           
           {/* ALLIES SIDE - 5 DEDICATED SLOTS */}
-          <div className="bg-dota-panel rounded-2xl border-2 border-emerald-500/40 p-2.5 sm:p-3 space-y-2 shadow-lg">
-            <div className="flex items-center justify-between text-xs pb-1 border-b border-emerald-500/20">
+          <div className="bg-hud-surface rounded-lg border border-emerald-500/30 p-3 space-y-2.5">
+            <div className="flex items-center justify-between text-xs pb-1.5 border-b border-emerald-500/20">
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-                <span className="font-dota font-black text-sm text-emerald-300 tracking-wider">ALLIES</span>
-                <span className="text-[10px] text-emerald-400 font-bold px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-500/30">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="font-sans font-semibold text-xs text-emerald-400 tracking-wider uppercase">ALLIES</span>
+                <span className="text-[10px] font-mono text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 tabular-nums">
                   {allyPickCount}/5 Dedicated Picks
                 </span>
               </div>
-              <div className="text-[10px] text-slate-400 font-mono">
+              <div className="text-[10px] text-hud-text-muted font-mono">
                 Your Team Lineup
               </div>
             </div>
@@ -817,12 +816,12 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                   <div
                     key={`ally-dedicated-pos-${pos}`}
                     onClick={() => handleOpenSlotModal('allies', 'pick', pos)}
-                    className={`h-24 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
+                    className={`h-22 rounded-md border p-1.5 flex flex-col justify-between transition-colors cursor-pointer relative select-none group ${
                       isTargeted 
-                        ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-2 ring-dota-gold/80' 
+                        ? 'border-hud-accent bg-hud-accent/10 ring-1 ring-hud-accent/60' 
                         : hero 
-                          ? 'bg-dota-card/95 border-emerald-500/50 hover:border-emerald-400 hover:scale-[1.02]' 
-                          : 'bg-dota-bg/80 border-dashed border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/10'
+                          ? 'bg-hud-surface-raised border-emerald-500/40 hover:border-emerald-400' 
+                          : 'bg-hud-bg/70 border-dashed border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/10'
                     }`}
                     title={
                       hero 
@@ -832,8 +831,8 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                   >
                     {/* Top Bar: Dedicated Position & Role Tag */}
                     <div className="flex items-center justify-between text-[10px] leading-none">
-                      <span className={`font-black uppercase px-1 py-0.2 rounded text-[8px] ${
-                        isTargeted ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-emerald-400 border border-emerald-500/40'
+                      <span className={`font-mono font-semibold uppercase px-1 py-0.2 rounded text-[8px] ${
+                        isTargeted ? 'bg-hud-accent/20 text-hud-accent border border-hud-accent/40' : 'bg-hud-surface text-emerald-400 border border-emerald-500/30'
                       }`}>
                         P{pos}
                       </span>
@@ -843,13 +842,13 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                             e.stopPropagation();
                             handleRemoveHero('allies', 'pick', pos);
                           }}
-                          className="p-0.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-950/60 leading-none transition-colors"
+                          className="p-0.5 rounded text-hud-text-muted hover:text-red-400 leading-none transition-colors"
                           title="Remove hero from this dedicated slot"
                         >
                           <Trash2 className="w-2.5 h-2.5" />
                         </button>
                       ) : (
-                        <span className="text-[8px] text-slate-500 uppercase">{def.lane.split(' ')[0]}</span>
+                        <span className="text-[8px] text-hud-text-muted uppercase font-mono">{def.lane.split(' ')[0]}</span>
                       )}
                     </div>
 
@@ -865,31 +864,31 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                         <img 
                           src={hero.avatarUrl} 
                           alt={hero.name} 
-                          className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-emerald-500/50 shadow group-hover:scale-105 transition-transform" 
+                          className="w-7 h-7 rounded object-cover flex-shrink-0 border border-emerald-500/40" 
                         />
                         <div className="truncate flex-1">
-                          <div className="font-dota font-bold text-xs text-slate-100 truncate group-hover:text-emerald-300 leading-tight">
+                          <div className="font-medium text-xs text-hud-text truncate group-hover:text-emerald-400 leading-tight">
                             {hero.name}
                           </div>
-                          <div className="text-[9px] text-emerald-400 font-semibold leading-none">{hero.winRate}% WR</div>
+                          <div className="text-[9px] font-mono text-emerald-400 leading-none tabular-nums">{hero.winRate}% WR</div>
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center py-1 text-slate-400 group-hover:text-emerald-300">
-                        <div className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-emerald-500 group-hover:bg-emerald-500/20 flex items-center justify-center transition-all group-hover:scale-110">
-                          <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                      <div className="flex flex-col items-center justify-center py-1 text-hud-text-muted group-hover:text-emerald-400">
+                        <div className="w-5 h-5 rounded bg-hud-surface border border-white/[0.08] group-hover:border-emerald-500/50 flex items-center justify-center transition-colors">
+                          <Plus className="w-3 h-3 text-emerald-400" />
                         </div>
-                        <span className="text-[9px] font-bold mt-1 text-emerald-300">Add {def.role.split(' ')[0]}</span>
+                        <span className="text-[8px] font-mono font-medium mt-1 text-emerald-400">Add {def.role.split(' ')[0]}</span>
                       </div>
                     )}
 
                     {/* Bottom: Dedicated Role Label */}
-                    <div className="text-[8px] text-slate-400 truncate flex items-center justify-between leading-none">
-                      <span className="truncate font-semibold text-slate-300">{def.role.replace(' Support', ' Sup')}</span>
+                    <div className="text-[8px] text-hud-text-muted truncate flex items-center justify-between leading-none font-mono">
+                      <span className="truncate">{def.role.replace(' Support', ' Sup')}</span>
                       {isTargeted ? (
-                        <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>
+                        <span className="text-hud-accent font-semibold text-[7px]">ACTIVE</span>
                       ) : (
-                        <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Suggest</span>
+                        <span className="text-[7px] text-hud-text-muted group-hover:text-hud-text-secondary">Pick</span>
                       )}
                     </div>
                   </div>
@@ -898,14 +897,14 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             </div>
 
             {/* Allies Bans Bar */}
-            <div className="flex items-center gap-1.5 min-h-[28px] overflow-x-auto custom-scrollbar pt-1 border-t border-emerald-500/20 text-[10px]">
-              <span className="text-slate-400 flex items-center gap-1 flex-shrink-0 font-bold">
+            <div className="flex items-center gap-1.5 min-h-[28px] overflow-x-auto custom-scrollbar pt-1.5 border-t border-emerald-500/20 text-[10px]">
+              <span className="text-hud-text-muted flex items-center gap-1 flex-shrink-0 font-medium">
                 <Lock className="w-3 h-3 text-red-400" /> Allies Bans:
               </span>
               {allyBanIds.map((banId, idx) => {
                 const hero = HERO_MAP.get(banId);
                 return (
-                  <div key={`ally-ban-${banId}-${idx}`} className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-950/70 border border-red-500/40 text-red-200 text-[10px]">
+                  <div key={`ally-ban-${banId}-${idx}`} className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-300 text-[10px] font-mono">
                     {hero && <img src={hero.avatarUrl} alt={hero.name} className="w-3.5 h-3.5 rounded object-cover grayscale" />}
                     <span className="line-through">{hero?.name || banId}</span>
                     <button onClick={() => handleRemoveHero('allies', 'ban', idx)} className="text-red-400 hover:text-white font-bold">×</button>
@@ -915,25 +914,25 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
               {allyBanIds.length < 7 && (
                 <button
                   onClick={() => handleOpenSlotModal('allies', 'ban')}
-                  className="flex-shrink-0 text-red-400 hover:text-red-300 font-bold flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10 transition-colors"
+                  className="flex-shrink-0 text-red-400 hover:text-red-300 font-medium flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-dashed border-red-500/30 hover:bg-red-500/10 transition-colors font-mono"
                 >
-                  <Plus className="w-2.5 h-2.5" /> Ban Hero
+                  <Plus className="w-2.5 h-2.5" /> Ban
                 </button>
               )}
             </div>
           </div>
 
           {/* OPPONENTS SIDE - 5 DEDICATED SLOTS */}
-          <div className="bg-dota-panel rounded-2xl border-2 border-rose-500/40 p-2.5 sm:p-3 space-y-2 shadow-lg">
-            <div className="flex items-center justify-between text-xs pb-1 border-b border-rose-500/20">
+          <div className="bg-hud-surface rounded-lg border border-red-500/30 p-3 space-y-2.5">
+            <div className="flex items-center justify-between text-xs pb-1.5 border-b border-red-500/20">
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]" />
-                <span className="font-dota font-black text-sm text-rose-300 tracking-wider">OPPONENTS</span>
-                <span className="text-[10px] text-rose-400 font-bold px-1.5 py-0.2 rounded bg-rose-950 border border-rose-500/30">
+                <div className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="font-sans font-semibold text-xs text-red-400 tracking-wider uppercase">OPPONENTS</span>
+                <span className="text-[10px] font-mono text-red-400 px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/30 tabular-nums">
                   {opponentPickCount}/5 Dedicated Picks
                 </span>
               </div>
-              <div className="text-[10px] text-slate-400 font-mono">
+              <div className="text-[10px] text-hud-text-muted font-mono">
                 Enemy Draft Targets
               </div>
             </div>
@@ -950,12 +949,12 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                   <div
                     key={`opponent-dedicated-pos-${pos}`}
                     onClick={() => handleOpenSlotModal('opponents', 'pick', pos)}
-                    className={`h-24 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative select-none group ${
+                    className={`h-22 rounded-md border p-1.5 flex flex-col justify-between transition-colors cursor-pointer relative select-none group ${
                       isTargeted 
-                        ? 'border-dota-gold bg-dota-gold/15 shadow-dota-glow ring-2 ring-dota-gold/80' 
+                        ? 'border-hud-accent bg-hud-accent/10 ring-1 ring-hud-accent/60' 
                         : hero 
-                          ? 'bg-dota-card/95 border-rose-500/50 hover:border-rose-400 hover:scale-[1.02]' 
-                          : 'bg-dota-bg/80 border-dashed border-rose-500/30 hover:border-rose-500/60 hover:bg-rose-500/10'
+                          ? 'bg-hud-surface-raised border-red-500/40 hover:border-red-400' 
+                          : 'bg-hud-bg/70 border-dashed border-red-500/30 hover:border-red-500/60 hover:bg-red-500/10'
                     }`}
                     title={
                       hero 
@@ -965,8 +964,8 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                   >
                     {/* Top Bar: Dedicated Position & Role */}
                     <div className="flex items-center justify-between text-[10px] leading-none">
-                      <span className={`font-black uppercase px-1 py-0.2 rounded text-[8px] ${
-                        isTargeted ? 'bg-amber-950 text-amber-300 border border-amber-500/50' : 'bg-slate-900 text-rose-400 border border-rose-500/40'
+                      <span className={`font-mono font-semibold uppercase px-1 py-0.2 rounded text-[8px] ${
+                        isTargeted ? 'bg-hud-accent/20 text-hud-accent border border-hud-accent/40' : 'bg-hud-surface text-red-400 border border-red-500/30'
                       }`}>
                         P{pos}
                       </span>
@@ -976,13 +975,13 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                             e.stopPropagation();
                             handleRemoveHero('opponents', 'pick', pos);
                           }}
-                          className="p-0.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-950/60 leading-none transition-colors"
+                          className="p-0.5 rounded text-hud-text-muted hover:text-red-400 leading-none transition-colors"
                           title="Remove hero from this dedicated slot"
                         >
                           <Trash2 className="w-2.5 h-2.5" />
                         </button>
                       ) : (
-                        <span className="text-[8px] text-slate-500 uppercase">{def.lane.split(' ')[0]}</span>
+                        <span className="text-[8px] text-hud-text-muted uppercase font-mono">{def.lane.split(' ')[0]}</span>
                       )}
                     </div>
 
@@ -998,31 +997,31 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                         <img 
                           src={hero.avatarUrl} 
                           alt={hero.name} 
-                          className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-rose-500/50 shadow group-hover:scale-105 transition-transform" 
+                          className="w-7 h-7 rounded object-cover flex-shrink-0 border border-red-500/40" 
                         />
                         <div className="truncate flex-1">
-                          <div className="font-dota font-bold text-xs text-slate-100 truncate group-hover:text-rose-300 leading-tight">
+                          <div className="font-medium text-xs text-hud-text truncate group-hover:text-red-400 leading-tight">
                             {hero.name}
                           </div>
-                          <div className="text-[9px] text-rose-400 font-semibold leading-none">{hero.winRate}% WR</div>
+                          <div className="text-[9px] font-mono text-red-400 leading-none tabular-nums">{hero.winRate}% WR</div>
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center py-1 text-slate-400 group-hover:text-rose-300">
-                        <div className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-rose-500 group-hover:bg-rose-500/20 flex items-center justify-center transition-all group-hover:scale-110">
-                          <Plus className="w-3.5 h-3.5 text-rose-400" />
+                      <div className="flex flex-col items-center justify-center py-1 text-hud-text-muted group-hover:text-red-400">
+                        <div className="w-5 h-5 rounded bg-hud-surface border border-white/[0.08] group-hover:border-red-500/50 flex items-center justify-center transition-colors">
+                          <Plus className="w-3 h-3 text-red-400" />
                         </div>
-                        <span className="text-[9px] font-bold mt-1 text-rose-300">Add {def.role.split(' ')[0]}</span>
+                        <span className="text-[8px] font-mono font-medium mt-1 text-red-400">Add {def.role.split(' ')[0]}</span>
                       </div>
                     )}
 
                     {/* Bottom: Dedicated Role Label */}
-                    <div className="text-[8px] text-slate-400 truncate flex items-center justify-between leading-none">
-                      <span className="truncate font-semibold text-slate-300">{def.role.replace(' Support', ' Sup')}</span>
+                    <div className="text-[8px] text-hud-text-muted truncate flex items-center justify-between leading-none font-mono">
+                      <span className="truncate">{def.role.replace(' Support', ' Sup')}</span>
                       {isTargeted ? (
-                        <span className="text-amber-300 font-black text-[7px] animate-pulse">TARGET</span>
+                        <span className="text-hud-accent font-semibold text-[7px]">ACTIVE</span>
                       ) : (
-                        <span className="text-[7px] text-slate-500 group-hover:text-slate-400">Target</span>
+                        <span className="text-[7px] text-hud-text-muted group-hover:text-hud-text-secondary">Pick</span>
                       )}
                     </div>
                   </div>
@@ -1031,14 +1030,14 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             </div>
 
             {/* Opponents Bans Bar */}
-            <div className="flex items-center gap-1.5 min-h-[28px] overflow-x-auto custom-scrollbar pt-1 border-t border-rose-500/20 text-[10px]">
-              <span className="text-slate-400 flex items-center gap-1 flex-shrink-0 font-bold">
+            <div className="flex items-center gap-1.5 min-h-[28px] overflow-x-auto custom-scrollbar pt-1.5 border-t border-red-500/20 text-[10px]">
+              <span className="text-hud-text-muted flex items-center gap-1 flex-shrink-0 font-medium">
                 <Lock className="w-3 h-3 text-red-400" /> Opponent Bans:
               </span>
               {opponentBanIds.map((banId, idx) => {
                 const hero = HERO_MAP.get(banId);
                 return (
-                  <div key={`opp-ban-${banId}-${idx}`} className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-950/70 border border-red-500/40 text-red-200 text-[10px]">
+                  <div key={`opp-ban-${banId}-${idx}`} className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-300 text-[10px] font-mono">
                     {hero && <img src={hero.avatarUrl} alt={hero.name} className="w-3.5 h-3.5 rounded object-cover grayscale" />}
                     <span className="line-through">{hero?.name || banId}</span>
                     <button onClick={() => handleRemoveHero('opponents', 'ban', idx)} className="text-red-400 hover:text-white font-bold">×</button>
@@ -1048,9 +1047,9 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
               {opponentBanIds.length < 7 && (
                 <button
                   onClick={() => handleOpenSlotModal('opponents', 'ban')}
-                  className="flex-shrink-0 text-red-400 hover:text-red-300 font-bold flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-dashed border-red-500/40 hover:bg-red-500/10 transition-colors"
+                  className="flex-shrink-0 text-red-400 hover:text-red-300 font-medium flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-dashed border-red-500/30 hover:bg-red-500/10 transition-colors font-mono"
                 >
-                  <Plus className="w-2.5 h-2.5" /> Ban Hero
+                  <Plus className="w-2.5 h-2.5" /> Ban
                 </button>
               )}
             </div>
@@ -1065,7 +1064,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
       <div className="space-y-4">
         
         {/* STRATEGY MODULE CONTROL BAR (COMPACT DROPDOWN & QUICK PILLS) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-dota-panel rounded-2xl p-2.5 border border-dota-border shadow-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-hud-surface rounded-lg p-2.5 border border-white/[0.08]">
           
           {/* Custom Strategy Mode Dropdown Selector */}
           <div className="relative">
@@ -1074,40 +1073,40 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                 SoundEngine.playHover();
                 setIsDropdownOpen(!isDropdownOpen);
               }}
-              className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-500/60 text-white font-bold text-xs transition-all shadow-md group"
+              className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-md bg-hud-bg border border-white/[0.1] hover:border-white/[0.2] text-hud-text font-medium text-xs transition-colors shadow-sm group touch-target"
             >
               {activeAnalysisTab === 'picks' && <Target className="w-4 h-4 text-emerald-400" />}
-              {activeAnalysisTab === 'bans' && <Lock className="w-4 h-4 text-rose-400" />}
+              {activeAnalysisTab === 'bans' && <Lock className="w-4 h-4 text-red-400" />}
               {activeAnalysisTab === 'intent' && <BrainCircuit className="w-4 h-4 text-amber-400" />}
               {activeAnalysisTab === 'lanes' && <Swords className="w-4 h-4 text-cyan-400" />}
-              {activeAnalysisTab === 'ai' && <Sparkles className="w-4 h-4 text-purple-400" />}
+              {activeAnalysisTab === 'ai' && <Sparkles className="w-4 h-4 text-hud-accent" />}
               
-              <span className="font-dota uppercase tracking-wide">
-                {activeAnalysisTab === 'picks' && '🎯 Role Optimal Picks'}
-                {activeAnalysisTab === 'bans' && '🚫 Targeted Ban Suggestions'}
-                {activeAnalysisTab === 'intent' && '🔮 Ban-Intent Decryption'}
-                {activeAnalysisTab === 'lanes' && '⚔️ Lane Matchup Forecast'}
-                {activeAnalysisTab === 'ai' && '🧠 Neural Tactical Oracle'}
+              <span className="uppercase tracking-wider font-mono text-[11px]">
+                {activeAnalysisTab === 'picks' && 'Role Optimal Picks'}
+                {activeAnalysisTab === 'bans' && 'Targeted Ban Suggestions'}
+                {activeAnalysisTab === 'intent' && 'Ban-Intent Decryption'}
+                {activeAnalysisTab === 'lanes' && 'Lane Matchup Forecast'}
+                {activeAnalysisTab === 'ai' && 'AI Draft Advisor'}
               </span>
 
               {activeAnalysisTab === 'intent' && analysis.banPredictions.telegraphedHeroes.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-300 text-[9px] font-mono">
+                <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono tabular-nums">
                   {analysis.banPredictions.telegraphedHeroes.length} telegraphed
                 </span>
               )}
 
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 group-hover:text-amber-300 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-hud-text-muted group-hover:text-hud-text transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Dropdown Menu Items */}
             {isDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1.5 w-72 rounded-2xl bg-slate-950 border border-slate-700 shadow-2xl z-40 p-1.5 space-y-1 backdrop-blur-2xl animate-fadeIn">
+              <div className="absolute top-full left-0 mt-1.5 w-72 rounded-lg bg-hud-surface-raised border border-white/[0.12] shadow-xl z-40 p-1 space-y-0.5 animate-fadeIn">
                 {[
                   { id: 'picks', label: 'Role Optimal Picks', desc: 'Ranked synergies & counter-picks', icon: Target, color: 'text-emerald-400' },
-                  { id: 'bans', label: 'Targeted Ban Suggestions', desc: 'Algorithmic ban priorities', icon: Lock, color: 'text-rose-400' },
+                  { id: 'bans', label: 'Targeted Ban Suggestions', desc: 'Algorithmic ban priorities', icon: Lock, color: 'text-red-400' },
                   { id: 'intent', label: 'Ban-Intent Decryption', desc: 'Decode opponent strategy & candidate picks', icon: BrainCircuit, color: 'text-amber-400' },
                   { id: 'lanes', label: 'Lane Matchup Forecast', desc: 'Head-to-head lane simulation', icon: Swords, color: 'text-cyan-400' },
-                  { id: 'ai', label: 'Neural Tactical Oracle', desc: 'Live pro esports AI telemetry', icon: Sparkles, color: 'text-purple-400' },
+                  { id: 'ai', label: 'AI Draft Advisor', desc: 'Situational match analysis and win condition breakdown', icon: Sparkles, color: 'text-hud-accent' },
                 ].map(item => {
                   const Icon = item.icon;
                   const isCurrent = activeAnalysisTab === item.id;
@@ -1122,16 +1121,16 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                           handleRequestAiAnalysis();
                         }
                       }}
-                      className={`w-full p-2.5 rounded-xl text-left flex items-start gap-2.5 transition-all ${
+                      className={`w-full p-2.5 rounded-md text-left flex items-start gap-2.5 transition-colors ${
                         isCurrent 
-                          ? 'bg-amber-500/20 border border-amber-500/50 text-white' 
-                          : 'hover:bg-slate-900 border border-transparent text-slate-300 hover:text-white'
+                          ? 'bg-hud-surface text-hud-text border border-white/[0.12]' 
+                          : 'hover:bg-white/[0.04] text-hud-text-muted hover:text-hud-text'
                       }`}
                     >
                       <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${item.color}`} />
                       <div className="truncate">
-                        <div className="font-dota font-bold text-xs">{item.label}</div>
-                        <div className="text-[10px] text-slate-400 font-sans">{item.desc}</div>
+                        <div className="font-semibold text-xs text-hud-text">{item.label}</div>
+                        <div className="text-[10px] text-hud-text-muted">{item.desc}</div>
                       </div>
                     </button>
                   );
@@ -1141,50 +1140,50 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
           </div>
 
           {/* Quick Fast-Switch Segmented Pills */}
-          <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs">
+          <div className="flex items-center gap-0.5 bg-hud-bg p-0.5 rounded-md border border-white/[0.08] text-xs">
             <button
               onClick={() => {
                 SoundEngine.playHover();
                 setActiveAnalysisTab('picks');
               }}
-              className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                activeAnalysisTab === 'picks' ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                activeAnalysisTab === 'picks' ? 'bg-hud-surface-raised text-emerald-400 font-medium border border-white/[0.12] shadow-sm' : 'text-hud-text-muted hover:text-hud-text'
               }`}
             >
-              🎯 Picks
+              Picks
             </button>
             <button
               onClick={() => {
                 SoundEngine.playHover();
                 setActiveAnalysisTab('bans');
               }}
-              className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                activeAnalysisTab === 'bans' ? 'bg-rose-500/30 text-rose-300 border border-rose-500/50' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                activeAnalysisTab === 'bans' ? 'bg-hud-surface-raised text-red-400 font-medium border border-white/[0.12] shadow-sm' : 'text-hud-text-muted hover:text-hud-text'
               }`}
             >
-              🚫 Bans
+              Bans
             </button>
             <button
               onClick={() => {
                 SoundEngine.playHover();
                 setActiveAnalysisTab('intent');
               }}
-              className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                activeAnalysisTab === 'intent' ? 'bg-amber-500/30 text-amber-300 border border-amber-500/50' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                activeAnalysisTab === 'intent' ? 'bg-hud-surface-raised text-amber-400 font-medium border border-white/[0.12] shadow-sm' : 'text-hud-text-muted hover:text-hud-text'
               }`}
             >
-              🔮 Intent
+              Intent
             </button>
             <button
               onClick={() => {
                 SoundEngine.playHover();
                 setActiveAnalysisTab('lanes');
               }}
-              className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                activeAnalysisTab === 'lanes' ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-500/50' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                activeAnalysisTab === 'lanes' ? 'bg-hud-surface-raised text-cyan-400 font-medium border border-white/[0.12] shadow-sm' : 'text-hud-text-muted hover:text-hud-text'
               }`}
             >
-              ⚔️ Lanes
+              Lanes
             </button>
             <button
               onClick={() => {
@@ -1194,12 +1193,12 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                   handleRequestAiAnalysis();
                 }
               }}
-              className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
-                activeAnalysisTab === 'ai' ? 'bg-purple-500/30 text-purple-200 border border-purple-500/50' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
+                activeAnalysisTab === 'ai' ? 'bg-hud-surface-raised text-hud-accent font-medium border border-white/[0.12] shadow-sm' : 'text-hud-text-muted hover:text-hud-text'
               }`}
             >
-              <Sparkles className="w-3 h-3 text-purple-400" />
-              <span>AI Oracle</span>
+              <Sparkles className="w-3 h-3 text-hud-accent" />
+              <span>AI Advisor</span>
             </button>
           </div>
 
@@ -1233,71 +1232,71 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
         </div>
 
         {/* TAB 3: BAN INTENT & LINEUP FORECAST */}
-        <div className={activeAnalysisTab === 'intent' ? 'block space-y-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 p-4 sm:p-5 shadow-xl backdrop-blur-md' : 'hidden'}>
+        <div className={activeAnalysisTab === 'intent' ? 'block space-y-4 rounded-lg bg-hud-surface border border-white/[0.08] p-4 sm:p-5' : 'hidden'}>
             
             {/* Header */}
-            <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
-                <BrainCircuit className="w-5 h-5 text-amber-300" />
+            <div className="flex items-center gap-2.5 border-b border-white/[0.08] pb-3">
+              <div className="w-8 h-8 rounded-md bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+                <BrainCircuit className="w-4 h-4 text-amber-400" />
               </div>
               <div>
-                <h3 className="font-dota font-bold text-base text-amber-200">
-                  OPPONENT BAN-INTENT DECRYPTION
+                <h3 className="font-sans font-semibold text-xs uppercase tracking-wider text-hud-text">
+                  Opponent Ban-Intent Decryption
                 </h3>
-                <p className="text-[11px] text-slate-400">
-                  Infers what strategy Opponents are clearing the runway for based on their active bans
+                <p className="text-xs text-hud-text-muted">
+                  Infers opponent intended strategy based on their active ban pattern
                 </p>
               </div>
             </div>
 
             {/* Detected Strategy Card */}
             {analysis.banPredictions.detectedStrategy ? (
-              <div className="p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/30 space-y-1 text-xs">
+              <div className="p-3 rounded-md bg-hud-bg/80 border border-amber-500/30 space-y-1 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-dota font-bold text-sm text-amber-300">
+                  <span className="font-semibold text-sm text-amber-300">
                     {analysis.banPredictions.detectedStrategy.name}
                   </span>
-                  <span className="font-mono text-[10px] text-amber-400 font-bold px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40">
+                  <span className="font-mono text-[10px] text-amber-400 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 tabular-nums">
                     {analysis.banPredictions.detectedStrategy.confidence}% Confidence
                   </span>
                 </div>
-                <p className="text-slate-300">{analysis.banPredictions.detectedStrategy.description}</p>
+                <p className="text-hud-text-muted text-xs leading-relaxed">{analysis.banPredictions.detectedStrategy.description}</p>
                 <div className="text-[10px] font-mono text-amber-300/80 pt-1">
                   Trigger Bans: <strong>{analysis.banPredictions.detectedStrategy.triggerBans.join(', ')}</strong>
                 </div>
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800 text-xs text-slate-400 text-center">
+              <div className="p-4 rounded-md bg-hud-bg/50 border border-white/[0.08] text-xs text-hud-text-muted text-center">
                 Add opponent bans (e.g. Anti-Mage, Ancient Apparition, Axe) to decrypt telegraphed enemy strategies in real-time.
               </div>
             )}
 
             {/* Telegraphed Picks */}
             {analysis.banPredictions.telegraphedHeroes.length > 0 && (
-              <div className="space-y-2 pt-2">
-                <h4 className="font-dota font-bold text-xs uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+              <div className="space-y-2 pt-1">
+                <h4 className="font-sans font-semibold text-xs uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
                   <Eye className="w-3.5 h-3.5" />
                   Telegraphed Opponent Candidates ({analysis.banPredictions.telegraphedHeroes.length})
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {analysis.banPredictions.telegraphedHeroes.map((item) => (
-                    <div key={`telegraph-${item.hero.id}`} className="p-3 rounded-xl bg-slate-900/80 border border-amber-500/40 space-y-2">
+                    <div key={`telegraph-${item.hero.id}`} className="p-3 rounded-md bg-hud-bg/70 border border-white/[0.08] space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <img src={item.hero.avatarUrl} alt={item.hero.name} className="w-8 h-8 rounded-lg object-cover border border-amber-500/60" />
+                          <img src={item.hero.avatarUrl} alt={item.hero.name} loading="lazy" decoding="async" className="w-8 h-8 rounded-md object-cover border border-white/[0.1]" />
                           <div>
-                            <span className="font-dota font-bold text-xs text-white block">{item.hero.name}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">{item.hero.roles.join(', ')}</span>
+                            <span className="font-semibold text-xs text-hud-text block">{item.hero.name}</span>
+                            <span className="text-[10px] text-hud-text-muted font-mono">{item.hero.roles.join(', ')}</span>
                           </div>
                         </div>
-                        <span className="text-[10px] font-mono font-bold text-amber-300 px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/30">
+                        <span className="text-[10px] font-mono font-medium text-amber-400 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 tabular-nums">
                           {item.confidence}% Match
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-300 leading-snug">{item.reason}</p>
-                      <div className="p-2 rounded bg-red-950/40 border border-red-500/20 text-[10px] text-red-200">
-                        <strong>Allied Counter:</strong> {item.counterRecommendation}
+                      <p className="text-xs text-hud-text-muted leading-relaxed">{item.reason}</p>
+                      <div className="p-2 rounded bg-red-500/10 border border-red-500/20 text-[10px] text-red-300">
+                        <strong className="text-red-200">Allied Counter:</strong> {item.counterRecommendation}
                       </div>
                     </div>
                   ))}
@@ -1306,9 +1305,9 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             )}
 
             {/* Opponent Lineup Forecast */}
-            <div className="pt-3 border-t border-slate-800 space-y-2">
+            <div className="pt-2 border-t border-white/[0.08] space-y-2">
               <div className="flex items-center justify-between">
-                <h4 className="font-dota font-bold text-xs uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
+                <h4 className="font-sans font-semibold text-xs uppercase tracking-wider text-red-400 flex items-center gap-1.5">
                   <Crown className="w-3.5 h-3.5" />
                   Opponent Missing Roles Forecast ({analysis.lineupPrediction.detectedArchetype.name})
                 </h4>
@@ -1316,24 +1315,24 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {analysis.lineupPrediction.predictedHeroes.map((pred, i) => (
-                  <div key={`lineup-pred-${pred.hero.id}-${i}`} className="p-3 rounded-xl bg-slate-900/80 border border-rose-500/30 flex flex-col justify-between space-y-2">
+                  <div key={`lineup-pred-${pred.hero.id}-${i}`} className="p-3 rounded-md bg-hud-bg/70 border border-white/[0.08] flex flex-col justify-between space-y-2">
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-[10px]">
-                        <span className="font-mono font-bold px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-500/40 uppercase">
+                        <span className="font-mono px-1.5 py-0.2 rounded bg-red-500/10 text-red-400 border border-red-500/30 uppercase">
                           {pred.roleName}
                         </span>
-                        <span className="font-mono text-amber-300 font-bold">{pred.confidence}% Likelihood</span>
+                        <span className="font-mono text-amber-400 tabular-nums">{pred.confidence}% Likelihood</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <img src={pred.hero.avatarUrl} alt={pred.hero.name} className="w-7 h-7 rounded-md object-cover border border-rose-500/50" />
-                        <span className="font-dota font-bold text-xs text-white">{pred.hero.name}</span>
+                        <img src={pred.hero.avatarUrl} alt={pred.hero.name} loading="lazy" decoding="async" className="w-7 h-7 rounded object-cover border border-white/[0.1]" />
+                        <span className="font-semibold text-xs text-hud-text">{pred.hero.name}</span>
                       </div>
-                      <p className="text-[10px] text-slate-300 leading-tight">{pred.strategicFitReason}</p>
+                      <p className="text-xs text-hud-text-muted leading-relaxed">{pred.strategicFitReason}</p>
                     </div>
 
                     <button
                       onClick={() => handleAssignHero('opponents', 'pick', pred.hero.id, pred.predictedPos)}
-                      className="w-full py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-500/40 font-bold text-[10px] transition-all"
+                      className="w-full py-1.5 rounded-md bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 text-xs font-medium transition-colors touch-target"
                     >
                       Assign to Opponent Pos {pred.predictedPos}
                     </button>
@@ -1345,34 +1344,34 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
           </div>
 
         {/* TAB 4: LANE FORECAST & WIN CONDITIONS */}
-        <div className={activeAnalysisTab === 'lanes' ? 'block space-y-4 rounded-2xl bg-slate-950/80 border border-cyan-500/30 p-4 sm:p-5 shadow-xl backdrop-blur-md' : 'hidden'}>
-          <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
-            <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
-              <Swords className="w-5 h-5 text-cyan-300" />
+        <div className={activeAnalysisTab === 'lanes' ? 'block space-y-4 rounded-lg bg-hud-surface border border-white/[0.08] p-4 sm:p-5' : 'hidden'}>
+          <div className="flex items-center gap-2.5 border-b border-white/[0.08] pb-3">
+            <div className="w-8 h-8 rounded-md bg-hud-accent/10 border border-hud-accent/30 flex items-center justify-center">
+              <Swords className="w-4 h-4 text-hud-accent" />
             </div>
             <div>
-              <h3 className="font-dota font-bold text-base text-cyan-200">
-                PROJECTED LANE MATCHUPS & 5V5 WIN CONDITIONS
+              <h3 className="font-sans font-semibold text-xs uppercase tracking-wider text-hud-text">
+                Projected Lane Matchups & 5v5 Win Conditions
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs text-hud-text-muted">
                 Head-to-head lane simulation comparing Allies vs Opponents assigned positions
               </p>
             </div>
           </div>
 
           {/* Lane Forecast Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {analysis.laneForecasts.map((lane, i) => (
-              <div key={`lane-fc-${i}`} className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3 shadow-md flex flex-col justify-between">
+              <div key={`lane-fc-${i}`} className="p-3.5 rounded-md bg-hud-bg/70 border border-white/[0.08] space-y-3 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
-                    <span className="font-dota font-bold text-xs text-slate-100">{lane.laneName}</span>
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border whitespace-nowrap ${
+                  <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] pb-2">
+                    <span className="font-semibold text-xs text-hud-text">{lane.laneName}</span>
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded border whitespace-nowrap tabular-nums ${
                       lane.advantage === 'Radiant Favored'
-                        ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                         : lane.advantage === 'Dire Favored'
-                        ? 'bg-rose-950/80 text-rose-300 border-rose-500/60 shadow-[0_0_10px_rgba(244,63,94,0.2)]'
-                        : 'bg-slate-800 text-slate-300 border-slate-700'
+                        ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                        : 'bg-hud-surface text-hud-text-muted border-white/[0.08]'
                     }`}>
                       {lane.advantage === 'Radiant Favored' ? `Allies Favored (${lane.confidence}%)` : lane.advantage === 'Dire Favored' ? `Opponents Favored (${lane.confidence}%)` : `Even Lane (${lane.confidence}%)`}
                     </span>
@@ -1382,45 +1381,45 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                   <div className="py-2.5 flex items-center justify-between gap-1 text-[11px]">
                     {/* Allies Heroes */}
                     <div className="flex-1 flex flex-col gap-1">
-                      <span className="text-[9px] font-mono font-bold uppercase text-emerald-400">Allies</span>
+                      <span className="text-[9px] font-mono font-semibold uppercase text-emerald-400">Allies</span>
                       {lane.radiantHeroes.length > 0 ? (
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1 flex-wrap">
                           {lane.radiantHeroes.map((h) => (
-                            <div key={`rad-lane-h-${h.id}`} className="flex items-center gap-1 bg-slate-950/70 border border-emerald-500/40 rounded px-1.5 py-0.5" title={`${h.name} (${h.attackType})`}>
-                              <img src={h.avatarUrl} alt={h.name} className="w-5 h-5 rounded object-cover" />
-                              <span className="font-dota text-xs text-white truncate max-w-[65px]">{h.name}</span>
+                            <div key={`rad-lane-h-${h.id}`} className="flex items-center gap-1 bg-hud-surface border border-emerald-500/30 rounded px-1.5 py-0.5" title={`${h.name} (${h.attackType})`}>
+                              <img src={h.avatarUrl} alt={h.name} loading="lazy" decoding="async" className="w-4 h-4 rounded object-cover" />
+                              <span className="text-xs text-hud-text truncate max-w-[65px]">{h.name}</span>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-[10px] text-slate-500 italic">Unassigned</span>
+                        <span className="text-[10px] text-hud-text-muted italic">Unassigned</span>
                       )}
                     </div>
 
-                    <div className="px-1 text-[10px] font-black font-mono text-slate-500">VS</div>
+                    <div className="px-1 text-[10px] font-mono text-hud-text-muted">VS</div>
 
                     {/* Opponents Heroes */}
                     <div className="flex-1 flex flex-col items-end gap-1">
-                      <span className="text-[9px] font-mono font-bold uppercase text-rose-400">Opponents</span>
+                      <span className="text-[9px] font-mono font-semibold uppercase text-red-400">Opponents</span>
                       {lane.direHeroes.length > 0 ? (
-                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        <div className="flex items-center gap-1 flex-wrap justify-end">
                           {lane.direHeroes.map((h) => (
-                            <div key={`dire-lane-h-${h.id}`} className="flex items-center gap-1 bg-slate-950/70 border border-rose-500/40 rounded px-1.5 py-0.5" title={`${h.name} (${h.attackType})`}>
-                              <span className="font-dota text-xs text-white truncate max-w-[65px]">{h.name}</span>
-                              <img src={h.avatarUrl} alt={h.name} className="w-5 h-5 rounded object-cover" />
+                            <div key={`dire-lane-h-${h.id}`} className="flex items-center gap-1 bg-hud-surface border border-red-500/30 rounded px-1.5 py-0.5" title={`${h.name} (${h.attackType})`}>
+                              <span className="text-xs text-hud-text truncate max-w-[65px]">{h.name}</span>
+                              <img src={h.avatarUrl} alt={h.name} loading="lazy" decoding="async" className="w-4 h-4 rounded object-cover" />
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-[10px] text-slate-500 italic">Unassigned</span>
+                        <span className="text-[10px] text-hud-text-muted italic">Unassigned</span>
                       )}
                     </div>
                   </div>
                 </div>
 
                 {/* Tactical Tip */}
-                <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 leading-relaxed">
-                  <span className="font-bold text-cyan-300 block mb-0.5 text-[10px] uppercase font-mono tracking-wider">Tactical Instruction</span>
+                <div className="p-2.5 rounded bg-hud-surface border border-white/[0.06] text-xs text-hud-text-muted leading-relaxed">
+                  <span className="font-semibold text-hud-accent block mb-0.5 text-[10px] uppercase font-mono tracking-wider">Instruction</span>
                   {lane.tacticalTip}
                 </div>
               </div>
@@ -1428,23 +1427,23 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
           </div>
 
           {/* 5v5 Win Conditions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-            <div className="p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-2">
-              <h4 className="font-dota font-bold text-xs text-emerald-300 uppercase tracking-wide flex items-center gap-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            <div className="p-3.5 rounded-md bg-emerald-500/5 border border-emerald-500/20 space-y-2">
+              <h4 className="font-semibold text-xs text-emerald-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Allies Win Conditions
               </h4>
-              <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
+              <ul className="text-xs text-hud-text-muted space-y-1 list-disc list-inside">
                 {analysis.winConditions.radiant.map((wc, i) => (
                   <li key={`ally-wc-${i}`}>{wc}</li>
                 ))}
               </ul>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-2">
-              <h4 className="font-dota font-bold text-xs text-rose-300 uppercase tracking-wide flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5" /> Opponent Threat Conditions
+            <div className="p-3.5 rounded-md bg-red-500/5 border border-red-500/20 space-y-2">
+              <h4 className="font-semibold text-xs text-red-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" /> Opponent Threats
               </h4>
-              <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
+              <ul className="text-xs text-hud-text-muted space-y-1 list-disc list-inside">
                 {analysis.winConditions.dire.map((wc, i) => (
                   <li key={`opp-wc-${i}`}>{wc}</li>
                 ))}
@@ -1474,26 +1473,26 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
       {/* ========================================================= */}
       {modalTarget && createPortal(
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 animate-fadeIn"
           onClick={() => setModalTarget(null)}
         >
           <div 
-            className="w-full max-w-4xl max-h-[85vh] bg-slate-950 border-2 border-dota-border rounded-2xl flex flex-col shadow-2xl overflow-hidden"
+            className="w-full max-w-4xl max-h-[85vh] bg-hud-surface border border-white/[0.14] rounded-xl flex flex-col shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="p-4 border-b border-dota-border flex items-center justify-between bg-slate-900/60">
+            <div className="p-3.5 border-b border-white/[0.08] flex items-center justify-between bg-hud-surface-raised">
               <div className="flex items-center gap-2.5">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  modalTarget.team === 'allies' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center ${
+                  modalTarget.team === 'allies' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'
                 }`}>
                   {modalTarget.type === 'ban' ? <Lock className="w-4 h-4 text-red-400" /> : <Target className="w-4 h-4" />}
                 </div>
                 <div>
-                  <h3 className="font-dota font-black text-sm text-white">
-                    SELECT {modalTarget.type === 'ban' ? 'BAN' : 'HERO'} FOR {modalTarget.team === 'allies' ? 'ALLIES' : 'OPPONENTS'}
+                  <h3 className="font-semibold text-xs sm:text-sm text-hud-text uppercase tracking-wider font-mono">
+                    Select {modalTarget.type === 'ban' ? 'Ban' : 'Hero'} for {modalTarget.team === 'allies' ? 'Allies' : 'Opponents'}
                   </h3>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-hud-text-muted">
                     {modalTarget.type === 'ban' 
                       ? 'Select hero to add to the ban roster' 
                       : `Assigning Pos ${modalTargetPos} (${modalTargetDef.name})`}
@@ -1503,29 +1502,29 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
 
               <button 
                 onClick={() => setModalTarget(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-md text-hud-text-muted hover:text-hud-text hover:bg-white/[0.08] transition-colors touch-target"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Filter & Search Bar */}
-            <div className="p-3 border-b border-dota-border flex flex-wrap items-center justify-between gap-2 bg-slate-900/30">
+            <div className="p-3 border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-2 bg-hud-surface">
               <div className="flex items-center gap-1.5 flex-wrap">
                 {modalTarget.type === 'pick' && (
                   <button
                     onClick={() => setModalRoleFilter(prev => prev === 'dedicated' ? 'all' : 'dedicated')}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                    className={`px-2.5 py-1 rounded text-xs transition-colors touch-target ${
                       modalRoleFilter === 'dedicated'
-                        ? 'bg-amber-500 text-slate-950 font-black'
-                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                        ? 'bg-hud-surface-raised text-hud-text font-medium border border-white/[0.12] shadow-sm'
+                        : 'bg-hud-bg text-hud-text-muted hover:text-hud-text border border-white/[0.06]'
                     }`}
                   >
                     ★ {modalTargetRole} Only
                   </button>
                 )}
 
-                <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[10px]">
+                <div className="flex items-center gap-0.5 bg-hud-bg p-0.5 rounded-md border border-white/[0.08] text-[10px]">
                   {[
                     { id: 'all', label: 'ALL' },
                     { id: 'str', label: 'STR' },
@@ -1536,10 +1535,10 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                     <button
                       key={`modal-attr-${attr.id}`}
                       onClick={() => setModalAttr(attr.id === 'all_attr' ? 'all' : attr.id as any)}
-                      className={`px-2 py-0.5 rounded font-bold transition-all ${
+                      className={`px-2 py-0.5 rounded font-mono font-medium transition-colors ${
                         (modalAttr === attr.id || (attr.id === 'all_attr' && modalAttr === 'all'))
-                          ? 'bg-dota-gold text-slate-950'
-                          : 'text-slate-400 hover:text-white'
+                          ? 'bg-hud-surface-raised text-hud-text border border-white/[0.12]'
+                          : 'text-hud-text-muted hover:text-hud-text'
                       }`}
                     >
                       {attr.label}
@@ -1549,19 +1548,19 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
               </div>
 
               <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-hud-text-muted" />
                 <input
                   type="text"
                   placeholder="Search heroes..."
                   value={modalSearch}
                   onChange={(e) => setModalSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-dota-gold"
+                  className="w-full pl-8 pr-3 py-1.5 bg-hud-bg border border-white/[0.1] rounded-md text-xs text-hud-text placeholder-hud-text-muted focus-hud"
                 />
               </div>
             </div>
 
             {/* Hero Grid in Modal */}
-            <div className="p-4 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 custom-scrollbar">
+            <div className="p-3.5 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 custom-scrollbar">
               {filteredModalHeroes.map(hero => {
                 const recScore = modalRecScoreMap.get(hero.id);
                 const isFav = favorites.includes(hero.id);
@@ -1570,21 +1569,24 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                   <button
                     key={`modal-hero-${hero.id}`}
                     onClick={() => handleAssignHero(modalTarget.team, modalTarget.type, hero.id, modalTarget.pos)}
-                    className="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-amber-400/60 flex items-center gap-2 text-left transition-all hover:scale-[1.02] group"
+                    style={{ contentVisibility: 'auto', containIntrinsicSize: '48px' }}
+                    className="p-2 rounded-md bg-hud-bg/80 hover:bg-hud-surface-raised border border-white/[0.08] hover:border-hud-accent/60 flex items-center gap-2 text-left transition-colors group touch-target"
                   >
                     <img 
                       src={hero.avatarUrl} 
                       alt={hero.name} 
-                      className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-slate-700 group-hover:border-amber-400" 
+                      loading="lazy"
+                      decoding="async"
+                      className="w-8 h-8 rounded object-cover flex-shrink-0 border border-white/[0.1] group-hover:border-hud-accent/60" 
                     />
                     <div className="truncate flex-1">
-                      <div className="font-dota font-bold text-xs text-white truncate group-hover:text-amber-300">
+                      <div className="font-medium text-xs text-hud-text truncate group-hover:text-hud-accent">
                         {hero.name}
                       </div>
-                      <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                        <span>{hero.winRate}%</span>
+                      <div className="text-[10px] text-hud-text-muted flex items-center gap-1 font-mono">
+                        <span className="tabular-nums">{hero.winRate}%</span>
                         {isFav && <span className="text-amber-400">★</span>}
-                        {recScore && <span className="text-emerald-400 font-bold">{recScore}%</span>}
+                        {recScore && <span className="text-emerald-400 font-semibold tabular-nums">{recScore}%</span>}
                       </div>
                     </div>
                   </button>
@@ -1602,56 +1604,56 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
       {/* ========================================================= */}
       {isApiKeyModalOpen && createPortal(
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 animate-fadeIn"
           onClick={() => setIsApiKeyModalOpen(false)}
         >
           <div 
-            className="w-full max-w-lg bg-slate-950 border-2 border-purple-500/40 rounded-3xl p-6 shadow-2xl flex flex-col space-y-5"
+            className="w-full max-w-lg bg-hud-surface border border-white/[0.14] rounded-xl p-5 shadow-2xl flex flex-col space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-purple-500/20 pb-4">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-950/80 border border-purple-500/40 flex items-center justify-center text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                  <Key className="w-5 h-5 text-purple-300" />
+                <div className="w-9 h-9 rounded-md bg-hud-accent/10 border border-hud-accent/30 flex items-center justify-center text-hud-accent">
+                  <Key className="w-4 h-4 text-hud-accent" />
                 </div>
                 <div>
-                  <h3 className="font-dota font-bold text-base text-white tracking-wide">
+                  <h3 className="font-semibold text-sm text-hud-text">
                     Free Tier AI Configuration
                   </h3>
-                  <p className="text-xs text-purple-300/80 font-sans">
+                  <p className="text-xs text-hud-text-muted">
                     Powered by Google Gemini Flash-Lite (Cheapest & Free Tier)
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsApiKeyModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-md text-hud-text-muted hover:text-hud-text hover:bg-white/[0.08] transition-colors touch-target"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Free Tier Info Card */}
-            <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-500/30 space-y-2 text-xs">
-              <div className="flex items-center justify-between text-purple-200 font-bold">
+            <div className="p-3.5 rounded-md bg-hud-bg/70 border border-white/[0.08] space-y-2 text-xs">
+              <div className="flex items-center justify-between text-hud-text font-medium">
                 <span className="flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-hud-accent" />
                   Active Model: Gemini Flash-Lite
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-500/50 text-emerald-300 text-[10px] font-mono">
-                  100% Free ($0.00)
+                <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono">
+                  100% Free Tier ($0.00)
                 </span>
               </div>
-              <p className="text-slate-300 text-[11px] leading-relaxed">
-                Google AI Studio provides <strong>Gemini Flash-Lite</strong> completely free of charge with <strong>15 RPM</strong>, <strong>1,000,000 TPM</strong>, and <strong>1,500 daily requests</strong>. No credit card is required.
+              <p className="text-hud-text-muted text-xs leading-relaxed">
+                Google AI Studio provides <strong>Gemini Flash-Lite</strong> completely free of charge with <strong>15 RPM</strong>, <strong>1,000,000 TPM</strong>, and <strong>1,500 daily requests</strong>.
               </p>
               <div className="pt-1 flex items-center gap-2">
                 <a
                   href="https://aistudio.google.com/app/apikey"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 border border-purple-400/40 text-purple-200 text-xs font-semibold transition-all hover:scale-[1.02]"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-hud-accent/15 hover:bg-hud-accent/25 border border-hud-accent/30 text-hud-accent text-xs font-medium transition-colors touch-target"
                 >
                   <span>Get Free Key on Google AI Studio</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -1660,13 +1662,13 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             </div>
 
             {/* Current Status */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+            <div className="space-y-1">
+              <label className="text-xs font-mono uppercase tracking-wider text-hud-text-secondary">
                 Current Key Status:
               </label>
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+              <div className="p-3 rounded-md bg-hud-bg border border-white/[0.08] flex items-center justify-between text-xs">
                 <div>
-                  <div className="font-semibold text-white flex items-center gap-1.5">
+                  <div className="font-medium text-hud-text flex items-center gap-1.5">
                     {keyStatus.configured ? (
                       <>
                         <Check className="w-4 h-4 text-emerald-400" />
@@ -1680,7 +1682,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                     )}
                   </div>
                   {keyStatus.maskedKey && (
-                    <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                    <div className="text-[11px] font-mono text-hud-text-muted mt-0.5">
                       Key: {keyStatus.maskedKey}
                     </div>
                   )}
@@ -1689,7 +1691,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                 {keyStatus.isCustom && (
                   <button
                     onClick={handleClearCustomKey}
-                    className="px-2.5 py-1 rounded-lg bg-red-950/60 hover:bg-red-900/80 border border-red-500/40 text-red-300 text-[11px] transition-colors"
+                    className="px-2.5 py-1 rounded bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-300 text-xs transition-colors touch-target"
                   >
                     Remove
                   </button>
@@ -1698,8 +1700,8 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             </div>
 
             {/* Custom Key Input */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+            <div className="space-y-1">
+              <label className="text-xs font-mono uppercase tracking-wider text-hud-text-secondary">
                 Set Custom Google AI Studio Key:
               </label>
               <div className="flex gap-2">
@@ -1708,12 +1710,12 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                   placeholder="Paste AI Studio API key (AIzaSy...)"
                   value={customKeyInput}
                   onChange={(e) => setCustomKeyInput(e.target.value)}
-                  className="flex-1 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                  className="flex-1 px-3 py-1.5 rounded-md bg-hud-bg border border-white/[0.1] text-xs text-hud-text placeholder-hud-text-muted focus-hud"
                 />
                 <button
                   onClick={handleSaveCustomKey}
                   disabled={!customKeyInput.trim()}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs transition-colors shadow-sm"
+                  className="px-4 py-1.5 rounded-md bg-hud-accent hover:bg-hud-accent/90 disabled:opacity-40 text-slate-950 font-semibold text-xs transition-colors touch-target"
                 >
                   Save
                 </button>
@@ -1722,15 +1724,15 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
 
             {/* Test Connection Result */}
             {testConnResult && (
-              <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+              <div className={`p-2.5 rounded-md text-xs flex items-center gap-2 ${
                 testConnResult.ok === true
-                  ? 'bg-emerald-950/40 border border-emerald-500/50 text-emerald-300'
+                  ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
                   : testConnResult.ok === false
-                  ? 'bg-red-950/40 border border-red-500/50 text-red-300'
-                  : 'bg-purple-950/40 border border-purple-500/50 text-purple-200'
+                  ? 'bg-red-500/10 border border-red-500/30 text-red-300'
+                  : 'bg-hud-bg border border-white/[0.1] text-hud-text-secondary'
               }`}>
                 {testConnResult.testing ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-purple-300" />
+                  <Loader2 className="w-4 h-4 animate-spin text-hud-accent" />
                 ) : testConnResult.ok ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 ) : (
@@ -1741,18 +1743,18 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
             )}
 
             {/* Actions Footer */}
-            <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
+            <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between">
               <button
                 onClick={handleTestConnection}
-                className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-purple-500/40 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 rounded-md bg-hud-bg hover:bg-white/[0.08] border border-white/[0.1] text-hud-text-secondary hover:text-hud-text text-xs font-medium flex items-center gap-1.5 transition-colors touch-target"
               >
-                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <Sparkles className="w-3.5 h-3.5 text-hud-accent" />
                 <span>Test Connection</span>
               </button>
 
               <button
                 onClick={() => setIsApiKeyModalOpen(false)}
-                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-colors"
+                className="px-4 py-1.5 rounded-md bg-hud-surface hover:bg-white/[0.08] border border-white/[0.1] text-hud-text text-xs font-medium transition-colors touch-target"
               >
                 Close
               </button>

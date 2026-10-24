@@ -61,17 +61,17 @@ export const HeroesArsenalView: React.FC<HeroesArsenalViewProps> = React.memo(({
           onOpenPip={onOpenPip}
         />
       ) : (
-        <div className="bg-dota-panel border-2 border-dota-border rounded-2xl p-12 text-center space-y-3 shadow-2xl">
-          <Crown className="w-12 h-12 text-amber-500/60 mx-auto" />
-          <h3 className="font-dota font-bold text-lg text-slate-300">
+        <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-12 text-center space-y-3 shadow-hud-sm">
+          <Crown className="w-10 h-10 text-hud-gold mx-auto" />
+          <h3 className="font-display font-semibold text-base text-slate-200">
             No Heroes Found
           </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto font-sans">
+          <p className="text-xs text-slate-400 max-w-md mx-auto font-sans leading-relaxed">
             No heroes match your active search and filter criteria. Try clearing some filters.
           </p>
           <button
             onClick={resetFilters}
-            className="px-4 py-2 rounded-xl bg-dota-red hover:bg-red-600 text-xs font-bold text-white transition-all shadow-dota-crimson"
+            className="min-h-[44px] touch-target px-4 py-2 rounded-lg bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] text-xs font-mono uppercase tracking-wider text-hud-cyan transition-colors focus-hud"
           >
             Reset All Filters
           </button>

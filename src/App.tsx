@@ -1,4 +1,4 @@
-import React, { useState, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useCallback, Suspense, lazy, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { HERO_MAP } from './entities/hero';
 import { HeroData } from './entities/hero';
@@ -36,36 +36,31 @@ const MetaTierList = lazy(() => import('./pages/meta').then(m => ({ default: m.M
 const PatchNewsView = lazy(() => import('./pages/patches').then(m => ({ default: m.PatchNewsView })));
 const CustomNotesView = lazy(() => import('./pages/notes').then(m => ({ default: m.CustomNotesView })));
 import { Home } from './pages/home';
-import { HeroBuildView } from './features/hero-build';
-import { PictureInPictureHUD } from './features/pip-hud';
+const HeroBuildView = lazy(() => import('./features/hero-build').then(m => ({ default: m.HeroBuildView })));
+const PictureInPictureHUD = lazy(() => import('./features/pip-hud').then(m => ({ default: m.PictureInPictureHUD })));
 import { CookieConsentBanner } from './widgets/legal-compliance-modal';
-import { LegalComplianceModal, LegalTabType } from './widgets/legal-compliance-modal';
-import { CommandPalette } from './widgets/command-palette';
-import { useLenis } from './shared/bi/scroll/useLenis';
+import type { LegalTabType } from './widgets/legal-compliance-modal';
+const LegalComplianceModal = lazy(() => import('./widgets/legal-compliance-modal').then(m => ({ default: m.LegalComplianceModal })));
+const CommandPalette = lazy(() => import('./widgets/command-palette').then(m => ({ default: m.CommandPalette })));
 import { DotaGSAPBackground } from './shared/ui/effects/DotaGSAPBackground';
 
 const ViewLoadingFallback = () => (
-  <div className="w-full min-h-[420px] flex flex-col items-center justify-center p-12 bg-dota-panel/60 border border-dota-gold/30 rounded-3xl shadow-dota-glow space-y-4">
-    <div className="relative">
-      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-dota-red via-red-950 to-slate-900 border border-dota-gold/50 flex items-center justify-center shadow-dota-crimson animate-pulse">
-        <Loader2 className="w-7 h-7 text-dota-gold animate-spin" />
-      </div>
+  <div className="w-full min-h-[420px] flex flex-col items-center justify-center p-12 bg-hud-panel border border-white/[0.08] rounded-xl shadow-hud-md space-y-4">
+    <div className="w-12 h-12 rounded-xl bg-hud-surface border border-white/[0.12] flex items-center justify-center text-hud-cyan shadow-hud-sm">
+      <Loader2 className="w-6 h-6 animate-spin" />
     </div>
     <div className="text-center space-y-1">
-      <div className="font-dota font-bold text-sm tracking-widest text-amber-200 uppercase">
-        Forging Tactical Knowledge...
+      <div className="font-display font-semibold text-sm tracking-wider text-slate-200 uppercase">
+        Loading Tactical Module...
       </div>
-      <div className="text-xs text-slate-400 font-sans">
-        Loading module data for optimal performance
+      <div className="text-xs text-slate-400 font-mono">
+        SYNCHRONIZING CLIENT HEURISTICS
       </div>
     </div>
   </div>
 );
 
 export const App: React.FC = () => {
-  // Global Lenis Smooth Scrolling Engine
-  useLenis();
-
   // Navigation / Tab Routing State
   const { activeTab, setActiveTab } = useNavigationTab();
 
@@ -84,9 +79,23 @@ export const App: React.FC = () => {
     isPipOpen,
     isNativePipActive,
     pipContainer,
-    handleOpenPip,
-    handleClosePip
+    handleOpenPip: rawHandleOpenPip,
+    handleClosePip: rawHandleClosePip
   } = usePipHud(selectedHero);
+
+  const lastPipTriggerRef = useRef<HTMLElement | null>(null);
+
+  const handleOpenPip = useCallback((hero?: HeroData) => {
+    lastPipTriggerRef.current = document.activeElement as HTMLElement | null;
+    rawHandleOpenPip(hero);
+  }, [rawHandleOpenPip]);
+
+  const handleClosePip = useCallback(() => {
+    rawHandleClosePip();
+    setTimeout(() => {
+      lastPipTriggerRef.current?.focus();
+    }, 40);
+  }, [rawHandleClosePip]);
 
   // Loaded draft scenario to pass to Draft Picker
   const [loadedEnemyDraft, setLoadedEnemyDraft] = useState<string[] | null>(null);
@@ -110,10 +119,14 @@ export const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen relative flex flex-col selection:bg-dota-red selection:text-white overflow-x-hidden bg-[#07090e]">
+    <div className="min-h-screen relative flex flex-col selection:bg-hud-cyan selection:text-slate-950 bg-[#07090e]">
       
       {/* Official Dota 2 Logo Animated GSAP Background & WebGL Shader Gradient (Global) */}
-      <DotaGSAPBackground isActive={true} />
+      <DotaGSAPBackground
+        isActive={true}
+        isHome={activeTab === 'home'}
+        isModalOpen={Boolean(selectedHero || isPipOpen)}
+      />
 
       {/* Floating Ambient Particles Engine (paused on Home to eliminate background redraw lag) */}
       {activeTab !== 'home' && <AmbientParticles />}
@@ -312,28 +325,28 @@ export const App: React.FC = () => {
       {!isPipOpen && (
         <button
           onClick={() => handleOpenPip()}
-          className="fixed bottom-5 right-5 z-40 px-3.5 py-2.5 rounded-2xl bg-gradient-to-br from-amber-500 via-dota-gold to-yellow-600 text-slate-950 font-black shadow-[0_4px_20px_rgba(200,155,60,0.35)] hover:shadow-[0_6px_24px_rgba(200,155,60,0.55)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 border border-amber-200 select-none group"
+          className="min-h-[44px] touch-target fixed bottom-5 right-5 z-40 px-3.5 py-2.5 rounded-lg bg-hud-cyan hover:bg-sky-300 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider shadow-hud-md active:scale-[0.98] transition-colors duration-150 flex items-center gap-2 border border-white/[0.15] select-none group focus-hud"
           title="Open Picture-in-Picture Mini HUD (Always on top)"
         >
-          <PictureInPicture className="w-4 h-4 text-slate-950 group-hover:rotate-6 transition-transform" />
-          <span className="hidden sm:inline text-xs font-dota uppercase tracking-wider">Mini HUD</span>
+          <PictureInPicture className="w-4 h-4 text-slate-950" />
+          <span className="hidden sm:inline font-mono">MINI HUD</span>
         </button>
       )}
 
       {/* Enhanced Footer with Legal Compliance, Business Details & Disclaimers */}
-      <footer className="mt-16 bg-slate-950/95 border-t border-purple-500/20 py-10 text-xs text-slate-400 relative z-10 font-sans">
+      <footer className="mt-16 bg-hud-panel border-t border-white/[0.08] py-10 text-xs text-slate-400 relative z-10 font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           
           {/* Brand & Mission Statement with SVG Icons & Em Dashes */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800/80 pb-6 text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/[0.06] pb-6 text-center sm:text-left">
             <div>
-              <div className="flex items-center justify-center sm:justify-start gap-2 text-slate-100 font-bold font-grotesk text-base">
-                <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                <span className="bg-gradient-to-r from-purple-300 via-indigo-200 to-sky-300 bg-clip-text text-transparent font-extrabold">
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-slate-100 font-bold font-display text-base">
+                <Sparkles className="w-4 h-4 text-hud-cyan shrink-0" />
+                <span className="text-slate-100 uppercase tracking-tight">
                   AEGIS FORGE
                 </span>
-                <span className="text-purple-400">—</span>
-                <span className="text-slate-300 font-normal">Autonomous Dota 2 Tactical Companion</span>
+                <span className="text-slate-600">—</span>
+                <span className="text-slate-400 font-normal">Tactical War-Room Companion</span>
               </div>
               <p className="text-[12px] text-slate-400 font-sans mt-1 max-w-xl">
                 Deterministic counter-drafting algorithms, real-time threat telemetry, and situational builds — 100% free, client-side, and privacy-first.
@@ -343,10 +356,10 @@ export const App: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleOpenLegalModal('overview')}
-                className="px-3.5 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/40 text-purple-300 text-xs font-semibold flex items-center gap-1.5 transition-all btn-fade shadow-sm"
+                className="min-h-[44px] sm:min-h-0 touch-target px-3.5 py-2 rounded-lg bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.16] text-slate-300 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-colors shadow-hud-sm focus-hud"
               >
-                <Scale className="w-3.5 h-3.5 text-purple-300" />
-                <span>20-Point Compliance & Audit Hub</span>
+                <Scale className="w-3.5 h-3.5 text-hud-cyan" />
+                <span>Compliance & Audit Hub</span>
               </button>
             </div>
           </div>
@@ -355,62 +368,62 @@ export const App: React.FC = () => {
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-2 text-xs">
             <button
               onClick={() => handleOpenLegalModal('privacy')}
-              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
+              className="min-h-[44px] sm:min-h-0 touch-target text-slate-300 hover:text-hud-cyan underline underline-offset-4 transition-colors flex items-center gap-1.5 focus-hud"
             >
-              <Lock className="w-3 h-3 text-slate-400" />
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
               <span>Privacy Policy</span>
             </button>
             <button
               onClick={() => handleOpenLegalModal('terms')}
-              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
+              className="min-h-[44px] sm:min-h-0 touch-target text-slate-300 hover:text-hud-cyan underline underline-offset-4 transition-colors flex items-center gap-1.5 focus-hud"
             >
-              <FileText className="w-3 h-3 text-slate-400" />
+              <FileText className="w-3.5 h-3.5 text-slate-400" />
               <span>Terms of Service</span>
             </button>
             <button
               onClick={() => handleOpenLegalModal('cookies')}
-              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
+              className="min-h-[44px] sm:min-h-0 touch-target text-slate-300 hover:text-hud-cyan underline underline-offset-4 transition-colors flex items-center gap-1.5 focus-hud"
             >
-              <Cookie className="w-3 h-3 text-slate-400" />
+              <Cookie className="w-3.5 h-3.5 text-slate-400" />
               <span>Cookie Policy</span>
             </button>
             <button
               onClick={() => handleOpenLegalModal('refunds')}
-              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
+              className="min-h-[44px] sm:min-h-0 touch-target text-slate-300 hover:text-hud-cyan underline underline-offset-4 transition-colors flex items-center gap-1.5 focus-hud"
             >
-              <CreditCard className="w-3 h-3 text-slate-400" />
+              <CreditCard className="w-3.5 h-3.5 text-slate-400" />
               <span>100% Free & Refund Policy</span>
             </button>
             <button
               onClick={() => handleOpenLegalModal('accessibility')}
-              className="text-slate-300 hover:text-purple-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
+              className="min-h-[44px] sm:min-h-0 touch-target text-slate-300 hover:text-hud-cyan underline underline-offset-4 transition-colors flex items-center gap-1.5 focus-hud"
             >
-              <Accessibility className="w-3 h-3 text-slate-400" />
+              <Accessibility className="w-3.5 h-3.5 text-slate-400" />
               <span>Accessibility & Licenses</span>
             </button>
             <button
               onClick={() => handleOpenLegalModal('privacy')}
-              className="text-red-400 hover:text-red-300 underline underline-offset-4 transition-colors btn-fade flex items-center gap-1.5"
+              className="min-h-[44px] sm:min-h-0 touch-target text-red-400 hover:text-red-300 underline underline-offset-4 transition-colors flex items-center gap-1.5 focus-hud"
             >
-              <Trash2 className="w-3 h-3 text-red-400" />
+              <Trash2 className="w-3.5 h-3.5 text-red-400" />
               <span>Data Deletion Request</span>
             </button>
           </div>
 
           {/* Business Details & Official Disclaimers (Items 10, 11, 12, 16, 17, 19) */}
-          <div className="pt-2 border-t border-slate-900 text-[11px] text-slate-500 space-y-1.5 leading-relaxed text-center sm:text-left">
+          <div className="pt-2 border-t border-slate-900 text-[11px] text-slate-400 space-y-1.5 leading-relaxed text-center sm:text-left">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-slate-400">
               <p>
-                <strong>Entity:</strong> AegisForge Tactical Open Source Collective • Wilmington, DE, USA • Inquiries: <a href="mailto:support@aegisforge.gg" className="text-purple-400 hover:underline">support@aegisforge.gg</a>
+                <strong>Entity:</strong> AegisForge Tactical Open Source Collective • Wilmington, DE, USA • Inquiries: <a href="mailto:support@aegisforge.gg" className="text-hud-cyan hover:underline">support@aegisforge.gg</a>
               </p>
-              <p className="font-mono text-[10px]">
+              <p className="font-mono text-[11px]">
                 Audited: Zero Third-Party Trackers • 100% Client-Side Storage
               </p>
             </div>
             <p>
               Dota 2 and the Dota logo are registered trademarks of Valve Corporation. AegisForge is an unofficial tactical companion tool developed under the Valve Fan Content Policy.
             </p>
-            <p className="text-[10px] text-slate-600">
+            <p className="text-[11px] text-slate-400">
               Statistical Disclaimer: Matchup rankings and predictive counter win rates are heuristic models derived from Patch 7.37d high-bracket match statistics and do not constitute guaranteed in-game MMR performance.
             </p>
           </div>
@@ -427,25 +440,29 @@ export const App: React.FC = () => {
 
       {/* 20-Point Legal Compliance & Consumer Protection Modal */}
       <ErrorBoundary silent title="Legal Compliance Modal" onReset={() => setIsLegalModalOpen(false)}>
-        <LegalComplianceModal
-          isOpen={isLegalModalOpen}
-          onClose={() => setIsLegalModalOpen(false)}
-          initialTab={legalInitialTab}
-        />
+        <Suspense fallback={null}>
+          <LegalComplianceModal
+            isOpen={isLegalModalOpen}
+            onClose={() => setIsLegalModalOpen(false)}
+            initialTab={legalInitialTab}
+          />
+        </Suspense>
       </ErrorBoundary>
 
       {/* Emil Kowalski Style Spotlight Command Palette (Cmd+K) */}
       <ErrorBoundary silent title="Command Palette">
-        <CommandPalette
-          isOpen={isCommandPaletteOpen}
-          onClose={() => setIsCommandPaletteOpen(false)}
-          onNavigateTab={setActiveTab}
-          onSelectHero={(hero) => {
-            setSelectedHero(hero);
-            setActiveTab('heroes');
-          }}
-          onOpenPip={handleOpenPip}
-        />
+        <Suspense fallback={null}>
+          <CommandPalette
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            onNavigateTab={setActiveTab}
+            onSelectHero={(hero) => {
+              setSelectedHero(hero);
+              setActiveTab('heroes');
+            }}
+            onOpenPip={handleOpenPip}
+          />
+        </Suspense>
       </ErrorBoundary>
 
     </div>

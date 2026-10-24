@@ -180,7 +180,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = React.memo(({
       <aside
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`fixed left-2 sm:left-4 top-20 sm:top-24 z-40 transition-all duration-300 ease-out flex flex-col justify-between ${
+        className={`fixed left-2 sm:left-4 top-20 sm:top-24 z-40 transition-transform duration-300 ease-out flex flex-col justify-between ${
           isHovered
             ? 'w-80 sm:w-88 max-w-[92vw] bg-slate-950 border-2 border-purple-500/40 shadow-[0_0_30px_rgba(168,85,247,0.3)] rounded-2xl py-4 px-4 translate-x-0 opacity-100 pointer-events-auto'
             : 'w-80 sm:w-88 max-w-[92vw] bg-slate-950/90 border border-purple-500/25 shadow-lg rounded-2xl py-4 px-4 -translate-x-[110%] opacity-0 pointer-events-none'
@@ -245,7 +245,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = React.memo(({
 
         {/* Bottom Status Card */}
         <div
-          className={`relative z-10 pt-3 border-t border-purple-500/20 transition-all duration-300 text-xs ${
+          className={`relative z-10 pt-3 border-t border-purple-500/20 transition-opacity duration-300 text-xs ${
             isHovered ? 'opacity-100 max-h-24' : 'opacity-80 max-h-16'
           }`}
         >

@@ -160,6 +160,7 @@ export default function DomeGallery({
   const isHoveredRef = useRef(false);
   const lastTimeRef = useRef(0);
   const isVisibleInViewportRef = useRef(true);
+  const syncAutoRotateRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -168,12 +169,16 @@ export default function DomeGallery({
     const observer = new IntersectionObserver(
       ([entry]) => {
         isVisibleInViewportRef.current = entry.isIntersecting;
+        if (!entry.isIntersecting) {
+          stopInertia();
+        }
+        syncAutoRotateRef.current?.();
       },
       { threshold: 0.05 }
     );
     observer.observe(root);
     return () => observer.disconnect();
-  }, []);
+  }, [stopInertia]);
 
   const scrollLockedRef = useRef(false);
   const _lockScroll = useCallback(() => {
@@ -610,12 +615,16 @@ export default function DomeGallery({
   );
 
   useEffect(() => {
-    if (!autoRotate) return;
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-    let autoRotateRaf = null;
+    if (!autoRotate || prefersReducedMotion) return;
+
+    let autoRotateRaf: number | null = null;
     lastTimeRef.current = performance.now();
 
-    const loop = (now) => {
+    const loop = (now: number) => {
       const deltaMs = lastTimeRef.current ? now - lastTimeRef.current : 16.67;
       lastTimeRef.current = now;
 
@@ -629,7 +638,7 @@ export default function DomeGallery({
         !focusedElRef.current &&
         (!pauseOnHover || !isHoveredRef.current) &&
         isVisibleInViewportRef.current &&
-        (typeof document === 'undefined' || !document.hidden);
+        !document.hidden;
 
       if (canAutoRotate && dt > 0) {
         const nextY = wrapAngleSigned(rotationRef.current.y - autoRotationSpeed * dt);
@@ -637,25 +646,53 @@ export default function DomeGallery({
         applyTransform(rotationRef.current.x, nextY);
       }
 
-      autoRotateRaf = requestAnimationFrame(loop);
+      if (isVisibleInViewportRef.current && !document.hidden) {
+        autoRotateRaf = requestAnimationFrame(loop);
+      } else {
+        autoRotateRaf = null;
+      }
     };
 
-    autoRotateRaf = requestAnimationFrame(loop);
+    const startLoop = () => {
+      if (autoRotateRaf === null && isVisibleInViewportRef.current && !document.hidden) {
+        lastTimeRef.current = performance.now();
+        autoRotateRaf = requestAnimationFrame(loop);
+      }
+    };
+
+    const stopLoop = () => {
+      if (autoRotateRaf !== null) {
+        cancelAnimationFrame(autoRotateRaf);
+        autoRotateRaf = null;
+      }
+    };
+
+    syncAutoRotateRef.current = () => {
+      if (isVisibleInViewportRef.current && !document.hidden) {
+        startLoop();
+      } else {
+        stopLoop();
+      }
+    };
+
+    startLoop();
 
     const onVisibilityChange = () => {
-      if (!document.hidden) {
-        lastTimeRef.current = performance.now();
+      if (document.hidden) {
+        stopLoop();
+        stopInertia();
+      } else {
+        startLoop();
       }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
-      if (autoRotateRaf) {
-        cancelAnimationFrame(autoRotateRaf);
-      }
+      stopLoop();
+      syncAutoRotateRef.current = null;
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [autoRotate, autoRotationSpeed, pauseOnHover]);
+  }, [autoRotate, autoRotationSpeed, pauseOnHover, stopInertia]);
 
   useEffect(() => {
     return () => {
@@ -694,7 +731,6 @@ export default function DomeGallery({
     <div
       ref={rootRef}
       className="sphere-root no-scrollbar"
-      data-lenis-prevent="true"
       style={{
         ['--segments-x']: segments,
         ['--segments-y']: segments,
@@ -708,7 +744,6 @@ export default function DomeGallery({
       <main
         ref={mainRef}
         className="sphere-main no-scrollbar"
-        data-lenis-prevent="true"
         onPointerEnter={() => {
           isHoveredRef.current = true;
         }}

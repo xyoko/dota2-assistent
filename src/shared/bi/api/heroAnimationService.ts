@@ -1,4 +1,3 @@
-import axios, { AxiosProgressEvent } from 'axios';
 import { getHeroOfficialAnimationUrl, getHeroProxyAnimationUrl, getHeroValveSlug } from '../../../entities/hero/bi/heroVisuals';
 import { HeroData } from '../../../entities/hero/bi/types';
 
@@ -16,13 +15,13 @@ export interface HeroAnimationFetchResult {
 
 /**
  * Hero Animation Service
- * Fetches official Valve animated renders using axios with download progress tracking,
+ * Fetches official Valve animated renders using native fetch with stream progress tracking,
  * caches in localStorage & memory, and purges from localStorage when leaving the Home section
  * to remain strictly resource-friendly.
  */
 export const HeroAnimationService = {
   /**
-   * Fetches official Valve hero WebM animation with axios
+   * Fetches official Valve hero WebM animation with native fetch
    */
   async fetchHeroAnimation(
     hero: HeroData,
@@ -54,27 +53,48 @@ export const HeroAnimationService = {
       console.warn('[HeroAnimationService] localStorage read error:', e);
     }
 
-    // 3. Try fetching video data as Blob via axios (trying proxy first for localhost, then direct)
+    // 3. Try fetching video data as Blob via fetch (trying proxy first for localhost, then direct)
     const targetUrl = import.meta.env.DEV ? proxyUrl : directUrl;
 
     try {
       onProgress?.(10);
-      const response = await axios.get<Blob>(targetUrl, {
-        responseType: 'blob',
-        signal: currentAbortController.signal,
-        timeout: 20000,
-        onDownloadProgress: (progressEvent: AxiosProgressEvent) => {
-          if (progressEvent.total && progressEvent.total > 0) {
-            const percent = Math.min(99, Math.round((progressEvent.loaded * 100) / progressEvent.total));
-            onProgress?.(percent);
-          } else {
-            // Indeterminate progress simulation
-            onProgress?.(Math.min(90, Math.round(progressEvent.loaded / 30000)));
-          }
-        }
+      const response = await fetch(targetUrl, {
+        signal: currentAbortController.signal
       });
 
-      const blob = response.data;
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+      let loaded = 0;
+      let blob: Blob;
+
+      if (response.body && total > 0) {
+        const reader = response.body.getReader();
+        const chunks: BlobPart[] = [];
+
+        let isReading = true;
+        while (isReading) {
+          const { done, value } = await reader.read();
+          if (done) {
+            isReading = false;
+            break;
+          }
+          if (value) {
+            chunks.push(value);
+            loaded += value.length;
+            const percent = Math.min(99, Math.round((loaded * 100) / total));
+            onProgress?.(percent);
+          }
+        }
+
+        blob = new Blob(chunks, { type: response.headers.get('content-type') || 'video/webm' });
+      } else {
+        blob = await response.blob();
+      }
+
       const objectUrl = URL.createObjectURL(blob);
 
       // Clean up previous blob URL for this slug if any
@@ -104,10 +124,10 @@ export const HeroAnimationService = {
         slug
       };
     } catch (err: unknown) {
-      if (axios.isCancel(err)) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
         throw err;
       }
-      console.warn('[HeroAnimationService] Axios blob fetch fallback to direct URL:', err);
+      console.warn('[HeroAnimationService] Fetch blob fallback to direct URL:', err);
 
       // Fallback: Return direct Valve CDN URL for native video element streaming
       onProgress?.(100);

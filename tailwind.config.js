@@ -10,51 +10,67 @@ export default {
         '88': '22rem',
       },
       colors: {
+        hud: {
+          base: '#080a0f',
+          surface: '#0e121a',
+          raised: '#141a24',
+          elevated: '#1a2230',
+          overlay: '#202a3c',
+          borderSubtle: 'rgba(255, 255, 255, 0.06)',
+          border: 'rgba(255, 255, 255, 0.12)',
+          borderStrong: 'rgba(255, 255, 255, 0.22)',
+          accent: '#38bdf8',
+          accentHover: '#0ea5e9',
+          radiant: '#22c55e',
+          dire: '#ef4444',
+          gold: '#eab308',
+          textPrimary: '#f1f5f9',
+          textSecondary: '#94a3b8',
+          textMuted: '#64748b'
+        },
         dota: {
-          bg: '#0a0d14',
-          panel: '#121722',
-          panelAlt: '#181f2e',
-          card: '#1c2436',
-          border: '#2a354c',
-          borderLight: '#3f4f70',
-          red: '#c0392b',
-          crimson: '#e74c3c',
-          gold: '#e5b869',
-          goldBright: '#ffd700',
-          str: '#ec3d3d',
-          agi: '#2ce347',
-          int: '#00d2ff',
-          uni: '#d946ef',
-          radiant: '#5bb83c',
-          dire: '#e04e39',
-          mana: '#2575fc'
+          bg: '#080a0f',
+          panel: '#0e121a',
+          panelAlt: '#141a24',
+          card: '#141a24',
+          border: 'rgba(255, 255, 255, 0.12)',
+          borderLight: 'rgba(255, 255, 255, 0.22)',
+          red: '#ef4444',
+          crimson: '#dc2626',
+          gold: '#eab308',
+          goldBright: '#facc15',
+          str: '#f87171',
+          agi: '#4ade80',
+          int: '#38bdf8',
+          uni: '#c084fc',
+          radiant: '#22c55e',
+          dire: '#ef4444',
+          mana: '#38bdf8'
         }
       },
       fontFamily: {
-        dota: ['Cinzel', 'Trajan Pro', 'Georgia', 'serif'],
+        dota: ['"Space Grotesk"', 'Inter', 'sans-serif'],
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         grotesk: ['"Space Grotesk"', 'Inter', 'sans-serif'],
-        serif: ['"Instrument Serif"', 'Georgia', 'serif']
+        mono: ['"JetBrains Mono"', 'Menlo', 'Monaco', 'monospace']
       },
       boxShadow: {
-        'dota-glow': '0 0 15px rgba(229, 184, 105, 0.25)',
-        'dota-crimson': '0 0 20px rgba(231, 76, 60, 0.35)',
-        'dota-mana': '0 0 20px rgba(0, 210, 255, 0.35)',
-        'dota-panel': '0 8px 32px 0 rgba(0, 0, 0, 0.6)'
+        'hud-card': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.08)',
+        'hud-popover': '0 10px 25px -5px rgba(0, 0, 0, 0.8), 0 8px 10px -6px rgba(0, 0, 0, 0.8)'
       },
       keyframes: {
         fadeInUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         fadeInLeft: {
-          '0%': { opacity: '0', transform: 'translateX(-20px)' },
+          '0%': { opacity: '0', transform: 'translateX(-8px)' },
           '100%': { opacity: '1', transform: 'translateX(0)' },
         }
       },
       animation: {
-        fadeInUp: 'fadeInUp 0.8s ease-out forwards',
-        fadeInLeft: 'fadeInLeft 0.8s ease-out forwards',
+        fadeInUp: 'fadeInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        fadeInLeft: 'fadeInLeft 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       }
     },
   },

@@ -49,6 +49,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Global keyboard shortcut: Cmd+K / Ctrl+K
   useEffect(() => {
@@ -58,7 +59,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         if (isOpen) {
           onClose();
         } else {
-          // Open
           setQuery('');
           setSelectedIndex(0);
         }
@@ -71,20 +71,46 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Focus input on open & lock background scroll
+  // Focus input on open, trap focus, restore focus on close & lock background scroll
   useEffect(() => {
     if (isOpen) {
+      const previouslyFocusedElement = document.activeElement as HTMLElement | null;
       setTimeout(() => inputRef.current?.focus(), 40);
-      window.__lenis?.stop();
       const originalBodyOverflow = document.body.style.overflow;
       const originalHtmlOverflow = document.documentElement.style.overflow;
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
 
+      const handleTab = (e: KeyboardEvent) => {
+        if (e.key === 'Tab' && containerRef.current) {
+          const focusables = containerRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          const focusableArr = Array.from(focusables).filter(el => el.offsetParent !== null);
+          if (focusableArr.length === 0) return;
+          const first = focusableArr[0];
+          const last = focusableArr[focusableArr.length - 1];
+
+          if (e.shiftKey) {
+            if (document.activeElement === first || !containerRef.current.contains(document.activeElement)) {
+              e.preventDefault();
+              last.focus();
+            }
+          } else {
+            if (document.activeElement === last || !containerRef.current.contains(document.activeElement)) {
+              e.preventDefault();
+              first.focus();
+            }
+          }
+        }
+      };
+      window.addEventListener('keydown', handleTab);
+
       return () => {
+        window.removeEventListener('keydown', handleTab);
         document.body.style.overflow = originalBodyOverflow;
         document.documentElement.style.overflow = originalHtmlOverflow;
-        window.__lenis?.start();
+        previouslyFocusedElement?.focus();
       };
     }
   }, [isOpen]);
@@ -97,8 +123,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         title: 'Command Center',
         subtitle: 'Tactical dashboard & Orbital Hero Vault',
         category: 'Modules',
-        badge: 'Main',
-        icon: <Compass className="w-4 h-4 text-amber-400" />,
+        badge: 'MAIN',
+        icon: <Compass className="w-4 h-4 text-hud-cyan" />,
         onSelect: () => onNavigateTab('home')
       },
       {
@@ -106,17 +132,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         title: 'Hero Arsenal',
         subtitle: '124+ heroes, situational builds & ability trees',
         category: 'Modules',
-        badge: 'Arsenal',
-        icon: <Crown className="w-4 h-4 text-amber-300" />,
+        badge: 'ARSENAL',
+        icon: <Crown className="w-4 h-4 text-hud-gold" />,
         onSelect: () => onNavigateTab('heroes')
       },
       {
         id: 'mod-predictive',
         title: 'Predictive Oracle 5v5',
-        subtitle: 'Neural draft counter recommendations & win rates',
+        subtitle: 'Deterministic draft counter recommendations & win rates',
         category: 'Modules',
-        badge: 'AI Oracle',
-        icon: <BrainCircuit className="w-4 h-4 text-purple-400" />,
+        badge: 'DRAFT MATRIX',
+        icon: <BrainCircuit className="w-4 h-4 text-hud-cyan" />,
         onSelect: () => onNavigateTab('predictive')
       },
       {
@@ -132,7 +158,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         title: '1v1 Matchup Arena',
         subtitle: 'Head-to-head combat and kill threat simulation',
         category: 'Modules',
-        icon: <Flame className="w-4 h-4 text-orange-400" />,
+        icon: <Flame className="w-4 h-4 text-hud-gold" />,
         onSelect: () => onNavigateTab('arena')
       },
       {
@@ -140,7 +166,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         title: 'Build Sandbox',
         subtitle: 'Item simulator, DPS testing & stat calculator',
         category: 'Modules',
-        icon: <FlaskConical className="w-4 h-4 text-cyan-400" />,
+        icon: <FlaskConical className="w-4 h-4 text-emerald-400" />,
         onSelect: () => onNavigateTab('sandbox')
       },
       {
@@ -165,8 +191,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         title: 'Open Picture-in-Picture Mini HUD',
         subtitle: 'Always-on-top tactical overlay for real-time play',
         category: 'Actions',
-        badge: 'Alt+P',
-        icon: <PictureInPicture className="w-4 h-4 text-amber-300" />,
+        badge: 'ALT+P',
+        icon: <PictureInPicture className="w-4 h-4 text-hud-cyan" />,
         onSelect: () => onOpenPip()
       },
       {
@@ -200,7 +226,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             <img
               src={h.avatarUrl}
               alt={h.name}
-              className="w-5 h-5 rounded-md object-cover border border-amber-500/40"
+              loading="lazy"
+              decoding="async"
+              className="w-5 h-5 rounded-md object-cover border border-white/[0.1]"
             />
           ),
           onSelect: () => {
@@ -255,19 +283,21 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-28 px-4 bg-black/75 backdrop-blur-md animate-fadeIn overscroll-contain"
-      data-lenis-prevent="true"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-28 px-4 bg-black/85 animate-fadeIn overscroll-contain"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl bg-slate-950/95 border border-white/[0.09] shadow-[0_30px_90px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col max-h-[75vh] animate-slideUp text-slate-100 overscroll-contain"
-        data-lenis-prevent="true"
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command Palette"
+        className="w-full max-w-2xl rounded-xl bg-hud-panel border border-white/[0.12] shadow-hud-lg overflow-hidden flex flex-col max-h-[75vh] animate-slideUp text-slate-100 overscroll-contain"
         onClick={e => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Top Input Bar */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.08] bg-slate-900/60">
-          <Search className="w-5 h-5 text-slate-400 flex-shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[0.08] bg-hud-surface">
+          <Search className="w-5 h-5 text-slate-400 shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -277,7 +307,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               setSelectedIndex(0);
             }}
             placeholder="Search tactical modules, 124+ heroes, or actions..."
-            className="w-full bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none font-sans"
+            className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-400 focus:outline-none font-sans"
           />
           {query && (
             <button
@@ -286,11 +316,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 setSelectedIndex(0);
               }}
               className="p-1 text-slate-400 hover:text-white"
+              aria-label="Clear search"
             >
               <X className="w-4 h-4" />
             </button>
           )}
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-[10px] font-mono text-slate-400 font-bold">
+          <kbd className="hidden sm:inline-flex items-center px-2 py-0.5 rounded bg-hud-bg border border-white/[0.08] text-[10px] font-mono text-slate-400 font-bold">
             ESC
           </kbd>
         </div>
@@ -301,8 +332,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar min-h-0"
         >
           {items.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 text-xs">
-              No matching modules, heroes, or commands found.
+            <div className="py-12 text-center text-slate-400 text-xs font-mono">
+              NO MATCHING MODULES, HEROES, OR COMMANDS FOUND.
             </div>
           ) : (
             items.map((item, index) => {
@@ -316,29 +347,29 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     onClose();
                   }}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer transition-all duration-75 select-none ${
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg cursor-pointer transition-colors select-none min-h-[44px] ${
                     isSelected
-                      ? 'bg-gradient-to-r from-amber-500/15 via-red-500/10 to-transparent border border-amber-500/35 text-white shadow-sm'
-                      : 'hover:bg-slate-900/60 border border-transparent text-slate-300'
+                      ? 'bg-hud-surface border border-hud-cyan/40 text-slate-100 shadow-hud-sm'
+                      : 'hover:bg-white/[0.03] border border-transparent text-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors flex-shrink-0 ${
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors shrink-0 ${
                         isSelected
-                          ? 'bg-amber-500/20 border-amber-500/40'
-                          : 'bg-slate-900 border-slate-800'
+                          ? 'bg-hud-cyan/15 border-hud-cyan/40 text-hud-cyan'
+                          : 'bg-hud-surface border-white/[0.08] text-slate-400'
                       }`}
                     >
                       {item.icon}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs tracking-tight text-white truncate">
+                        <span className="font-display font-semibold text-xs tracking-tight text-slate-100 truncate">
                           {item.title}
                         </span>
                         {item.badge && (
-                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-900 border border-slate-700 text-amber-300">
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-hud-bg border border-white/[0.08] text-hud-cyan uppercase">
                             {item.badge}
                           </span>
                         )}
@@ -349,12 +380,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] text-slate-400 font-mono hidden sm:inline uppercase">
                       {item.category}
                     </span>
                     {isSelected && (
-                      <ArrowRight className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                      <ArrowRight className="w-3.5 h-3.5 text-hud-cyan" />
                     )}
                   </div>
                 </div>
@@ -364,28 +395,29 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Footer Navigation Hints */}
-        <div className="px-4 py-2 border-t border-white/[0.07] bg-slate-900/70 flex items-center justify-between text-[11px] text-slate-500 font-sans">
+        <div className="px-4 py-2 border-t border-white/[0.06] bg-hud-surface flex items-center justify-between text-[11px] text-slate-400 font-mono">
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-slate-800 font-mono text-[9px] text-slate-300">
+            <span className="flex items-center gap-1.5">
+              <kbd className="px-1.5 py-0.5 rounded bg-hud-bg border border-white/[0.08] font-mono text-[9px] text-slate-300">
                 ↑↓
-              </kbd>{' '}
-              Navigate
+              </kbd>
+              NAVIGATE
             </span>
-            <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-slate-800 font-mono text-[9px] text-slate-300">
+            <span className="flex items-center gap-1.5">
+              <kbd className="px-1.5 py-0.5 rounded bg-hud-bg border border-white/[0.08] font-mono text-[9px] text-slate-300">
                 ↵
-              </kbd>{' '}
-              Select
+              </kbd>
+              SELECT
             </span>
           </div>
           <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-400">
-            <Command className="w-3 h-3 text-amber-400" />
-            <span>AegisForge Tactical Spotlight</span>
+            <Command className="w-3 h-3 text-hud-cyan" />
+            <span>SPOTLIGHT</span>
           </div>
         </div>
       </div>
     </div>
   );
 };
+
 export default CommandPalette;

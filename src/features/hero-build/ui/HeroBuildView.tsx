@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HeroData } from '../../../entities/hero/bi/types';
 import { StorageService } from '../../../shared/bi/storage/storageService';
 import { SoundEngine } from '../../../shared/bi/sound/soundFx';
@@ -47,13 +47,14 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
   const [activeTab, setActiveTab] = useState<'build' | 'skills' | 'matchups' | 'strategy' | 'notes'>('build');
   const [userNote, setUserNote] = useState<string>('');
   const [noteSaved, setNoteSaved] = useState<boolean>(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const metaEntry = SEASON_META_DATA.heroes.find((m) => m.heroId === hero.id);
 
   // Skills identified with numbers (1 to 4)
   const numberedSkillPriority = React.useMemo(() => {
     return getNumberedSkillPriority(hero.skillOrder.maxPriority, hero.abilities);
-  }, [hero.id, hero.skillOrder.maxPriority, hero.abilities]);
+  }, [hero.skillOrder.maxPriority, hero.abilities]);
 
   useEffect(() => {
     setUserNote(StorageService.getHeroNote(hero.id));
@@ -68,15 +69,16 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
 
   const [isDoctrineExpanded, setIsDoctrineExpanded] = useState<boolean>(false);
 
-  // Bulletproof Background Scroll Locking for both Desktop (Lenis, Body, Wheel) and Mobile (Touchmove, Safari elasticity)
+  // Bulletproof Background Scroll Locking & Focus Trap
   useEffect(() => {
-    // 1. Freeze Lenis global smooth scroll
-    const lenis = window.__lenis;
-    if (lenis) {
-      lenis.stop();
-    }
+    const previousActiveElement = document.activeElement as HTMLElement | null;
 
-    // 2. Lock standard browser scroll on html and body
+    // Focus modal container on mount
+    const timer = setTimeout(() => {
+      modalRef.current?.focus();
+    }, 10);
+
+    // 1. Lock standard browser scroll on html and body
     const originalBodyOverflow = document.body.style.overflow;
     const originalBodyPaddingRight = document.body.style.paddingRight;
     const originalHtmlOverflow = document.documentElement.style.overflow;
@@ -92,7 +94,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overscrollBehavior = 'none';
 
-    // 3. Prevent touch propagation on mobile when touching backdrop or non-scrollable areas
+    // 2. Prevent touch propagation on mobile when touching backdrop or non-scrollable areas
     const preventBackdropTouch = (e: TouchEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
@@ -107,31 +109,57 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
 
     document.addEventListener('touchmove', preventBackdropTouch, { passive: false });
 
-    // 4. Keyboard ESC to close
+    // 3. Keyboard ESC to close & Tab Focus Trap
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+        return;
+      }
+      if (e.key === 'Tab') {
+        if (!modalRef.current) return;
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        const focusables = Array.from(focusableElements).filter(el => el.offsetParent !== null);
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first || !modalRef.current.contains(document.activeElement)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last || !modalRef.current.contains(document.activeElement)) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      clearTimeout(timer);
       document.body.style.overflow = originalBodyOverflow;
       document.body.style.paddingRight = originalBodyPaddingRight;
       document.documentElement.style.overflow = originalHtmlOverflow;
       document.body.style.overscrollBehavior = originalOverscrollBehavior;
       document.removeEventListener('touchmove', preventBackdropTouch);
       window.removeEventListener('keydown', handleKeyDown);
-      if (lenis) {
-        lenis.start();
-      }
+      previousActiveElement?.focus();
     };
   }, [onClose]);
 
   return (
     <div 
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-lg flex items-center justify-center p-0 sm:p-4 md:p-6 animate-fadeIn overscroll-contain"
-      data-lenis-prevent="true"
+      ref={modalRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hero-build-title"
+      tabIndex={-1}
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/90 flex items-center justify-center p-0 sm:p-4 md:p-6 animate-fadeIn overscroll-contain outline-none"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           SoundEngine.playHover();
@@ -140,59 +168,44 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
       }}
     >
       
-      {/* Modal Container: Fullscreen on mobile, elevated rounded card on desktop */}
+      {/* Modal Container: Fullscreen on mobile, elevated tactical card on desktop */}
       <div 
-        className="relative w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] max-w-5xl bg-dota-panel border-0 sm:border-2 border-dota-gold/40 rounded-none sm:rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col overscroll-contain"
-        data-lenis-prevent="true"
+        className="relative w-full h-[100dvh] sm:h-auto sm:max-h-[92vh] max-w-5xl bg-hud-surface border-0 sm:border border-white/[0.14] rounded-none sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col overscroll-contain"
       >
         
         {/* Header Hero Showcase Banner (Responsive mobile banner + full desktop portrait showcase) */}
-        <div className="relative bg-gradient-to-b from-slate-950 via-[#0e131d] to-[#121722] border-b-2 border-dota-border overflow-hidden p-4 sm:p-5 md:p-6 flex-shrink-0">
+        <div className="relative bg-hud-panel border-b border-white/[0.1] overflow-hidden p-4 sm:p-5 md:p-6 flex-shrink-0">
           
-          {/* Subtle atmospheric ambient glow matching primary attribute */}
-          <div className={`absolute top-0 right-0 w-96 h-96 rounded-full opacity-20 filter blur-3xl pointer-events-none ${
-            hero.attribute === 'str' ? 'bg-red-600' :
-            hero.attribute === 'agi' ? 'bg-emerald-600' :
-            hero.attribute === 'int' ? 'bg-cyan-600' :
-            'bg-purple-600'
+          {/* Subtle attribute accent tint */}
+          <div className={`absolute top-0 right-0 w-80 h-80 rounded-full opacity-10 filter blur-3xl pointer-events-none ${
+            hero.attribute === 'str' ? 'bg-red-500' :
+            hero.attribute === 'agi' ? 'bg-emerald-500' :
+            hero.attribute === 'int' ? 'bg-sky-500' :
+            'bg-purple-500'
           }`} />
 
           {/* Desktop Showcase (md: and above) */}
           <div className="relative z-10 hidden md:flex items-start gap-6">
             
             {/* 1. PROPER HERO FULL-BODY PORTRAIT SHOWCASE (Head-to-toe render on desktop) */}
-            <div className={`relative w-52 md:w-60 h-72 md:h-80 rounded-2xl overflow-hidden border-2 ${
-              hero.attribute === 'str' ? 'border-red-600/70 shadow-[0_0_35px_rgba(236,61,61,0.35)]' :
-              hero.attribute === 'agi' ? 'border-emerald-600/70 shadow-[0_0_35px_rgba(44,227,71,0.35)]' :
-              hero.attribute === 'int' ? 'border-cyan-600/70 shadow-[0_0_35px_rgba(0,210,255,0.35)]' :
-              'border-purple-600/70 shadow-[0_0_35px_rgba(217,70,239,0.35)]'
-            } flex-shrink-0 bg-slate-950 shadow-2xl group select-none flex flex-col justify-start`}>
+            <div className={`relative w-52 md:w-60 h-72 md:h-80 rounded-xl overflow-hidden border ${
+              hero.attribute === 'str' ? 'border-red-500/40' :
+              hero.attribute === 'agi' ? 'border-emerald-500/40' :
+              hero.attribute === 'int' ? 'border-cyan-500/40' :
+              'border-purple-500/40'
+            } flex-shrink-0 bg-[#07090e] shadow-xl group select-none flex flex-col justify-start`}>
               
-              <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-[#0a0e17] to-black" />
-              <div className={`absolute inset-0 opacity-45 bg-[radial-gradient(circle_at_50%_42%,_var(--tw-gradient-stops))] ${
-                hero.attribute === 'str' ? 'from-red-600/35 via-red-950/20 to-transparent' :
-                hero.attribute === 'agi' ? 'from-emerald-500/35 via-emerald-950/20 to-transparent' :
-                hero.attribute === 'int' ? 'from-cyan-500/35 via-cyan-950/20 to-transparent' :
-                'from-purple-500/35 via-purple-950/20 to-transparent'
-              } pointer-events-none`} />
-
-              {/* Pedestal Ground Glow for Hero Feet */}
-              <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 w-4/5 h-8 rounded-[100%] opacity-60 blur-md pointer-events-none ${
-                hero.attribute === 'str' ? 'bg-red-500/60 shadow-[0_0_20px_#ef4444]' :
-                hero.attribute === 'agi' ? 'bg-emerald-500/60 shadow-[0_0_20px_#10b981]' :
-                hero.attribute === 'int' ? 'bg-cyan-500/60 shadow-[0_0_20px_#06b6d4]' :
-                'bg-purple-500/60 shadow-[0_0_20px_#d946ef]'
-              }`} />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0e121a] via-[#07090e] to-black" />
 
               {/* Floating Attribute Badge */}
-              <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-white/10 shadow-lg">
-                <span className={`w-2.5 h-2.5 rounded-full ${
-                  hero.attribute === 'str' ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' :
-                  hero.attribute === 'agi' ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' :
-                  hero.attribute === 'int' ? 'bg-cyan-500 shadow-[0_0_8px_#06b6d4]' :
-                  'bg-gradient-to-r from-teal-400 via-purple-400 to-pink-500 shadow-[0_0_8px_#d946ef]'
+              <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2 py-0.5 rounded bg-black/85 border border-white/10 shadow-sm">
+                <span className={`w-2 h-2 rounded-full ${
+                  hero.attribute === 'str' ? 'bg-red-500' :
+                  hero.attribute === 'agi' ? 'bg-emerald-500' :
+                  hero.attribute === 'int' ? 'bg-sky-400' :
+                  'bg-purple-400'
                 }`} />
-                <span className="text-[10px] font-extrabold text-white uppercase tracking-wider">
+                <span className="text-[11px] font-mono font-bold text-white uppercase tracking-wider">
                   {hero.attribute === 'str' ? 'Strength' :
                    hero.attribute === 'agi' ? 'Agility' :
                    hero.attribute === 'int' ? 'Intelligence' : 'Universal'}
@@ -200,7 +213,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               </div>
 
               {/* Floating Attack Type Badge */}
-              <div className="absolute top-2.5 right-2.5 z-20 px-2 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-white/10 shadow-lg text-[10px] font-bold text-slate-300">
+              <div className="absolute top-2.5 right-2.5 z-20 px-2 py-0.5 rounded bg-black/85 border border-white/10 shadow-sm text-[11px] font-mono font-bold text-slate-300 uppercase">
                 {hero.attackType}
               </div>
 
@@ -209,12 +222,13 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                 <img
                   src={getHeroFullBodyRenderUrl(hero.avatarUrl)}
                   alt={hero.name}
-                  className="w-full h-full object-contain object-top filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)] transition-transform duration-700 ease-out group-hover:scale-105 p-1"
+                  decoding="async"
+                  className="w-full h-full object-contain object-top filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)] transition-transform duration-300 ease-out group-hover:scale-105 p-1"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement;
                     if (target.src !== hero.avatarUrl) {
                       target.src = hero.avatarUrl;
-                      target.className = "w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105";
+                      target.className = "w-full h-full object-cover object-top transition-transform duration-300 ease-out group-hover:scale-105";
                     }
                   }}
                 />
@@ -230,24 +244,19 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <h1 className={`font-dota font-black text-3xl sm:text-4xl text-transparent bg-clip-text bg-gradient-to-r ${
-                      hero.attribute === 'str' ? 'from-white via-red-100 to-amber-200' :
-                      hero.attribute === 'agi' ? 'from-white via-emerald-100 to-amber-200' :
-                      hero.attribute === 'int' ? 'from-white via-cyan-100 to-amber-200' :
-                      'from-white via-purple-100 to-amber-200'
-                    } leading-tight drop-shadow`}>
+                    <h1 id="hero-build-title" className="font-display font-bold text-3xl sm:text-4xl text-white tracking-tight leading-tight">
                       {hero.name}
                     </h1>
-                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${
-                      hero.attribute === 'str' ? 'bg-red-950/90 text-red-400 border-red-800' :
-                      hero.attribute === 'agi' ? 'bg-emerald-950/90 text-emerald-400 border-emerald-800' :
-                      hero.attribute === 'int' ? 'bg-blue-950/90 text-blue-400 border-blue-800' :
-                      'bg-purple-950/90 text-purple-300 border-purple-800'
+                    <span className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded border uppercase tracking-wider ${
+                      hero.attribute === 'str' ? 'bg-red-950/80 text-red-300 border-red-800/80' :
+                      hero.attribute === 'agi' ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/80' :
+                      hero.attribute === 'int' ? 'bg-sky-950/80 text-sky-300 border-sky-800/80' :
+                      'bg-purple-950/80 text-purple-300 border-purple-800/80'
                     }`}>
                       {hero.attribute.toUpperCase()} • {hero.attackType}
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-slate-300 font-medium font-sans mt-0.5 italic">
+                  <p className="text-xs sm:text-sm text-slate-400 font-medium font-sans mt-0.5 italic">
                     "{hero.title}"
                   </p>
                 </div>
@@ -260,12 +269,12 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                         SoundEngine.playPick();
                         onOpenPip(hero);
                       }}
-                      className="p-2 sm:px-3 sm:py-2 rounded-xl bg-dota-gold/15 hover:bg-dota-gold/25 border border-dota-gold/50 text-dota-gold shadow-dota-glow transition-all flex items-center gap-1.5 group active:scale-95"
+                      className="px-3 py-2 rounded-lg bg-hud-surface hover:bg-hud-surfaceAlt border border-white/[0.14] hover:border-hud-cyan/50 text-hud-cyan text-xs font-mono font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5 group active:scale-[0.98] focus-hud touch-target"
                       title="Open in Picture-in-Picture Mini HUD (Shortcut: Alt+P)"
                     >
-                      <PictureInPicture className="w-4 h-4 text-dota-gold" />
-                      <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">PiP HUD</span>
-                      <kbd className="hidden md:inline-block px-1 py-0.2 text-[8px] font-mono bg-black/60 rounded border border-dota-gold/40 text-amber-300">
+                      <PictureInPicture className="w-4 h-4 text-hud-cyan" />
+                      <span className="hidden sm:inline">PiP HUD</span>
+                      <kbd className="hidden md:inline-block px-1 py-0.2 text-[9px] font-mono bg-black/60 rounded border border-white/10 text-hud-cyan">
                         Alt+P
                       </kbd>
                     </button>
@@ -276,14 +285,14 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       onToggleFavorite(hero.id);
                       SoundEngine.playHover();
                     }}
-                    className={`p-2 rounded-xl border transition-all active:scale-95 ${
+                    className={`p-2 rounded-lg border transition-colors active:scale-[0.98] focus-hud touch-target ${
                       isFavorite
-                        ? 'bg-amber-500/20 border-amber-500/60 text-amber-400 shadow-dota-glow'
-                        : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-white'
+                        ? 'bg-hud-gold/15 border-hud-gold/60 text-hud-gold'
+                        : 'bg-hud-surface border-white/[0.12] text-slate-400 hover:text-white hover:border-white/[0.24]'
                     }`}
                     title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                   >
-                    <Star className={`w-5 h-5 ${isFavorite ? 'fill-amber-400 text-amber-400' : ''}`} />
+                    <Star className={`w-4 h-4 ${isFavorite ? 'fill-hud-gold text-hud-gold' : ''}`} />
                   </button>
 
                   <button
@@ -291,10 +300,10 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       SoundEngine.playHover();
                       onClose();
                     }}
-                    className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-950/80 border border-slate-700 hover:border-red-600 text-slate-400 hover:text-red-300 transition-all active:scale-95"
+                    className="p-2 rounded-lg bg-hud-surface hover:bg-red-950/60 border border-white/[0.12] hover:border-red-500/50 text-slate-400 hover:text-red-300 transition-colors active:scale-[0.98] focus-hud touch-target"
                     title="Close (ESC)"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -307,57 +316,57 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                   ))}
                 </div>
 
-                <div className="h-4 w-px bg-slate-700 mx-1 hidden sm:block" />
+                <div className="h-4 w-px bg-white/[0.1] mx-1 hidden sm:block" />
 
-                <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded-md border border-emerald-800/60 text-xs shadow-sm">
-                  {hero.winRate}% Win Rate
+                <span className="font-mono tabular-nums text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded border border-emerald-800/60 text-xs">
+                  {hero.winRate}% WR
                 </span>
 
-                <span className="text-cyan-300 font-bold bg-cyan-950/60 px-2.5 py-0.5 rounded-md border border-cyan-800/60 text-xs shadow-sm">
-                  {hero.pickRate}% Pick Rate
+                <span className="font-mono tabular-nums text-hud-cyan font-bold bg-sky-950/60 px-2.5 py-0.5 rounded border border-sky-800/60 text-xs">
+                  {hero.pickRate}% Pick
                 </span>
 
                 <DotaComplexity complexity={hero.complexity} size="md" />
 
                 {metaEntry ? (
-                  <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border flex items-center gap-1.5 ${
+                  <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded border flex items-center gap-1.5 ${
                     metaEntry.tier === 'S+' || metaEntry.tier === 'S'
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/70 shadow-dota-glow'
-                      : 'bg-slate-800 text-slate-300 border-slate-700'
+                      ? 'bg-hud-gold/15 text-hud-gold border-hud-gold/60'
+                      : 'bg-hud-surface border-white/[0.1] text-slate-300'
                   }`}>
-                    <Flame className="w-3.5 h-3.5 text-amber-400" />
+                    <Flame className="w-3.5 h-3.5 text-hud-gold" />
                     <span>Patch 7.37d: Tier {metaEntry.tier} {metaEntry.tier === 'S+' || metaEntry.tier === 'S' ? '(Dominant Pick)' : '(Viable)'}</span>
                   </span>
                 ) : (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-hud-surface text-slate-400 border border-white/[0.08]">
                     Non-Meta
                   </span>
                 )}
               </div>
 
               {/* Row 3: Tactical Summary & Core Playstyle */}
-              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-1.5 shadow">
-                <p className="text-xs text-slate-200 leading-relaxed font-sans font-medium">
+              <div className="bg-hud-surface/90 border border-white/[0.08] rounded-xl p-3 space-y-1.5">
+                <p className="text-xs text-slate-300 leading-relaxed font-sans">
                   {hero.summary}
                 </p>
-                <div className="text-[11px] text-slate-400 leading-relaxed font-sans border-t border-slate-800/80 pt-1.5 flex items-start gap-1.5">
-                  <span className="text-dota-gold font-bold uppercase tracking-wider flex-shrink-0">Doctrine:</span>
+                <div className="text-[11px] text-slate-400 leading-relaxed font-sans border-t border-white/[0.06] pt-1.5 flex items-start gap-1.5">
+                  <span className="text-hud-gold font-mono font-bold uppercase tracking-wider flex-shrink-0">Doctrine:</span>
                   <span>{hero.playstyle}</span>
                 </div>
               </div>
 
               {/* Row 4: Power Spikes Roadmap Preview */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5">
-                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Early Spike (0-12m)</span>
+                <div className="bg-hud-panelAlt border border-white/[0.08] rounded-lg px-2.5 py-1.5">
+                  <span className="text-[11px] font-mono font-bold text-hud-gold uppercase tracking-wider block">Early Spike (0-12m)</span>
                   <span className="text-[11px] text-slate-300 truncate block font-sans">{hero.powerSpikes.early}</span>
                 </div>
-                <div className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5">
-                  <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block">Mid Spike (12-25m)</span>
+                <div className="bg-hud-panelAlt border border-white/[0.08] rounded-lg px-2.5 py-1.5">
+                  <span className="text-[11px] font-mono font-bold text-hud-cyan uppercase tracking-wider block">Mid Spike (12-25m)</span>
                   <span className="text-[11px] text-slate-300 truncate block font-sans">{hero.powerSpikes.mid}</span>
                 </div>
-                <div className="bg-slate-950/80 border border-slate-800 rounded-lg px-2.5 py-1.5">
-                  <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">Late Spike (25m+)</span>
+                <div className="bg-hud-panelAlt border border-white/[0.08] rounded-lg px-2.5 py-1.5">
+                  <span className="text-[11px] font-mono font-bold text-hud-gold uppercase tracking-wider block">Late Spike (25m+)</span>
                   <span className="text-[11px] text-slate-300 truncate block font-sans">{hero.powerSpikes.late}</span>
                 </div>
               </div>
@@ -375,11 +384,11 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                   SoundEngine.playHover();
                   onClose();
                 }}
-                className="px-3 py-2 min-h-[42px] rounded-xl bg-slate-900 border border-slate-700 text-slate-200 hover:text-white flex items-center gap-1.5 active:scale-95 shadow-sm"
+                className="px-3 py-2 min-h-[44px] rounded-lg bg-hud-surface border border-white/[0.14] text-slate-200 hover:text-white flex items-center gap-1.5 active:scale-[0.98] focus-hud touch-target"
                 aria-label="Close modal"
               >
-                <X className="w-5 h-5 text-slate-300" />
-                <span className="text-xs font-bold uppercase tracking-wider">Back</span>
+                <X className="w-4 h-4 text-slate-300" />
+                <span className="text-xs font-mono font-bold uppercase tracking-wider">Back</span>
               </button>
 
               <div className="flex items-center gap-2">
@@ -389,10 +398,10 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       SoundEngine.playPick();
                       onOpenPip(hero);
                     }}
-                    className="p-2 min-h-[42px] min-w-[42px] rounded-xl bg-dota-gold/15 border border-dota-gold/50 text-dota-gold flex items-center justify-center active:scale-95 shadow-sm"
+                    className="p-2 min-h-[44px] min-w-[44px] rounded-lg bg-hud-surface hover:bg-hud-surfaceAlt border border-white/[0.14] text-hud-cyan flex items-center justify-center active:scale-[0.98] focus-hud touch-target"
                     title="Open in Picture-in-Picture Mini HUD"
                   >
-                    <PictureInPicture className="w-4 h-4 text-dota-gold" />
+                    <PictureInPicture className="w-4 h-4 text-hud-cyan" />
                   </button>
                 )}
 
@@ -401,14 +410,14 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                     onToggleFavorite(hero.id);
                     SoundEngine.playHover();
                   }}
-                  className={`p-2 min-h-[42px] min-w-[42px] rounded-xl border flex items-center justify-center active:scale-95 shadow-sm ${
+                  className={`p-2 min-h-[44px] min-w-[44px] rounded-lg border flex items-center justify-center active:scale-[0.98] focus-hud touch-target ${
                     isFavorite
-                      ? 'bg-amber-500/20 border-amber-500/60 text-amber-400 shadow-dota-glow'
-                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                      ? 'bg-hud-gold/15 border-hud-gold/60 text-hud-gold'
+                      : 'bg-hud-surface border-white/[0.14] text-slate-400 hover:text-white'
                   }`}
                   title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 >
-                  <Star className={`w-5 h-5 ${isFavorite ? 'fill-amber-400 text-amber-400' : ''}`} />
+                  <Star className={`w-4 h-4 ${isFavorite ? 'fill-hud-gold text-hud-gold' : ''}`} />
                 </button>
               </div>
             </div>
@@ -416,15 +425,16 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
             {/* Mobile Hero Identity Row: Compact Portrait + Essential Stats */}
             <div className="flex items-center gap-3.5 pt-1">
               {/* Compact 80x96px Hero Portrait with Official Render */}
-              <div className={`relative w-20 h-24 sm:w-24 sm:h-28 rounded-xl overflow-hidden border-2 ${
-                hero.attribute === 'str' ? 'border-red-600/70 shadow-[0_0_20px_rgba(236,61,61,0.3)]' :
-                hero.attribute === 'agi' ? 'border-emerald-600/70 shadow-[0_0_20px_rgba(44,227,71,0.3)]' :
-                hero.attribute === 'int' ? 'border-cyan-600/70 shadow-[0_0_20px_rgba(0,210,255,0.3)]' :
-                'border-purple-600/70 shadow-[0_0_20px_rgba(217,70,239,0.3)]'
-              } flex-shrink-0 bg-slate-950 shadow-md`}>
+              <div className={`relative w-20 h-24 sm:w-24 sm:h-28 rounded-lg overflow-hidden border ${
+                hero.attribute === 'str' ? 'border-red-500/40' :
+                hero.attribute === 'agi' ? 'border-emerald-500/40' :
+                hero.attribute === 'int' ? 'border-cyan-500/40' :
+                'border-purple-500/40'
+              } flex-shrink-0 bg-[#07090e] shadow-md`}>
                 <img
                   src={getHeroFullBodyRenderUrl(hero.avatarUrl)}
                   alt={hero.name}
+                  decoding="async"
                   className="w-full h-full object-contain object-top pt-1 drop-shadow"
                   onError={(e) => {
                     const target = e.currentTarget as HTMLImageElement;
@@ -434,28 +444,28 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                     }
                   }}
                 />
-                <div className="absolute top-1 left-1 px-1.5 py-0.2 rounded bg-black/85 text-[8px] font-extrabold uppercase font-mono tracking-wider text-white">
+                <div className="absolute top-1 left-1 px-1.5 py-0.2 rounded bg-black/85 text-[8px] font-mono font-bold uppercase tracking-wider text-white">
                   {hero.attribute}
                 </div>
               </div>
 
               {/* Title & Quick Badges */}
               <div className="flex-1 min-w-0 space-y-1">
-                <h1 className="font-dota font-black text-2xl text-white truncate drop-shadow">
+                <h1 className="font-display font-bold text-2xl text-white truncate">
                   {hero.name}
                 </h1>
                 <p className="text-xs text-slate-400 truncate italic">
                   "{hero.title}"
                 </p>
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <span className="text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded text-[11px] border border-emerald-800/60">
+                  <span className="font-mono tabular-nums text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded text-[11px] border border-emerald-800/60">
                     {hero.winRate}% WR
                   </span>
-                  <span className="text-slate-300 font-semibold bg-slate-900 px-2 py-0.5 rounded text-[11px] border border-slate-800 uppercase font-mono">
+                  <span className="text-slate-300 font-mono font-semibold bg-hud-surface px-2 py-0.5 rounded text-[11px] border border-white/[0.08] uppercase">
                     {hero.attackType}
                   </span>
                   {metaEntry && (
-                    <span className="text-amber-300 font-bold bg-amber-950/80 px-2 py-0.5 rounded text-[11px] border border-amber-600/60">
+                    <span className="font-mono text-hud-gold font-bold bg-hud-gold/10 px-2 py-0.5 rounded text-[11px] border border-hud-gold/40">
                       Tier {metaEntry.tier}
                     </span>
                   )}
@@ -470,14 +480,14 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                   SoundEngine.playHover();
                   setIsDoctrineExpanded(prev => !prev);
                 }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-all active:scale-[0.99]"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-hud-surface border border-white/[0.08] text-xs font-semibold text-slate-300 hover:text-white transition-colors active:scale-[0.99] focus-hud"
               >
                 <div className="flex items-center gap-1.5">
-                  <span className="text-dota-gold font-bold">Tactical Summary & Spikes</span>
-                  <span className="text-[10px] text-slate-500">({isDoctrineExpanded ? 'Hide' : 'Expand'})</span>
+                  <span className="text-hud-gold font-mono font-bold uppercase tracking-wider">Tactical Summary & Spikes</span>
+                  <span className="text-[11px] text-slate-400 font-mono">({isDoctrineExpanded ? 'Hide' : 'Expand'})</span>
                 </div>
                 {isDoctrineExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-dota-gold" />
+                  <ChevronUp className="w-4 h-4 text-hud-gold" />
                 ) : (
                   <ChevronDown className="w-4 h-4 text-slate-400" />
                 )}
@@ -485,23 +495,23 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
 
               {isDoctrineExpanded && (
                 <div className="mt-2 space-y-2 animate-fadeIn">
-                  <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 space-y-1.5 shadow-sm text-xs">
-                    <p className="text-slate-200 font-sans leading-relaxed">{hero.summary}</p>
-                    <div className="text-[11px] text-slate-400 pt-1.5 border-t border-slate-800">
-                      <strong className="text-dota-gold">Doctrine:</strong> {hero.playstyle}
+                  <div className="bg-hud-surface border border-white/[0.08] rounded-lg p-3 space-y-1.5 text-xs">
+                    <p className="text-slate-300 font-sans leading-relaxed">{hero.summary}</p>
+                    <div className="text-[11px] text-slate-400 pt-1.5 border-t border-white/[0.06]">
+                      <strong className="text-hud-gold font-mono uppercase tracking-wider">Doctrine:</strong> {hero.playstyle}
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-xs">
-                    <div className="bg-slate-950/90 border border-slate-800 rounded-lg p-2">
-                      <span className="text-[10px] font-bold text-amber-400 block uppercase">Early (0-12m)</span>
+                    <div className="bg-hud-panelAlt border border-white/[0.08] rounded-lg p-2">
+                      <span className="text-[11px] font-mono font-bold text-hud-gold block uppercase">Early (0-12m)</span>
                       <span className="text-[11px] text-slate-300">{hero.powerSpikes.early}</span>
                     </div>
-                    <div className="bg-slate-950/90 border border-slate-800 rounded-lg p-2">
-                      <span className="text-[10px] font-bold text-cyan-400 block uppercase">Mid (12-25m)</span>
+                    <div className="bg-hud-panelAlt border border-white/[0.08] rounded-lg p-2">
+                      <span className="text-[11px] font-mono font-bold text-hud-cyan block uppercase">Mid (12-25m)</span>
                       <span className="text-[11px] text-slate-300">{hero.powerSpikes.mid}</span>
                     </div>
-                    <div className="bg-slate-950/90 border border-slate-800 rounded-lg p-2">
-                      <span className="text-[10px] font-bold text-purple-400 block uppercase">Late (25m+)</span>
+                    <div className="bg-hud-panelAlt border border-white/[0.08] rounded-lg p-2">
+                      <span className="text-[11px] font-mono font-bold text-hud-gold block uppercase">Late (25m+)</span>
                       <span className="text-[11px] text-slate-300">{hero.powerSpikes.late}</span>
                     </div>
                   </div>
@@ -514,16 +524,16 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
         </div>
 
         {/* Sticky Sub Navigation Tabs (Directly beneath header for fast switching) */}
-        <div className="relative z-20 flex border-y border-dota-border bg-slate-950/95 backdrop-blur-md overflow-x-auto no-scrollbar px-2 sm:px-4 py-2 gap-1.5 flex-shrink-0 shadow-md touch-pan-x">
+        <div className="relative z-20 flex border-y border-white/[0.1] bg-hud-surface overflow-x-auto no-scrollbar px-2 sm:px-4 py-2 gap-1.5 flex-shrink-0 shadow-sm touch-pan-x">
           <button
             onClick={() => {
               setActiveTab('build');
               SoundEngine.playHover();
             }}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
               activeTab === 'build'
-                ? 'border border-dota-gold text-dota-gold bg-dota-gold/15 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+                ? 'border border-hud-cyan/50 text-hud-cyan bg-hud-cyan/10'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
             }`}
           >
             <Sword className="w-4 h-4" />
@@ -535,10 +545,10 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               setActiveTab('skills');
               SoundEngine.playHover();
             }}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
               activeTab === 'skills'
-                ? 'border border-cyan-500 text-cyan-300 bg-cyan-500/15 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+                ? 'border border-hud-cyan/50 text-hud-cyan bg-hud-cyan/10'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
             }`}
           >
             <Zap className="w-4 h-4" />
@@ -550,10 +560,10 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               setActiveTab('matchups');
               SoundEngine.playHover();
             }}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
               activeTab === 'matchups'
-                ? 'border border-red-500 text-red-300 bg-red-500/15 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+                ? 'border border-red-500/50 text-red-300 bg-red-500/10'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
             }`}
           >
             <Crosshair className="w-4 h-4" />
@@ -565,10 +575,10 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               setActiveTab('strategy');
               SoundEngine.playHover();
             }}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
               activeTab === 'strategy'
-                ? 'border border-emerald-500 text-emerald-300 bg-emerald-500/15 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+                ? 'border border-emerald-500/50 text-emerald-300 bg-emerald-500/10'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
             }`}
           >
             <Clock className="w-4 h-4" />
@@ -580,10 +590,10 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               setActiveTab('notes');
               SoundEngine.playHover();
             }}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap active:scale-95 ${
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
               activeTab === 'notes'
-                ? 'border border-purple-500 text-purple-300 bg-purple-500/15 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent'
+                ? 'border border-hud-gold/50 text-hud-gold bg-hud-gold/10'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
             }`}
           >
             <Layers className="w-4 h-4" />
@@ -594,7 +604,6 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
         {/* Modal Scrollable Content Body */}
         <div 
           className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6 overscroll-contain"
-          data-lenis-prevent="true"
         >
           
           {/* TAB 1: ITEM PROGRESSION */}
@@ -602,21 +611,23 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
             <div className="space-y-6">
               
               {/* Starting Items */}
-              <div className="bg-dota-panelAlt border border-dota-border rounded-2xl p-5 shadow">
-                <div className="flex items-center justify-between mb-3 border-b border-dota-border/60 pb-2">
-                  <h3 className="font-dota font-bold text-sm sm:text-base text-amber-300 flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
+              <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 sm:p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3 border-b border-white/[0.08] pb-2">
+                  <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-gold uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-hud-gold inline-block" />
                     Starting Items (600 Gold Budget)
                   </h3>
-                  <span className="text-xs text-slate-400">Laning Phase Sustain</span>
+                  <span className="text-[11px] font-mono text-slate-400">Laning Phase Sustain</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {hero.build.starting.map((item, idx) => (
-                    <div key={idx} className="bg-dota-bg/90 border border-dota-border rounded-xl p-3 flex items-start gap-3 shadow">
+                    <div key={idx} className="bg-hud-surface/90 border border-white/[0.08] hover:border-white/[0.2] rounded-lg p-2.5 flex items-start gap-3 transition-colors shadow-sm">
                       <img
                         src={getItemImageUrl(item.id)}
                         alt={item.name}
-                        className="w-10 h-8 rounded object-contain border border-slate-700 flex-shrink-0 bg-slate-950 shadow-sm"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-10 h-8 rounded object-contain border border-white/[0.1] flex-shrink-0 bg-black/60 shadow-sm"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
                         }}
@@ -624,7 +635,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-xs text-slate-200 truncate">{item.name}</span>
-                          <span className="text-xs font-bold text-dota-gold flex items-center gap-0.5"><Coins className="w-3 h-3" />{item.cost}g</span>
+                          <span className="text-xs font-mono font-bold tabular-nums text-hud-gold flex items-center gap-0.5"><Coins className="w-3 h-3" />{item.cost}g</span>
                         </div>
                         {item.reason && (
                           <p className="text-[11px] text-slate-400 mt-1 leading-snug font-sans">{item.reason}</p>
@@ -636,21 +647,23 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               </div>
 
               {/* Early Game */}
-              <div className="bg-dota-panelAlt border border-dota-border rounded-2xl p-5 shadow">
-                <div className="flex items-center justify-between mb-3 border-b border-dota-border/60 pb-2">
-                  <h3 className="font-dota font-bold text-sm sm:text-base text-cyan-300 flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block" />
+              <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 sm:p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3 border-b border-white/[0.08] pb-2">
+                  <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-cyan uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-hud-cyan inline-block" />
                     Early Game (Minute 0 – 12)
                   </h3>
-                  <span className="text-xs text-slate-400">Boots, Wand & Core Components</span>
+                  <span className="text-[11px] font-mono text-slate-400">Boots, Wand & Core Components</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {hero.build.early.map((item, idx) => (
-                    <div key={idx} className="bg-dota-bg/90 border border-dota-border rounded-xl p-3 flex items-start gap-3 shadow">
+                    <div key={idx} className="bg-hud-surface/90 border border-white/[0.08] hover:border-white/[0.2] rounded-lg p-2.5 flex items-start gap-3 transition-colors shadow-sm">
                       <img
                         src={getItemImageUrl(item.id)}
                         alt={item.name}
-                        className="w-10 h-8 rounded object-contain border border-slate-700 flex-shrink-0 bg-slate-950 shadow-sm"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-10 h-8 rounded object-contain border border-white/[0.1] flex-shrink-0 bg-black/60 shadow-sm"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
                         }}
@@ -658,7 +671,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-xs text-slate-200 truncate">{item.name}</span>
-                          <span className="text-xs font-bold text-dota-gold flex items-center gap-0.5"><Coins className="w-3 h-3" />{item.cost}g</span>
+                          <span className="text-xs font-mono font-bold tabular-nums text-hud-gold flex items-center gap-0.5"><Coins className="w-3 h-3" />{item.cost}g</span>
                         </div>
                         {item.reason && (
                           <p className="text-[11px] text-slate-400 mt-1 leading-snug font-sans">{item.reason}</p>
@@ -670,21 +683,23 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               </div>
 
               {/* Core Items */}
-              <div className="bg-dota-panelAlt border-2 border-dota-gold/50 rounded-2xl p-5 shadow-dota-glow">
-                <div className="flex items-center justify-between mb-3 border-b border-dota-gold/30 pb-2">
-                  <h3 className="font-dota font-black text-base text-dota-gold flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-dota-gold" />
+              <div className="bg-hud-panel border border-hud-gold/40 rounded-xl p-4 sm:p-5 shadow-md relative">
+                <div className="flex items-center justify-between mb-3 border-b border-hud-gold/25 pb-2">
+                  <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-gold uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-hud-gold" />
                     Core Build (Primary Power Spike)
                   </h3>
-                  <span className="text-xs text-amber-300 font-semibold">Essential Win-Condition Items</span>
+                  <span className="text-[11px] font-mono text-hud-gold/90 font-semibold">Essential Win-Condition Items</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {hero.build.core.map((item, idx) => (
-                    <div key={idx} className="bg-dota-bg border border-dota-gold/50 rounded-xl p-3 flex items-start gap-3 shadow-lg">
+                    <div key={idx} className="bg-hud-surface border border-hud-gold/30 hover:border-hud-gold/60 rounded-lg p-2.5 flex items-start gap-3 transition-colors shadow-sm">
                       <img
                         src={getItemImageUrl(item.id)}
                         alt={item.name}
-                        className="w-12 h-9 rounded object-contain border border-dota-gold/40 flex-shrink-0 bg-slate-950 shadow-md"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-12 h-9 rounded object-contain border border-hud-gold/30 flex-shrink-0 bg-black/60 shadow-sm"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
                         }}
@@ -692,7 +707,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-xs text-amber-200 truncate">{item.name}</span>
-                          <span className="text-xs font-bold text-dota-gold flex items-center gap-0.5"><Coins className="w-3 h-3" />{item.cost}g</span>
+                          <span className="text-xs font-mono font-bold tabular-nums text-hud-gold flex items-center gap-0.5"><Coins className="w-3 h-3" />{item.cost}g</span>
                         </div>
                         {item.reason && (
                           <p className="text-[11px] text-slate-300 mt-1 leading-snug font-sans">{item.reason}</p>
@@ -704,11 +719,11 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               </div>
 
               {/* BRIEFLY DETAILED SECTION FOR COUNTERS & THREAT MATRIX */}
-              <div className="bg-gradient-to-r from-red-950/40 via-dota-panel to-slate-900 border-2 border-red-500/40 rounded-2xl p-5 shadow-xl space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-red-900/50 pb-3">
+              <div className="bg-hud-panel border border-red-500/30 rounded-xl p-4 sm:p-5 space-y-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-red-900/40 pb-3">
                   <div className="flex items-center gap-2">
                     <ShieldAlert className="w-5 h-5 text-red-400" />
-                    <h3 className="font-dota font-black text-base text-white flex items-center gap-2">
+                    <h3 className="font-mono font-bold text-xs sm:text-sm text-white uppercase tracking-wider flex items-center gap-2">
                       <span>Brief Counter Guide & Matchup Threats</span>
                     </h3>
                   </div>
@@ -717,7 +732,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       setActiveTab('matchups');
                       SoundEngine.playHover();
                     }}
-                    className="text-xs font-bold text-dota-gold hover:text-amber-300 flex items-center gap-1 transition-colors self-start sm:self-center"
+                    className="text-xs font-mono font-bold text-hud-cyan hover:text-white flex items-center gap-1 transition-colors self-start sm:self-center focus-hud"
                   >
                     <span>Inspect Full Matchups Tab</span>
                     <ChevronRight className="w-4 h-4" />
@@ -727,13 +742,13 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
                   
                   {/* 1. Hard Hero Counters (Weak Against) */}
-                  <div className="bg-dota-bg/85 border border-red-900/50 rounded-xl p-3.5 space-y-2.5 shadow">
+                  <div className="bg-hud-surface border border-red-900/40 rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-dota font-bold text-xs text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-xs text-red-400 uppercase tracking-wider flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
                         Hard Hero Counters
                       </span>
-                      <span className="text-[10px] text-red-400 font-bold uppercase">Threats</span>
+                      <span className="text-[11px] font-mono text-red-400 font-bold uppercase">Threats</span>
                     </div>
                     <div className="space-y-2">
                       {hero.weakAgainst.slice(0, 3).map((w, idx) => (
@@ -743,13 +758,15 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                             SoundEngine.playPick();
                             onSelectOtherHero && onSelectOtherHero(w.heroId);
                           }}
-                          className="group flex items-start gap-2.5 p-2 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-red-500/60 transition-all cursor-pointer"
+                          className="group flex items-start gap-2.5 p-2 rounded-lg bg-hud-panel hover:bg-hud-panelAlt border border-white/[0.08] hover:border-red-500/60 transition-colors cursor-pointer focus-hud"
                           title={`Click to inspect ${w.heroName}`}
                         >
                           <img
                             src={`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${w.heroId}.png`}
                             alt={w.heroName}
-                            className="w-8 h-8 rounded-lg object-cover border border-red-500/40 flex-shrink-0 group-hover:scale-105 transition-transform"
+                            loading="lazy"
+                            decoding="async"
+                            className="w-8 h-8 rounded object-cover border border-red-500/40 flex-shrink-0 group-hover:scale-105 transition-transform"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
                             }}
@@ -759,7 +776,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                               <span className="font-bold text-xs text-white group-hover:text-red-300 truncate">
                                 {w.heroName}
                               </span>
-                              <span className="text-[10px] text-red-400 font-bold uppercase">Danger</span>
+                              <span className="text-[11px] font-mono text-red-400 font-bold uppercase">Danger</span>
                             </div>
                             <p className="text-[11px] text-slate-400 leading-snug line-clamp-2 mt-0.5 font-sans">
                               {w.reason}
@@ -771,24 +788,26 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                   </div>
 
                   {/* 2. Key Counter Items (What shuts them down) */}
-                  <div className="bg-dota-bg/85 border border-amber-900/50 rounded-xl p-3.5 space-y-2.5 shadow">
+                  <div className="bg-hud-surface border border-hud-gold/30 rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-dota font-bold text-xs text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                        <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="font-mono font-bold text-xs text-hud-gold uppercase tracking-wider flex items-center gap-1.5">
+                        <ShieldAlert className="w-3.5 h-3.5 text-hud-gold" />
                         Must-Buy Counter Items
                       </span>
-                      <span className="text-[10px] text-amber-400 font-bold uppercase">Item Locks</span>
+                      <span className="text-[11px] font-mono text-hud-gold font-bold uppercase">Item Locks</span>
                     </div>
                     <div className="space-y-2">
                       {hero.counterStrategy.keyCounterItems.slice(0, 3).map((item, idx) => (
                         <div
                           key={idx}
-                          className="flex items-start gap-2.5 p-2 rounded-lg bg-slate-900/80 border border-slate-800"
+                          className="flex items-start gap-2.5 p-2 rounded-lg bg-hud-panel border border-white/[0.08]"
                         >
                           <img
                             src={getItemImageUrl(item.name.toLowerCase().replace(/[^a-z0-9]/g, '_'))}
                             alt={item.name}
-                            className="w-8 h-6 rounded object-contain border border-amber-500/40 bg-slate-950 flex-shrink-0"
+                            loading="lazy"
+                            decoding="async"
+                            className="w-8 h-6 rounded object-contain border border-hud-gold/40 bg-black flex-shrink-0"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
                             }}
@@ -807,13 +826,13 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                   </div>
 
                   {/* 3. Favorable Matchups (Heroes this hero preys on) */}
-                  <div className="bg-dota-bg/85 border border-emerald-900/50 rounded-xl p-3.5 space-y-2.5 shadow">
+                  <div className="bg-hud-surface border border-emerald-900/40 rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-dota font-bold text-xs text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-xs text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
                         Favored Matchups
                       </span>
-                      <span className="text-[10px] text-emerald-400 font-bold uppercase">Preys On</span>
+                      <span className="text-[11px] font-mono text-emerald-400 font-bold uppercase">Preys On</span>
                     </div>
                     <div className="space-y-2">
                       {hero.strongAgainst.slice(0, 3).map((s, idx) => (
@@ -823,13 +842,15 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                             SoundEngine.playPick();
                             onSelectOtherHero && onSelectOtherHero(s.heroId);
                           }}
-                          className="group flex items-start gap-2.5 p-2 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/60 transition-all cursor-pointer"
+                          className="group flex items-start gap-2.5 p-2 rounded-lg bg-hud-panel hover:bg-hud-panelAlt border border-white/[0.08] hover:border-emerald-500/60 transition-colors cursor-pointer focus-hud"
                           title={`Click to inspect ${s.heroName}`}
                         >
                           <img
                             src={`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${s.heroId}.png`}
                             alt={s.heroName}
-                            className="w-8 h-8 rounded-lg object-cover border border-emerald-500/40 flex-shrink-0 group-hover:scale-105 transition-transform"
+                            loading="lazy"
+                            decoding="async"
+                            className="w-8 h-8 rounded object-cover border border-emerald-500/40 flex-shrink-0 group-hover:scale-105 transition-transform"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
                             }}
@@ -839,7 +860,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                               <span className="font-bold text-xs text-white group-hover:text-emerald-300 truncate">
                                 {s.heroName}
                               </span>
-                              <span className="text-[10px] text-emerald-400 font-bold uppercase">Favored</span>
+                              <span className="text-[11px] font-mono text-emerald-400 font-bold uppercase">Favored</span>
                             </div>
                             <p className="text-[11px] text-slate-400 leading-snug line-clamp-2 mt-0.5 font-sans">
                               {s.reason}
@@ -853,41 +874,43 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                 </div>
 
                 {/* Tactical Vulnerability Windows */}
-                <div className="p-3 bg-black/60 rounded-xl border border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-hud-surfaceAlt rounded-lg border border-white/[0.08] grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div>
-                    <span className="font-bold text-slate-300 block mb-0.5">Laning Vulnerability:</span>
+                    <span className="font-mono font-bold text-slate-300 block mb-0.5 uppercase tracking-wider text-[11px]">Laning Vulnerability:</span>
                     <p className="text-slate-400 font-sans leading-relaxed">{hero.counterStrategy.laningAdvice}</p>
                   </div>
                   <div>
-                    <span className="font-bold text-slate-300 block mb-0.5">Teamfight Exploitation:</span>
+                    <span className="font-mono font-bold text-slate-300 block mb-0.5 uppercase tracking-wider text-[11px]">Teamfight Exploitation:</span>
                     <p className="text-slate-400 font-sans leading-relaxed">{hero.counterStrategy.teamfightAdvice}</p>
                   </div>
                 </div>
               </div>
 
               {/* Situational Item Branches */}
-              <div className="bg-dota-panelAlt border border-dota-border rounded-2xl p-5 shadow">
-                <div className="flex items-center justify-between mb-3 border-b border-dota-border/60 pb-2">
-                  <h3 className="font-dota font-bold text-sm sm:text-base text-rose-300 flex items-center gap-2">
-                    <ShieldAlert className="w-4 h-4 text-rose-400" />
+              <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 sm:p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3 border-b border-white/[0.08] pb-2">
+                  <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-cyan uppercase tracking-wider flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-hud-cyan" />
                     Situational & Counter Items (Adapt to Enemy Lineup)
                   </h3>
-                  <span className="text-xs text-slate-400">Matchup Adaptations</span>
+                  <span className="text-[11px] font-mono text-slate-400">Matchup Adaptations</span>
                 </div>
                 <div className="space-y-4">
                   {hero.build.situational.map((sit, idx) => (
-                    <div key={idx} className="bg-dota-bg/70 border border-dota-border rounded-xl p-3.5">
-                      <h4 className="text-xs font-bold text-rose-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-rose-400" />
+                    <div key={idx} className="bg-hud-surface border border-white/[0.08] rounded-lg p-3">
+                      <h4 className="text-xs font-mono font-bold text-hud-cyan uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-hud-cyan" />
                         {sit.category}
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {sit.items.map((item, i) => (
-                          <div key={i} className="bg-dota-panel p-3 rounded-xl border border-dota-border flex items-start gap-2.5 shadow">
+                          <div key={i} className="bg-hud-panel p-2.5 rounded-lg border border-white/[0.08] hover:border-white/[0.2] flex items-start gap-2.5 shadow-sm transition-colors">
                             <img
                               src={getItemImageUrl(item.id)}
                               alt={item.name}
-                              className="w-9 h-7 rounded object-contain border border-slate-700 flex-shrink-0 bg-slate-950 shadow-sm"
+                              loading="lazy"
+                              decoding="async"
+                              className="w-9 h-7 rounded object-contain border border-white/[0.1] flex-shrink-0 bg-black shadow-sm"
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
                               }}
@@ -895,7 +918,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
                                 <span className="font-bold text-xs text-slate-200 truncate">{item.name}</span>
-                                <span className="text-xs font-bold text-dota-gold flex items-center gap-0.5">{item.cost}g</span>
+                                <span className="text-xs font-mono font-bold tabular-nums text-hud-gold flex items-center gap-0.5">{item.cost}g</span>
                               </div>
                               {item.reason && (
                                 <p className="text-[11px] text-slate-400 mt-1 leading-snug font-sans">{item.reason}</p>
@@ -913,18 +936,20 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
                 {/* Late Game */}
-                <div className="bg-dota-panelAlt border border-dota-border rounded-2xl p-5">
-                  <h3 className="font-dota font-bold text-sm text-purple-300 mb-3 border-b border-dota-border/60 pb-2">
+                <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 sm:p-5 shadow-sm">
+                  <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-gold uppercase tracking-wider mb-3 border-b border-white/[0.08] pb-2">
                     Late Game & Luxury
                   </h3>
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     {hero.build.late.map((item, idx) => (
-                      <div key={idx} className="bg-dota-bg p-2.5 rounded-xl border border-dota-border flex items-center justify-between gap-2 shadow">
-                        <div className="flex items-center gap-2 min-w-0">
+                      <div key={idx} className="bg-hud-surface p-2.5 rounded-lg border border-white/[0.08] hover:border-white/[0.2] flex items-center justify-between gap-2 shadow-sm transition-colors">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <img
                             src={getItemImageUrl(item.id)}
                             alt={item.name}
-                            className="w-8 h-6 rounded object-contain border border-slate-700 flex-shrink-0 bg-slate-950 shadow-sm"
+                            loading="lazy"
+                            decoding="async"
+                            className="w-8 h-6 rounded object-contain border border-white/[0.1] flex-shrink-0 bg-black shadow-sm"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
                             }}
@@ -934,22 +959,22 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                             {item.reason && <p className="text-[11px] text-slate-400 truncate">{item.reason}</p>}
                           </div>
                         </div>
-                        <span className="text-xs font-bold text-dota-gold flex-shrink-0">{item.cost}g</span>
+                        <span className="text-xs font-mono font-bold tabular-nums text-hud-gold flex-shrink-0">{item.cost}g</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Neutral Items */}
-                <div className="bg-dota-panelAlt border border-dota-border rounded-2xl p-5">
-                  <h3 className="font-dota font-bold text-sm text-emerald-300 mb-3 border-b border-dota-border/60 pb-2">
+                <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 sm:p-5 shadow-sm">
+                  <h3 className="font-mono font-bold text-xs sm:text-sm text-emerald-400 uppercase tracking-wider mb-3 border-b border-white/[0.08] pb-2">
                     Recommended Neutral Items (Tier 1-5)
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {hero.build.neutrals.map((n, idx) => (
-                      <div key={idx} className="bg-dota-bg p-2.5 rounded-xl border border-dota-border flex items-center gap-2 text-xs">
-                        <span className="font-bold text-emerald-400 min-w-[50px]">Tier {n.tier}:</span>
-                        <span className="text-slate-300 font-medium font-sans">{n.items.join(', ')}</span>
+                      <div key={idx} className="bg-hud-surface p-2 rounded-lg border border-white/[0.06] flex items-center gap-2 text-xs">
+                        <span className="font-mono font-bold text-emerald-400 min-w-[55px] text-[11px] uppercase">Tier {n.tier}:</span>
+                        <span className="text-slate-300 font-medium font-sans truncate">{n.items.join(', ')}</span>
                       </div>
                     ))}
                   </div>
@@ -965,25 +990,25 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
             <div className="space-y-6">
               
               {/* Skill Maxing Priority Roadmap */}
-              <div className="bg-dota-panelAlt border border-dota-border rounded-2xl p-5 shadow">
-                <h3 className="font-dota font-bold text-sm text-cyan-300 mb-2">
+              <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 sm:p-5 shadow-sm">
+                <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-cyan uppercase tracking-wider mb-2">
                   Recommended Skill Leveling Order
                 </h3>
                 <div className="text-xs text-slate-400 mb-3 font-sans flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 touch-pan-x">
-                  <span className="font-semibold text-slate-300 flex-shrink-0">Maxing priority:</span>
+                  <span className="font-mono text-slate-300 flex-shrink-0 text-[11px] uppercase tracking-wider">Priority:</span>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {numberedSkillPriority.map((s, idx) => (
                       <span key={idx} className="inline-flex items-center gap-1 flex-shrink-0">
-                        <span className="bg-cyan-950/80 text-cyan-200 px-2 py-0.5 rounded-lg border border-cyan-800/70 text-[11px] font-sans flex items-center gap-1 shadow-sm whitespace-nowrap">
-                          <span className="text-[9px] font-mono text-cyan-400 font-bold">#{idx + 1}</span>
-                          <span className="font-bold text-dota-gold bg-black/60 px-1 rounded border border-dota-gold/40 text-[10px]">
+                        <span className="bg-hud-surface text-hud-cyan px-2 py-0.5 rounded border border-hud-cyan/30 text-[11px] font-mono flex items-center gap-1 shadow-sm whitespace-nowrap">
+                          <span className="text-[9px] font-mono text-hud-cyan font-bold">#{idx + 1}</span>
+                          <span className="font-bold text-hud-gold bg-black/60 px-1 rounded border border-hud-gold/30 text-[11px]">
                             Skill {s.skillNumber}
                           </span>
-                          <span className="text-slate-400 font-mono text-[10px]">({s.key})</span>
+                          <span className="text-slate-400 font-mono text-[11px]">({s.key})</span>
                           <span className="font-semibold text-slate-200">{s.name}</span>
                         </span>
                         {idx < numberedSkillPriority.length - 1 && (
-                          <span className="text-slate-600 font-bold text-xs">➔</span>
+                          <span className="text-slate-600 font-bold text-xs select-none">➔</span>
                         )}
                       </span>
                     ))}
@@ -998,12 +1023,12 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       return (
                         <div
                           key={index}
-                          className={`flex flex-col items-center justify-center min-w-[36px] h-12 px-1 rounded-lg border text-xs font-bold transition-transform hover:scale-105 flex-shrink-0 ${
+                          className={`flex flex-col items-center justify-center min-w-[36px] h-11 px-1 rounded border text-xs font-mono font-bold transition-transform hover:scale-105 flex-shrink-0 ${
                             isUlt
-                              ? 'bg-red-950/90 border-red-500 text-red-300 shadow-sm'
+                              ? 'bg-red-950/80 border-red-500/60 text-red-300 shadow-sm'
                               : isTalent
-                              ? 'bg-amber-950/90 border-amber-500 text-amber-300 text-[10px] shadow-sm'
-                              : 'bg-dota-bg border-dota-border text-slate-200'
+                              ? 'bg-hud-gold/15 border-hud-gold/60 text-hud-gold text-[11px] shadow-sm'
+                              : 'bg-hud-surface border-white/[0.08] text-slate-200'
                           }`}
                           title={isTalent ? `Hero Level ${index + 1}: Talent Tree Node` : `Hero Level ${index + 1}: Skill ${skillNum} (${skill})`}
                         >
@@ -1011,10 +1036,10 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                           {!isTalent ? (
                             <>
                               <span className="text-[11px] font-black text-white leading-tight mt-0.5">Skill {skillNum}</span>
-                              <span className="text-[8px] text-dota-gold font-mono font-bold leading-none">({skill})</span>
+                              <span className="text-[8px] text-hud-gold font-mono font-bold leading-none">({skill})</span>
                             </>
                           ) : (
-                            <span className="text-[9px] font-bold text-amber-300 leading-tight mt-1">★ Talent</span>
+                            <span className="text-[9px] font-bold text-hud-gold leading-tight mt-0.5">★ Talent</span>
                           )}
                         </div>
                       );
@@ -1026,19 +1051,21 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               {/* Hero Abilities Breakdown */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {hero.abilities.map((ab, idx) => (
-                  <div key={idx} className="bg-dota-panelAlt border border-dota-border rounded-2xl p-4 flex flex-col justify-between space-y-2 shadow">
+                  <div key={idx} className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 flex flex-col justify-between space-y-2 shadow-sm">
                     <div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {/* Skill Number Badge */}
-                          <div className="w-8 h-8 rounded-lg flex flex-col items-center justify-center bg-slate-900 border border-dota-gold/60 text-dota-gold font-mono shadow flex-shrink-0">
-                            <span className="text-[7px] text-slate-400 font-sans uppercase leading-none font-bold">SKILL</span>
+                          <div className="w-8 h-8 rounded-lg flex flex-col items-center justify-center bg-hud-surface border border-white/[0.12] text-hud-gold font-mono shadow-sm flex-shrink-0">
+                            <span className="text-[7px] text-slate-400 uppercase leading-none font-bold">SKILL</span>
                             <span className="text-xs font-black leading-none mt-0.5">{idx + 1}</span>
                           </div>
 
                           {/* Hotkey Key */}
-                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0 ${
-                            ab.isUltimate ? 'bg-dota-red text-white shadow-dota-crimson' : 'bg-slate-800 text-dota-gold border border-dota-gold/40 shadow'
+                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 border ${
+                            ab.isUltimate 
+                              ? 'bg-red-950/90 text-red-300 border-red-500/70 shadow-sm' 
+                              : 'bg-hud-surface text-hud-gold border-white/[0.12]'
                           }`}>
                             {ab.key}
                           </span>
@@ -1046,14 +1073,14 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-bold text-sm text-slate-100 truncate">{ab.name}</span>
-                              <span className="text-[9px] text-dota-gold font-mono font-semibold bg-amber-950/70 px-1.5 py-0.2 rounded border border-amber-800/60">
+                              <span className="text-[9px] text-hud-gold font-mono font-semibold bg-hud-gold/10 px-1.5 py-0.2 rounded border border-hud-gold/30">
                                 Skill #{idx + 1}
                               </span>
                             </div>
                           </div>
                         </div>
                         {ab.isUltimate && (
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-800 flex-shrink-0">
+                          <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-800 flex-shrink-0">
                             Ultimate
                           </span>
                         )}
@@ -1067,39 +1094,39 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               </div>
 
               {/* Interactive Glowing Talent Tree */}
-              <div className="bg-dota-panelAlt border-2 border-dota-gold/50 rounded-2xl p-5 sm:p-6 shadow-dota-glow">
+              <div className="bg-hud-panel border border-white/[0.12] rounded-xl p-4 sm:p-5 shadow-sm">
                 <div className="text-center mb-6">
-                  <h3 className="font-dota font-black text-base sm:text-lg text-dota-gold tracking-wider uppercase">
+                  <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-gold tracking-wider uppercase">
                     Talent Tree Guide
                   </h3>
-                  <p className="text-xs text-slate-400 font-sans">
-                    Glowing golden nodes represent recommended meta talent choices.
+                  <p className="text-xs text-slate-400 font-sans mt-0.5">
+                    Highlighted nodes indicate recommended meta talent choices.
                   </p>
                 </div>
 
-                <div className="space-y-2.5 sm:space-y-4 max-w-2xl mx-auto">
+                <div className="space-y-2.5 sm:space-y-3 max-w-2xl mx-auto">
                   {hero.talents.map((t) => (
                     <div key={t.level} className="flex items-center gap-1.5 sm:gap-3">
                       
                       {/* Left Option */}
-                      <div className={`flex-1 p-2 sm:p-3 rounded-xl border text-right text-[10px] sm:text-xs font-semibold transition-all leading-snug sm:leading-normal ${
+                      <div className={`flex-1 p-2 sm:p-2.5 rounded-lg border text-right text-[11px] sm:text-xs transition-colors leading-snug ${
                         t.recommended === 'left'
-                          ? 'bg-dota-gold/20 border-dota-gold text-amber-200 shadow-dota-glow font-bold'
-                          : 'bg-dota-bg/60 border-dota-border text-slate-400'
+                          ? 'bg-hud-gold/15 border-hud-gold/60 text-hud-gold font-bold shadow-sm'
+                          : 'bg-hud-surface border-white/[0.08] text-slate-400 font-medium'
                       }`}>
                         {t.left}
                       </div>
 
                       {/* Level Circle Center */}
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-dota-panel border-2 border-dota-gold flex items-center justify-center font-dota font-bold text-[10px] sm:text-xs text-dota-gold shadow flex-shrink-0">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-hud-surface border border-white/[0.2] flex items-center justify-center font-mono font-bold text-[11px] sm:text-xs tabular-nums text-hud-gold shadow flex-shrink-0">
                         {t.level}
                       </div>
 
                       {/* Right Option */}
-                      <div className={`flex-1 p-2 sm:p-3 rounded-xl border text-left text-[10px] sm:text-xs font-semibold transition-all leading-snug sm:leading-normal ${
+                      <div className={`flex-1 p-2 sm:p-2.5 rounded-lg border text-left text-[11px] sm:text-xs transition-colors leading-snug ${
                         t.recommended === 'right'
-                          ? 'bg-dota-gold/20 border-dota-gold text-amber-200 shadow-dota-glow font-bold'
-                          : 'bg-dota-bg/60 border-dota-border text-slate-400'
+                          ? 'bg-hud-gold/15 border-hud-gold/60 text-hud-gold font-bold shadow-sm'
+                          : 'bg-hud-surface border-white/[0.08] text-slate-400 font-medium'
                       }`}>
                         {t.right}
                       </div>
@@ -1108,10 +1135,10 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                   ))}
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-dota-border/60 text-center text-xs text-slate-400 space-y-1 font-sans">
+                <div className="mt-4 pt-3 border-t border-white/[0.08] text-center text-xs text-slate-400 space-y-1 font-sans">
                   {hero.talents.map((t) => t.reason ? (
                     <p key={t.level} className="text-[11px] text-slate-300">
-                      <strong className="text-dota-gold">Lvl {t.level}:</strong> {t.reason}
+                      <strong className="text-hud-gold font-mono">Lvl {t.level}:</strong> {t.reason}
                     </p>
                   ) : null)}
                 </div>
@@ -1126,9 +1153,9 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
             <div className="space-y-6">
               
               {/* Strong Against */}
-              <div className="bg-dota-panelAlt border border-emerald-600/40 rounded-2xl p-5 shadow">
-                <h3 className="font-dota font-bold text-sm sm:text-base text-emerald-400 mb-3 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+              <div className="bg-hud-panel border border-emerald-500/30 rounded-xl p-4 sm:p-5 shadow-sm">
+                <h3 className="font-mono font-bold text-xs sm:text-sm text-emerald-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                   Strong Against (Favorable Matchups)
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1139,12 +1166,14 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                         SoundEngine.playPick();
                         onSelectOtherHero && onSelectOtherHero(m.heroId);
                       }}
-                      className="group bg-dota-bg/90 hover:bg-slate-800 border border-emerald-800/50 hover:border-emerald-500 rounded-xl p-3.5 cursor-pointer transition-all shadow flex items-start gap-3"
+                      className="group bg-hud-surface hover:bg-hud-surfaceAlt border border-emerald-500/30 hover:border-emerald-500/70 rounded-lg p-3 cursor-pointer transition-colors shadow-sm flex items-start gap-3 focus-hud"
                     >
                       <img
                         src={`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${m.heroId}.png`}
                         alt={m.heroName}
-                        className="w-10 h-10 rounded-lg object-cover border border-emerald-500/40 flex-shrink-0 group-hover:scale-105 transition-transform"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-10 h-10 rounded object-cover border border-emerald-500/40 flex-shrink-0 group-hover:scale-105 transition-transform"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
                         }}
@@ -1152,7 +1181,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-xs sm:text-sm text-emerald-300 mb-1 flex items-center justify-between">
                           <span className="group-hover:text-emerald-200 transition-colors">{m.heroName}</span>
-                          <span className="text-[10px] text-emerald-500 font-bold uppercase">Favored</span>
+                          <span className="text-[11px] font-mono text-emerald-400 font-bold uppercase">Favored</span>
                         </div>
                         <p className="text-xs text-slate-300 leading-relaxed font-sans">
                           {m.reason}
@@ -1164,8 +1193,8 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               </div>
 
               {/* Weak Against */}
-              <div className="bg-dota-panelAlt border border-red-600/50 rounded-2xl p-5 shadow">
-                <h3 className="font-dota font-bold text-sm sm:text-base text-red-400 mb-3 flex items-center gap-2">
+              <div className="bg-hud-panel border border-red-500/30 rounded-xl p-4 sm:p-5 shadow-sm">
+                <h3 className="font-mono font-bold text-xs sm:text-sm text-red-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
                   <AlertTriangle className="w-4 h-4 text-red-400" />
                   Weak Against / Hard Counters (Threats to Avoid)
                 </h3>
@@ -1177,12 +1206,14 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                         SoundEngine.playPick();
                         onSelectOtherHero && onSelectOtherHero(m.heroId);
                       }}
-                      className="group bg-dota-bg/90 hover:bg-slate-800 border border-red-800/50 hover:border-red-500 rounded-xl p-3.5 cursor-pointer transition-all shadow flex items-start gap-3"
+                      className="group bg-hud-surface hover:bg-hud-surfaceAlt border border-red-500/30 hover:border-red-500/70 rounded-lg p-3 cursor-pointer transition-colors shadow-sm flex items-start gap-3 focus-hud"
                     >
                       <img
                         src={`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${m.heroId}.png`}
                         alt={m.heroName}
-                        className="w-10 h-10 rounded-lg object-cover border border-red-500/40 flex-shrink-0 group-hover:scale-105 transition-transform"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-10 h-10 rounded object-cover border border-red-500/40 flex-shrink-0 group-hover:scale-105 transition-transform"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
                         }}
@@ -1190,7 +1221,7 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-xs sm:text-sm text-red-300 mb-1 flex items-center justify-between">
                           <span className="group-hover:text-red-200 transition-colors">{m.heroName}</span>
-                          <span className="text-[10px] text-red-400 font-bold uppercase">Counters You</span>
+                          <span className="text-[11px] font-mono text-red-400 font-bold uppercase">Counters You</span>
                         </div>
                         <p className="text-xs text-slate-300 leading-relaxed font-sans">
                           {m.reason}
@@ -1202,9 +1233,9 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               </div>
 
               {/* Best Lane & Team Synergies */}
-              <div className="bg-dota-panelAlt border border-cyan-600/40 rounded-2xl p-5 shadow">
-                <h3 className="font-dota font-bold text-sm sm:text-base text-cyan-300 mb-3 flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-cyan-400" />
+              <div className="bg-hud-panel border border-hud-cyan/30 rounded-xl p-4 sm:p-5 shadow-sm">
+                <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-cyan mb-3 flex items-center gap-2 uppercase tracking-wider">
+                  <Zap className="w-4 h-4 text-hud-cyan" />
                   Best Lane Partners & Team Synergies
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1215,18 +1246,20 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                         SoundEngine.playPick();
                         onSelectOtherHero && onSelectOtherHero(s.heroId);
                       }}
-                      className="group bg-dota-bg/90 hover:bg-slate-800 border border-cyan-800/50 hover:border-cyan-500 rounded-xl p-3.5 cursor-pointer transition-all shadow flex items-start gap-3"
+                      className="group bg-hud-surface hover:bg-hud-surfaceAlt border border-hud-cyan/30 hover:border-hud-cyan/70 rounded-lg p-3 cursor-pointer transition-colors shadow-sm flex items-start gap-3 focus-hud"
                     >
                       <img
                         src={`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${s.heroId}.png`}
                         alt={s.heroName}
-                        className="w-10 h-10 rounded-lg object-cover border border-cyan-500/40 flex-shrink-0 group-hover:scale-105 transition-transform"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-10 h-10 rounded object-cover border border-hud-cyan/40 flex-shrink-0 group-hover:scale-105 transition-transform"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
                         }}
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-xs sm:text-sm text-cyan-300 mb-1">
+                        <div className="font-bold text-xs sm:text-sm text-hud-cyan mb-1">
                           {s.heroName}
                         </div>
                         <p className="text-xs text-slate-300 leading-relaxed font-sans">
@@ -1239,18 +1272,20 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               </div>
 
               {/* Enemy Counter Strategy & Items */}
-              <div className="bg-dota-panelAlt border-2 border-dota-gold/50 rounded-2xl p-5 shadow-dota-glow">
-                <h3 className="font-dota font-black text-sm sm:text-base text-dota-gold mb-3 flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 text-dota-gold" />
+              <div className="bg-hud-panel border border-white/[0.1] rounded-xl p-4 sm:p-5 shadow-sm">
+                <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-gold mb-3 flex items-center gap-2 uppercase tracking-wider">
+                  <ShieldAlert className="w-4 h-4 text-hud-gold" />
                   Enemy Items That Counter You (Watch Out For)
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {hero.counterStrategy.keyCounterItems.map((c, idx) => (
-                    <div key={idx} className="bg-dota-bg p-3.5 rounded-xl border border-dota-border shadow flex items-start gap-3">
+                    <div key={idx} className="bg-hud-surface p-3 rounded-lg border border-white/[0.08] shadow-sm flex items-start gap-3">
                       <img
                         src={getItemImageUrl(c.name.toLowerCase().replace(/[^a-z0-9]/g, '_'))}
                         alt={c.name}
-                        className="w-10 h-8 rounded object-contain border border-dota-gold/40 bg-slate-950 flex-shrink-0"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-10 h-8 rounded object-contain border border-white/[0.1] bg-black flex-shrink-0"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
                         }}
@@ -1272,9 +1307,9 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
             <div className="space-y-6">
               
               {/* Playstyle Summary */}
-              <div className="bg-dota-panelAlt border border-dota-border rounded-2xl p-5 shadow">
-                <h3 className="font-dota font-bold text-sm text-dota-gold mb-2 flex items-center gap-2">
-                  <Lightbulb className="w-4 h-4 text-dota-gold" />
+              <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 sm:p-5 shadow-sm">
+                <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-gold mb-2 flex items-center gap-2 uppercase tracking-wider">
+                  <Lightbulb className="w-4 h-4 text-hud-gold" />
                   Hero Playstyle & Core Mechanics
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
@@ -1283,22 +1318,22 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               </div>
 
               {/* Power Spikes Timeline */}
-              <div className="bg-dota-panelAlt border border-dota-border rounded-2xl p-5 shadow">
-                <h3 className="font-dota font-bold text-sm text-amber-300 mb-3 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-amber-400" />
+              <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 sm:p-5 shadow-sm">
+                <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-gold mb-3 flex items-center gap-2 uppercase tracking-wider">
+                  <Clock className="w-4 h-4 text-hud-gold" />
                   Power Spikes Timeline
                 </h3>
-                <div className="space-y-3">
-                  <div className="p-3.5 rounded-xl bg-dota-bg border-l-4 border-l-amber-500 border-t border-r border-b border-dota-border shadow">
-                    <span className="font-bold text-xs text-amber-300 uppercase tracking-wider">Early Game Spike:</span>
+                <div className="space-y-2.5">
+                  <div className="p-3 rounded-lg bg-hud-surface border-l-2 border-l-hud-gold border border-white/[0.06] shadow-sm">
+                    <span className="font-mono font-bold text-xs text-hud-gold uppercase tracking-wider">Early Game Spike:</span>
                     <p className="text-xs text-slate-300 mt-1 leading-relaxed font-sans">{hero.powerSpikes.early}</p>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-dota-bg border-l-4 border-l-cyan-500 border-t border-r border-b border-dota-border shadow">
-                    <span className="font-bold text-xs text-cyan-300 uppercase tracking-wider">Mid Game Spike:</span>
+                  <div className="p-3 rounded-lg bg-hud-surface border-l-2 border-l-hud-cyan border border-white/[0.06] shadow-sm">
+                    <span className="font-mono font-bold text-xs text-hud-cyan uppercase tracking-wider">Mid Game Spike:</span>
                     <p className="text-xs text-slate-300 mt-1 leading-relaxed font-sans">{hero.powerSpikes.mid}</p>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-dota-bg border-l-4 border-l-purple-500 border-t border-r border-b border-dota-border shadow">
-                    <span className="font-bold text-xs text-purple-300 uppercase tracking-wider">Late Game Spike:</span>
+                  <div className="p-3 rounded-lg bg-hud-surface border-l-2 border-l-amber-500 border border-white/[0.06] shadow-sm">
+                    <span className="font-mono font-bold text-xs text-hud-gold uppercase tracking-wider">Late Game Spike:</span>
                     <p className="text-xs text-slate-300 mt-1 leading-relaxed font-sans">{hero.powerSpikes.late}</p>
                   </div>
                 </div>
@@ -1306,8 +1341,8 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
 
               {/* Laning & Teamfighting Strategy */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-dota-panelAlt border border-dota-border rounded-2xl p-5 shadow">
-                  <h4 className="font-dota font-bold text-xs sm:text-sm text-emerald-400 mb-2">
+                <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 sm:p-5 shadow-sm">
+                  <h4 className="font-mono font-bold text-xs sm:text-sm text-emerald-400 mb-2 uppercase tracking-wider">
                     Laning Phase Tactics
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed font-sans">
@@ -1315,8 +1350,8 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                   </p>
                 </div>
 
-                <div className="bg-dota-panelAlt border border-dota-border rounded-2xl p-5 shadow">
-                  <h4 className="font-dota font-bold text-xs sm:text-sm text-rose-400 mb-2">
+                <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 sm:p-5 shadow-sm">
+                  <h4 className="font-mono font-bold text-xs sm:text-sm text-rose-400 mb-2 uppercase tracking-wider">
                     Teamfighting & Objective Priorities
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed font-sans">
@@ -1326,8 +1361,8 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               </div>
 
               {/* Weaknesses to Watch Out For */}
-              <div className="bg-dota-panelAlt border border-red-900/40 rounded-2xl p-5 shadow">
-                <h4 className="font-dota font-bold text-xs text-red-400 mb-2">
+              <div className="bg-hud-panel border border-red-900/30 rounded-xl p-4 sm:p-5 shadow-sm">
+                <h4 className="font-mono font-bold text-xs text-red-400 mb-2 uppercase tracking-wider">
                   Hero Vulnerabilities:
                 </h4>
                 <ul className="list-disc list-inside text-xs text-slate-300 space-y-1 font-sans">
@@ -1343,13 +1378,13 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
           {/* TAB 5: MY NOTES */}
           {activeTab === 'notes' && (
             <div className="space-y-4">
-              <div className="bg-dota-panelAlt border border-dota-border rounded-2xl p-5 shadow">
+              <div className="bg-hud-panel border border-white/[0.08] rounded-xl p-4 sm:p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-dota font-bold text-sm text-purple-300">
+                  <h3 className="font-mono font-bold text-xs sm:text-sm text-hud-cyan uppercase tracking-wider">
                     Personal Matchup & Build Notes
                   </h3>
                   {noteSaved && (
-                    <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                    <span className="text-xs font-mono text-emerald-400 font-bold flex items-center gap-1">
                       <Check className="w-3.5 h-3.5" /> Saved!
                     </span>
                   )}
@@ -1362,12 +1397,12 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                   onChange={(e) => setUserNote(e.target.value)}
                   placeholder={`Write your personal notes for ${hero.name}... (e.g. Always rush BKB before min 22 vs Lion, avoid picking into Slardar)`}
                   rows={8}
-                  className="w-full bg-dota-bg border border-dota-border rounded-xl p-3.5 text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-sans"
+                  className="w-full bg-hud-surface border border-white/[0.12] focus:border-hud-cyan focus:ring-1 focus:ring-hud-cyan rounded-lg p-3 text-xs sm:text-sm text-slate-200 placeholder-slate-400 font-sans focus-hud transition-colors"
                 />
                 <div className="mt-3 flex justify-end">
                   <button
                     onClick={handleSaveNote}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md active:scale-95"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2 min-h-[44px] rounded-lg bg-hud-cyan hover:bg-sky-400 text-slate-950 text-xs font-mono font-bold uppercase tracking-wider transition-colors shadow-sm active:scale-[0.98] focus-hud touch-target"
                   >
                     <Save className="w-4 h-4" />
                     <span>Save Note</span>

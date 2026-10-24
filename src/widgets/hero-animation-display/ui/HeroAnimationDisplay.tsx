@@ -24,7 +24,7 @@ export const HeroAnimationDisplay: React.FC<HeroAnimationDisplayProps> = ({
   const [hasError, setHasError] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // 1. Fetch & Cache official Valve hero animation using Axios
+  // 1. Fetch & Cache official Valve hero animation using HeroAnimationService
   useEffect(() => {
     // When section is inactive, purge from localStorage and revoke memory
     if (!isActive) {
@@ -88,7 +88,7 @@ export const HeroAnimationDisplay: React.FC<HeroAnimationDisplayProps> = ({
           onSelectHero(hero);
         }
       }}
-      className={`w-full aspect-square max-w-[280px] sm:max-w-[340px] relative hover:scale-105 transition-transform duration-500 ease-out cursor-pointer group rounded-3xl overflow-hidden border ${attrBorderColor} bg-slate-950/70 backdrop-blur-sm ${className}`}
+      className={`w-full aspect-square max-w-[280px] sm:max-w-[340px] relative hover:scale-105 transition-transform duration-500 ease-out cursor-pointer group rounded-3xl overflow-hidden border ${attrBorderColor} bg-slate-950 ${className}`}
       title={`View ${hero.name} Details`}
     >
       {/* Underlying High-Res Portrait Layer (always ready) */}
@@ -134,7 +134,7 @@ export const HeroAnimationDisplay: React.FC<HeroAnimationDisplayProps> = ({
       )}
 
       {/* Hero Badge Overlay */}
-      <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1.5 shadow-md">
+      <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg bg-black/90 border border-white/10 flex items-center gap-1.5 shadow-md">
         <span
           className={`w-2 h-2 rounded-full ${
             hero.attribute === 'str'

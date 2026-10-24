@@ -161,7 +161,7 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                 setSearchQuery('');
                 SoundEngine.playHover();
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                 selectionMode === 'hero'
                   ? 'bg-amber-500 text-slate-950 font-black shadow'
                   : 'text-slate-400 hover:text-white'
@@ -177,7 +177,7 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                 setSearchQuery('');
                 SoundEngine.playHover();
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                 selectionMode === 'item'
                   ? 'bg-cyan-500 text-slate-950 font-black shadow'
                   : 'text-slate-400 hover:text-white'
@@ -205,7 +205,7 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                 }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 bg-slate-900 border border-slate-750 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/80 transition-all shadow-inner"
+                className="w-full pl-9 pr-8 py-2 bg-slate-900 border border-slate-750 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-amber-400/80 transition-colors shadow-inner"
               />
               {searchQuery && (
                 <button
@@ -241,10 +241,10 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                   <button
                     key={h.heroId}
                     onClick={() => handleHeroSelect(h.heroId)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors flex-shrink-0 focus-hud min-h-[44px] sm:min-h-0 touch-target ${
                       isSelected
-                        ? 'bg-amber-500/20 border-amber-500 text-white shadow-dota-glow font-bold scale-[1.02]'
-                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-850'
+                        ? 'bg-hud-surface border-hud-gold/60 text-slate-100 shadow-hud-sm font-mono font-bold'
+                        : 'bg-hud-bg border-white/[0.08] text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     <img
@@ -265,7 +265,7 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                   <button
                     key={item.itemId}
                     onClick={() => handleItemSelect(item.itemId)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-colors flex-shrink-0 ${
                       isSelected
                         ? 'bg-cyan-500/20 border-cyan-500 text-white shadow font-bold scale-[1.02]'
                         : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-850'
@@ -321,9 +321,9 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
             {chosenHeroData.heroFull && (
               <button
                 onClick={() => onSelectHero(chosenHeroData.heroFull!)}
-                className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-700 text-xs font-bold text-dota-gold flex items-center gap-1.5 self-start sm:self-center transition-colors shadow"
+                className="min-h-[44px] sm:min-h-0 touch-target px-3.5 py-1.5 rounded-lg bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] text-xs font-mono font-bold text-hud-cyan flex items-center gap-1.5 self-start sm:self-center transition-colors shadow-hud-sm focus-hud"
               >
-                <span>View Full Build Guide</span>
+                <span>VIEW BUILD GUIDE</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </button>
             )}
@@ -333,7 +333,7 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-red-400" />
-              <h4 className="font-dota font-bold text-sm text-slate-200 uppercase tracking-wider">
+              <h4 className="font-display font-semibold text-xs sm:text-sm text-slate-200 uppercase tracking-wider">
                 1. Items That Counter {chosenHeroData.heroInteraction?.heroName} ({chosenHeroData.heroInteraction?.counteredByItems.length || 0})
               </h4>
             </div>
@@ -342,23 +342,23 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
               {chosenHeroData.heroInteraction?.counteredByItems.map((counter, idx) => (
                 <div
                   key={idx}
-                  className="bg-slate-900/90 border border-slate-800 hover:border-red-500/50 rounded-xl p-4 space-y-2 transition-all shadow"
+                  className="bg-hud-surface border border-white/[0.08] hover:border-red-500/40 rounded-xl p-4 space-y-2 transition-colors shadow-hud-sm"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <img
                         src={getItemImageUrl(counter.itemId)}
                         alt={counter.itemName}
-                        className="w-8 h-6 rounded object-contain border border-slate-700 bg-slate-950 flex-shrink-0"
+                        className="w-8 h-6 rounded object-contain border border-white/[0.1] bg-hud-bg shrink-0"
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
                         }}
                       />
-                      <span className="font-dota font-bold text-sm text-white">
+                      <span className="font-display font-medium text-xs sm:text-sm text-slate-100">
                         {counter.itemName}
                       </span>
                       {counter.cost > 0 && (
-                        <span className="text-xs font-bold text-dota-gold font-mono">
+                        <span className="text-xs font-bold text-hud-gold font-mono tabular-nums">
                           {counter.cost}g
                         </span>
                       )}
@@ -397,7 +397,7 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                         SoundEngine.playPick();
                         onSelectHero(heroObj);
                       }}
-                      className="group bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/80 rounded-xl p-4 space-y-2.5 transition-all shadow hover:shadow-dota-glow hover:scale-[1.01] cursor-pointer select-none"
+                      className="group bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] hover:border-hud-cyan/40 rounded-xl p-4 space-y-2.5 transition-colors shadow-hud-sm cursor-pointer select-none min-h-[44px] touch-target focus-hud"
                       title={`Click to open ${counterHero.heroName}'s build and tactic info card`}
                     >
                       <div className="flex items-center justify-between">
@@ -405,23 +405,25 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                           <img
                             src={heroObj.avatarUrl}
                             alt={counterHero.heroName}
-                            className="w-11 h-11 rounded-xl object-cover border border-slate-700 group-hover:border-amber-400 shadow-sm flex-shrink-0 transition-colors"
+                            loading="lazy"
+                            decoding="async"
+                            className="w-11 h-11 rounded-lg object-cover border border-white/[0.1] group-hover:border-hud-cyan shadow-sm shrink-0 transition-colors"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/antimage.png';
                             }}
                           />
                           <div>
-                            <div className="font-dota font-bold text-sm text-amber-200 group-hover:text-amber-300 transition-colors flex items-center gap-1.5">
+                            <div className="font-display font-medium text-sm text-slate-100 group-hover:text-hud-cyan transition-colors flex items-center gap-1.5">
                               <span>{counterHero.heroName}</span>
-                              <ExternalLink className="w-3.5 h-3.5 text-dota-gold opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ExternalLink className="w-3.5 h-3.5 text-hud-cyan opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
-                            <span className="text-[10px] text-red-400 font-bold uppercase">
+                            <span className="text-[10px] text-red-400 font-mono font-bold uppercase">
                               Direct Matchup Counter
                             </span>
                           </div>
                         </div>
 
-                        <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/40 text-[11px] font-bold text-dota-gold group-hover:bg-amber-500/20 group-hover:border-amber-400 transition-all flex items-center gap-1">
+                        <span className="px-2.5 py-1 rounded-md bg-hud-bg border border-white/[0.08] text-[11px] font-mono font-bold text-hud-gold group-hover:border-hud-gold/40 transition-colors flex items-center gap-1">
                           <span>Hero Info</span>
                           <ExternalLink className="w-3 h-3" />
                         </span>
@@ -451,7 +453,7 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                 {chosenHeroData.itemsThisHeroCounters.map(({ item, specificEntry }, idx) => (
                   <div
                     key={idx}
-                    className="bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 rounded-xl p-4 space-y-2 transition-all shadow"
+                    className="bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 rounded-xl p-4 space-y-2 transition-colors shadow-hud-sm"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
@@ -463,10 +465,10 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                             (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
                           }}
                         />
-                        <span className="font-dota font-bold text-sm text-emerald-300">
+                        <span className="font-display font-medium text-xs sm:text-sm text-emerald-400">
                           {item.itemName}
                         </span>
-                        <span className="text-xs font-bold text-dota-gold font-mono">
+                        <span className="text-xs font-bold text-hud-gold font-mono tabular-nums">
                           {item.itemCost}g
                         </span>
                       </div>
@@ -504,10 +506,10 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
               />
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h3 className="font-dota font-black text-xl sm:text-2xl text-white">
+                  <h3 className="font-display font-bold text-xl sm:text-2xl text-slate-100 uppercase tracking-tight">
                     {chosenItemData.itemInteraction.itemName}
                   </h3>
-                  <span className="text-xs font-bold text-dota-gold font-mono bg-amber-950/60 px-2.5 py-0.5 rounded border border-amber-800">
+                  <span className="text-xs font-bold text-hud-gold font-mono tabular-nums bg-hud-surface px-2.5 py-0.5 rounded border border-white/[0.08]">
                     {chosenItemData.itemInteraction.itemCost}g
                   </span>
                   <span className="text-[11px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
@@ -548,7 +550,7 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                 {chosenItemData.itemsThatCounterThisItem.map((counterItem, idx) => (
                   <div
                     key={idx}
-                    className="bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 space-y-2 transition-all shadow"
+                    className="bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 space-y-2 transition-colors shadow-hud-sm"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
@@ -560,10 +562,10 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                             (e.currentTarget as HTMLImageElement).src = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png';
                           }}
                         />
-                        <span className="font-dota font-bold text-sm text-white">
+                        <span className="font-display font-medium text-xs sm:text-sm text-slate-100">
                           {counterItem.itemName}
                         </span>
-                        <span className="text-xs font-bold text-dota-gold font-mono">
+                        <span className="text-xs font-bold text-hud-gold font-mono tabular-nums">
                           {counterItem.cost}g
                         </span>
                       </div>
@@ -602,7 +604,7 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                       SoundEngine.playPick();
                       onSelectHero(heroObj);
                     }}
-                    className="group bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-red-500/80 rounded-xl p-4 space-y-2.5 transition-all shadow hover:shadow-dota-crimson hover:scale-[1.01] cursor-pointer select-none"
+                    className="group bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] hover:border-red-500/40 rounded-xl p-4 space-y-2.5 transition-colors shadow-hud-sm cursor-pointer select-none min-h-[44px] touch-target focus-hud"
                     title={`Click to inspect ${heroEntry.heroName}'s build and tactic card`}
                   >
                     <div className="flex items-center justify-between">
@@ -663,7 +665,7 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
                         SoundEngine.playPick();
                         onSelectHero(heroObj);
                       }}
-                      className="group bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/80 rounded-xl p-4 space-y-2.5 transition-all shadow hover:shadow-dota-glow hover:scale-[1.01] cursor-pointer select-none"
+                      className="group bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] hover:border-emerald-500/40 rounded-xl p-4 space-y-2.5 transition-colors shadow-hud-sm cursor-pointer select-none min-h-[44px] touch-target focus-hud"
                       title={`Click to inspect ${hero.heroName}'s build and tactic card`}
                     >
                       <div className="flex items-center justify-between">
@@ -710,13 +712,13 @@ export const HeroItemInteractions: React.FC<HeroItemInteractionsProps> = ({ onSe
       {/* CLEAN EMPTY STATE (WHEN NOTHING SELECTED YET) */}
       {((selectionMode === 'hero' && !chosenHeroData) || (selectionMode === 'item' && !chosenItemData)) && (
         <div className="bg-black/95 border-2 border-dashed border-slate-800 rounded-2xl p-12 text-center space-y-3 shadow-2xl">
-          <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-500">
+          <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-400">
             {selectionMode === 'hero' ? <Sword className="w-6 h-6" /> : <ShieldAlert className="w-6 h-6" />}
           </div>
           <h3 className="font-dota font-bold text-base text-slate-300">
             {selectionMode === 'hero' ? 'Select Any Hero Above' : 'Select Any Item Above'}
           </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto font-sans leading-relaxed">
+          <p className="text-xs text-slate-400 max-w-md mx-auto font-sans leading-relaxed">
             {selectionMode === 'hero'
               ? 'Click or search a hero chip above to inspect items that counter them, heroes that counter them, and items they ruin.'
               : 'Click or search an item chip above to inspect items that counter it, heroes that bypass it, and who it shuts down.'}
