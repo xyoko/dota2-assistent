@@ -30,3 +30,17 @@ bgAnimation-main/
 # Cloudflare
 .wrangler
 .cloudflare
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+*.local
+
+# Tests and build cache
+coverage
+test-results
+playwright-report
+*.tsbuildinfo
+.vite

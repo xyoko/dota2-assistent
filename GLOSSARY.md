@@ -1,55 +1,95 @@
-# Dota 2 Tactical Assistant — Ubiquitous Language Glossary
+# Dota 2 Tactical Assistant: Glossary
 
-This glossary establishes the canonical domain language for the Dota 2 Assistant codebase. All agents, tests, components, and documentation must use these terms consistently.
+Canonical language for this codebase. Agents, tests, components, and docs must use these terms consistently. Keep entries short; when a term maps to a component, link the file name only if it is stable.
+
+Sections: **Domain** (what Dota concepts mean here), **UI Surfaces** (named product features), **Avoid** (naming mistakes to prevent). Tooling and model policy live in `GEMINI.md` and `AGENTS.md`, not here. Visual effects live in the design tokens and design docs.
+
+<!-- TODO markers below are facts only the project owner knows. Fill them in; do not guess. -->
 
 ---
 
-### Core Domain Terms
+## Domain
+
+#### Hero
+A playable Dota 2 character. The set of heroes comes from the game data layer. Never hardcode a hero count or list in code, tests, or copy.
+
+#### Position
+The role a hero plays in a draft, numbered 1 to 5 (1 = Carry, 2 = Mid, 3 = Offlane, 4 = Soft Support, 5 = Hard Support). Used together with a team side (Radiant or Dire) to identify a **Draft Slot**.
+
+#### Draft Slot
+One of the 10 positions in a draft: a Position on a team side (for example, Radiant Carry or Dire Mid).
+
+#### Draft Phase
+A stage of the pick/ban sequence. A **Pick** adds a hero to a team; a **Ban** removes a hero from the pool.
+<!-- TODO: state which game mode(s) are supported (e.g. Captains Mode) and whether phase order is modeled. -->
+
+#### Patch
+A versioned Dota 2 game update. All balance-dependent data (matchups, coefficients, item timings) is valid for a specific patch. The patch shown in the UI must come from the data, never from a literal string.
+
+#### Matchup
+How one hero performs into another, optionally scoped to a Position or lane.
+
+#### Synergy
+How well two allied heroes perform together on the same team.
+
+#### Counter Coefficient
+A number describing how well Hero A performs into Hero B.
+<!-- TODO: define range (e.g. -1 to +1), direction (does positive favor A?), whether it is position-scoped, and units. -->
+Coefficients are stored per patch in the **Matchup Matrix**. They are never computed at runtime from live API calls.
+
+#### Matchup Matrix
+The pre-compiled, patch-specific table of Counter Coefficients and Synergy values that the client reads.
+<!-- TODO: source of the data (OpenDota, Stratz, manual), how it is regenerated after a patch, where it lives in the repo. -->
 
 #### Deterministic Counter-Drafting
-The client-side mathematical evaluation of pick/ban synergies, lane advantages, and hero counter coefficients. Computed instantaneously (under 0.05ms) using pre-compiled matrix heuristics rather than slow, non-deterministic API queries.
+Client-side evaluation of pick/ban synergies, lane advantages, and counters using the Matchup Matrix. Same inputs always produce the same output, with no network call and no LLM. Speed is a performance budget with a test, not a claim in prose.
+<!-- TODO: set the budget (e.g. under X ms for a full 10-slot evaluation) and link the test. -->
 
-#### Esports Oracle Cockpit
-The high-density tactical interface replacing unstructured AI text blocks. Consists of four structured telemetry cards:
-1. **Threat Nemesis Matrix**: Identifies hard enemy counters, lethal burst/lockdown threat levels, and BKB interaction ratings.
-2. **Power Spike Windows**: Visual timeline of early, mid, and late-game viability with timing breakpoints (e.g. Blink Dagger + BKB windows).
-3. **Mandatory Item Blueprint**: Contextual core, situational, and counter-item builds with tactical justification tags.
-4. **5v5 Teamfight Protocol**: Win condition summary, initiation sequence, target priority, and counter-play directives.
-
-#### Active Focus Cockpit
-A spatial drafting view mode in `PredictiveDraft5v5` that isolates the currently targeted draft slot (e.g., Radiant Carry or Dire Mid), condensing the remaining 9 hero slots into minimal team roster chips to optimize vertical screen real estate.
-
-#### Full Board (Passive) Mode
-The macro drafting overview displaying the full 10-hero dedicated board across both Radiant and Dire factions.
-
-#### Orbital Hero Vault
-The 3D interactive hero showcase widget (`OrbitalHeroVault.tsx`) featuring:
-- **3D Dome Mode**: Cylindrical perspective carousel with its own wheel scrolling (`data-lenis-prevent`), seamless infinite looping across all 124 heroes, and an autonomous 60fps auto-orbit engine.
-- **3D Sphere Mode**: Spherical celestial projection (`DomeGallery.tsx`) with 360-degree orbital rotation.
-- **Card Deck Mode**: High-density holographic card matrix.
-
-#### Specular Glint Sheen
-The dynamic GPU-accelerated light reflection effect (`.specular-card`, `.specular-glint`, `@keyframes specular-sweep`) that sweeps across cards on hover and tilts in 3D parallax with mouse coordinates.
-
-#### Argon Hybrid Orchestration
-The dual-tier model delegation policy:
-- **Priority Tier (`gemini-4-argon`)**: Reserved for high-horizon architectural reasoning, strategic counter-drafting algorithms, and multi-file refactoring.
-- **Utility Tier (`gemini-3.8-flash`)**: Reserved for local token parsing, repo tree mapping, and shell command execution.
-
-#### Picture-in-Picture Mini HUD
-The native Document Picture-in-Picture window (`PictureInPictureHUD.tsx`) that detaches and floats essential build phases, enemy counters, and talent timings above Dota 2 on any monitor.
-
-#### Shader Gradient & Durves
-The visual atmospheric background stack combining hardware-accelerated WebGL color meshes (`ShaderGradient.tsx`) and generative harmonic mathematical curves (`DurvesCurves.tsx`) with GSAP ambient animation of the official Dota 2 emblem.
+Do not confuse "deterministic" with "correct": output quality is limited by the freshness and accuracy of the Matchup Matrix.
 
 ---
 
-### Terminology Rules & What to Avoid
+## UI Surfaces
 
-| Canonical Term (Use This) | Deprecated / Avoid (Do Not Use) | Rationale |
+#### Oracle Panel
+The structured tactical interface that replaces free-form AI text. Four cards:
+1. **Threat Nemesis Matrix**: hard enemy counters, burst/lockdown threat levels, BKB interaction ratings.
+2. **Power Spike Windows**: timeline of early, mid, and late-game viability with timing breakpoints (for example, Blink Dagger and BKB windows).
+3. **Mandatory Item Blueprint**: core, situational, and counter items with short tactical justification tags.
+4. **5v5 Teamfight Protocol**: win condition, initiation sequence, target priority, counter-play directives.
+
+(Previously called "Esports Oracle Cockpit".)
+
+#### Active Focus Mode
+A view mode of the 5v5 draft board (`PredictiveDraft5v5`) that isolates the currently targeted Draft Slot and condenses the other nine slots into minimal roster chips to save vertical space.
+
+#### Full Board Mode
+The overview mode of the 5v5 draft board showing all 10 Draft Slots across Radiant and Dire.
+
+#### Orbital Hero Vault
+The 3D hero showcase widget (`OrbitalHeroVault.tsx`). It lists every Hero from the data layer in three display modes:
+- **Dome Mode**: cylindrical carousel with its own wheel scrolling (`data-lenis-prevent`), infinite loop, and auto-orbit.
+- **Sphere Mode**: spherical projection (`DomeGallery.tsx`) with 360-degree rotation.
+- **Card Deck Mode**: dense card matrix.
+
+The vault must never scroll the page while it handles its own wheel input. It needs a static fallback for reduced motion and weak devices.
+
+#### Mini HUD
+The detached floating window (`PictureInPictureHUD.tsx`) that shows build phases, enemy counters, and talent timings above the game, built on the Document Picture-in-Picture API.
+<!-- TODO: confirm browser support and define the fallback in unsupported browsers (e.g. an in-page panel or a popup window). -->
+
+---
+
+## Avoid
+
+| Use this | Not this | Why |
 | :--- | :--- | :--- |
-| **Crown Icon** (for Hero Arsenal) | Shield Icon | User explicitly deprecated Shield in favor of Crown |
-| **Esports Oracle Cockpit** | AI Slop / Markdown Wall | Unstructured AI text dumps are forbidden |
-| **Orbital Hero Vault** | Generic Hero Grid / Flat List | Represents the 3D cylindrical/spherical carousel |
-| **Active Focus Mode** | Collapsed Mode | Describes the user's active tactical focus |
-| **Deterministic Heuristics** | LLM Hallucinations / Chatbot Draft | Counter computations are client-side mathematical algorithms |
+| Oracle Panel | Esports Oracle Cockpit, Cockpit (alone) | "Cockpit" was ambiguous; one name per concept |
+| Active Focus Mode | Active Focus Cockpit, Collapsed Mode | Matches the actual mode name |
+| Full Board Mode | Full Board (Passive) Mode, Passive Mode | One name |
+| Orbital Hero Vault | Hero Grid, Flat List | Names the 3D carousel, not a generic grid |
+| Counter Coefficient | Counter Score, Counter Rating | One name for one quantity |
+| Deterministic Counter-Drafting | Deterministic Heuristics, Chatbot Draft | One name; this is client-side math, not an LLM |
+| Position (1 to 5) | Role, Lane (when you mean Position) | Lane and Position are different concepts |
+
+Design rules such as "use `Crown` not `Shield` for the Hero Arsenal" and "no unstructured markdown walls" are invariants and UI rules. They live in `AGENTS.md`, with automated checks where possible.

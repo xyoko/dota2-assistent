@@ -1,24 +1,18 @@
-# Global Antigravity Orchestration Policy: Argon Priority
+# Project Rules
 
-## Hybrid Model Delegation Rules (Applies to all projects & conversations)
+@./AGENTS.md
+@./GLOSSARY.md
 
-1. **Argon Priority Enforcement**:
-   - Model `gemini-4-argon` is designated as the **Priority Tier** across all projects and conversations.
-   - For all high-horizon engineering, architectural reasoning, complex multi-file refactoring, state management redesign, and advanced algorithmic synthesis, ensure requests are dispatched with Argon priority (tag with `[Argon]` or route to `gemini-4-argon`).
-   - Use the environment variable `GOOGLE_STUDIO_API_KEY` for authenticating Argon routing calls.
+## Model preferences (actual routing is set in tool config)
 
-2. **Delegation to Free Tier (Gemini 3.8 Flash)**:
-   - Route to Gemini 3.8 Flash (`gemini-3.8-flash`) strictly for lightweight local utilities:
-     - File parsing & regex token scans
-     - Repository tree mapping
-     - Shell process monitoring
-     - Local terminal command execution
-   - Once local file/terminal context is collected, transition back to Argon for high-level synthesis and code generation.
+- Architecture, multi-file refactors, state redesign: strongest model, high reasoning effort.
+- File scans, tree mapping, shell commands: fast/cheap model, then return to the strong model for synthesis.
+- Subagents doing multi-step reasoning: high reasoning effort.
 
-3. **Subagent Orchestration**:
-   - When launching autonomous subagents or background tasks requiring multi-step reasoning, specify high reasoning effort and Argon prioritization.
+## Auth
 
-## Engineering Standards & Domain Glossary
-- Detailed agent engineering skills (TDD, Code Review, Diagnosing Bugs, Codebase Design): see [`AGENTS.md`](./AGENTS.md).
-- Canonical domain vocabulary and terminology rules: see [`GLOSSARY.md`](./GLOSSARY.md).
-- Architectural Decision Records: see [`docs/adr/`](./docs/adr/).
+- Any script that calls Gemini reads `AQ.Ab8RN6K4YI-zW8LO0chl9UC_lWLTb2GmJqp9PvS3Xr_JKZ8Giw` from the environment. Never hardcode or print it.
+
+## Pointers
+
+- Architectural decisions: `docs/adr/`
