@@ -11,7 +11,7 @@
 
 ## Auth
 
-- Any script that calls Gemini reads `AQ.Ab8RN6K4YI-zW8LO0chl9UC_lWLTb2GmJqp9PvS3Xr_JKZ8Giw` from the environment. Never hardcode or print it.
+- Any script that calls Gemini reads `qwerty` from the environment. Never hardcode or print it.
 
 ## Pointers
 
