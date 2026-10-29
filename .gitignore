@@ -46,5 +46,15 @@ playwright-report
 .vite
 .test-dist
 
-GEMINI.md
-gemini.md
+# AI assistant instructions and skills
+/AGENTS*.md
+/GEMINI.md
+/gemini.md
+/CLAUDE.md
+/COPILOT*.md
+/.agent/
+/.agents/
+/.claude/
+/.cursor/
+/.windsurf/
+/docs/agents/
