@@ -1,7 +1,6 @@
 import React, { useState, useCallback, Suspense, lazy, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { HERO_MAP } from './entities/hero';
-import { HeroData } from './entities/hero';
+import { HERO_MAP, HeroData, PositionNumber } from './entities/hero';
 import { Navbar } from './widgets/navbar';
 import { AmbientParticles } from './widgets/ambient-particles';
 import { 
@@ -72,6 +71,12 @@ export const App: React.FC = () => {
 
   // Selected Hero for Detail Modal
   const [selectedHero, setSelectedHero] = useState<HeroData | null>(null);
+  const [selectedHeroDraftPosition, setSelectedHeroDraftPosition] = useState<PositionNumber | null>(null);
+
+  const handleSelectHero = useCallback((hero: HeroData | null, draftPosition?: PositionNumber | null) => {
+    setSelectedHero(hero);
+    setSelectedHeroDraftPosition(draftPosition ?? null);
+  }, []);
 
   // Picture-in-Picture & Mini HUD State & Global Shortcuts (Alt+P)
   const {
@@ -112,10 +117,18 @@ export const App: React.FC = () => {
     setIsLegalModalOpen(true);
   }, []);
 
-  const handleCloseHeroModal = useCallback(() => setSelectedHero(null), []);
+  const handleCloseHeroModal = useCallback(() => {
+    setSelectedHero(null);
+    setSelectedHeroDraftPosition(null);
+  }, []);
+
   const handleSelectOtherHero = useCallback((id: string) => {
     const nextHero = HERO_MAP.get(id);
-    if (nextHero) setSelectedHero(nextHero);
+    if (nextHero) {
+      setSelectedHero(nextHero);
+      // Reset position when navigating to another hero
+      setSelectedHeroDraftPosition(null);
+    }
   }, []);
 
   return (
@@ -175,7 +188,7 @@ export const App: React.FC = () => {
           <ErrorBoundary title="Predictive Draft Oracle" resetKeys={[activeTab]}>
             <Suspense fallback={<ViewLoadingFallback />}>
               <PredictiveDraft5v5
-                onSelectHero={setSelectedHero}
+                onSelectHero={handleSelectHero}
                 favorites={favorites}
                 onToggleFavorite={toggleFavorite}
               />
@@ -282,6 +295,7 @@ export const App: React.FC = () => {
           <Suspense fallback={<ViewLoadingFallback />}>
             <HeroBuildView
               hero={selectedHero}
+              initialPosition={selectedHeroDraftPosition}
               onClose={handleCloseHeroModal}
               isFavorite={favoritesSet.has(selectedHero.id)}
               onToggleFavorite={toggleFavorite}
@@ -321,15 +335,16 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Floating PiP Quick Trigger Button when PiP is closed — Available across entire tactical suite */}
+      {/* Floating PiP Quick Trigger Button when PiP is closed — Available across entire tactical suite (hidden on small mobile to avoid covering interactive slots) */}
       {!isPipOpen && (
         <button
           onClick={() => handleOpenPip()}
-          className="min-h-[44px] touch-target fixed bottom-5 right-5 z-40 px-3.5 py-2.5 rounded-lg bg-hud-cyan hover:bg-sky-300 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider shadow-hud-md active:scale-[0.98] transition-colors duration-150 flex items-center gap-2 border border-white/[0.15] select-none group focus-hud"
+          className="hidden sm:flex min-h-[44px] touch-target fixed bottom-5 right-5 z-40 px-3.5 py-2.5 rounded-lg bg-hud-cyan hover:bg-sky-300 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider shadow-hud-md active:scale-[0.98] transition-colors duration-150 items-center gap-2 border border-white/[0.15] select-none group focus-hud"
           title="Open Picture-in-Picture Mini HUD (Always on top)"
+          aria-label="Open Picture-in-Picture Mini HUD"
         >
           <PictureInPicture className="w-4 h-4 text-slate-950" />
-          <span className="hidden sm:inline font-mono">MINI HUD</span>
+          <span className="font-mono">MINI HUD</span>
         </button>
       )}
 

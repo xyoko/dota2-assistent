@@ -578,12 +578,12 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
           </div>
         </div>
 
-        {/* Dynamic Display (Right 7 Cols) */}
-        <div className="lg:col-span-7 relative">
+        {/* Dynamic Display (Right 7 Cols) - min-w-0 and overflow-hidden prevent wide grid item blowout */}
+        <div className="lg:col-span-7 relative min-w-0 overflow-hidden">
           
           {vaultViewMode === 'dome' ? (
             /* 3D PERSPECTIVE ORBITAL CAROUSEL (Infinite Looping + Own Scroll) */
-            <div className="relative flex flex-col space-y-3">
+            <div className="relative flex flex-col space-y-3 min-w-0 overflow-hidden">
               
               {/* Carousel Sub-Toolbar: Auto-Orbit Toggle, Speed, Jump & Wheel Indicator */}
               <div className="flex items-center justify-between text-xs font-mono px-1">
@@ -650,7 +650,7 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
               </div>
 
               {/* 3D PERSPECTIVE STAGE */}
-              <div className="relative perspective-1200 py-1">
+              <div className="relative perspective-1200 py-1 overflow-hidden">
                 
                 {/* Left/Right Vignette Depth Masks */}
                 <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent z-10" />
@@ -659,15 +659,17 @@ export const OrbitalHeroVault: React.FC<OrbitalHeroVaultProps> = ({
                 {/* Step Navigation Arrows */}
                 <button
                   onClick={scrollLeftNav}
-                  className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-slate-900 border border-white/[0.12] text-white hover:border-amber-500 flex items-center justify-center shadow-2xl active:scale-90 transition-[transform,colors] duration-150"
+                  className="absolute left-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-slate-900 border border-white/[0.12] text-white hover:border-amber-500 flex items-center justify-center shadow-2xl active:scale-90 transition-[transform,colors] duration-150"
                   title="Rotate Left"
+                  aria-label="Rotate carousel left"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={scrollRightNav}
-                  className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-slate-900 border border-white/[0.12] text-white hover:border-amber-500 flex items-center justify-center shadow-2xl active:scale-90 transition-[transform,colors] duration-150"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-slate-900 border border-white/[0.12] text-white hover:border-amber-500 flex items-center justify-center shadow-2xl active:scale-90 transition-[transform,colors] duration-150"
                   title="Rotate Right"
+                  aria-label="Rotate carousel right"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

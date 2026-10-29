@@ -359,7 +359,7 @@ export const HeroCard: React.FC<HeroCardProps> = React.memo(({
             </div>
           )}
 
-          {/* Action buttons (Direct PiP Trigger + Favorite Star) */}
+          {/* Action buttons (Direct PiP Trigger + Favorite Star with 44px tap target expansion) */}
           <div className="flex items-center gap-1.5 ml-auto">
             {onOpenPip && (
               <button
@@ -368,7 +368,7 @@ export const HeroCard: React.FC<HeroCardProps> = React.memo(({
                   setTimeout(() => SoundEngine.playPick(), 0);
                   onOpenPip(hero);
                 }}
-                className={`p-1.5 rounded-full bg-slate-950/90 hover:bg-amber-500/25 border border-white/20 hover:border-amber-400/80 text-slate-300 hover:text-amber-300 transition-colors shadow-sm ${
+                className={`p-1.5 rounded-full bg-slate-950/90 hover:bg-amber-500/25 border border-white/20 hover:border-amber-400/80 text-slate-300 hover:text-amber-300 transition-colors shadow-sm relative before:absolute before:-inset-2 before:content-[''] focus-hud ${
                   isHovered ? 'opacity-100 scale-100' : 'opacity-80 scale-95'
                 }`}
                 title={`Launch ${hero.name} Picture-in-Picture Mini HUD`}
@@ -385,7 +385,7 @@ export const HeroCard: React.FC<HeroCardProps> = React.memo(({
                 onToggleFavorite(hero.id);
                 setTimeout(() => SoundEngine.playHover(), 0);
               }}
-              className="p-1.5 rounded-full bg-slate-950/90 hover:bg-slate-900 border border-white/20 text-slate-300 hover:text-amber-400 transition-colors shadow-sm"
+              className="p-1.5 rounded-full bg-slate-950/90 hover:bg-slate-900 border border-white/20 text-slate-300 hover:text-amber-400 transition-colors shadow-sm relative before:absolute before:-inset-2 before:content-[''] focus-hud"
               title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
               aria-label={`Favorite ${hero.name}`}
             >

@@ -9,6 +9,7 @@
     "build": "tsc && vite build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
+    "test": "node scripts/run-tests.mjs",
     "argon:validate": "node .antigravity/skills/argon_router.mjs --validate",
     "argon:check": "node .antigravity/skills/argon_router.mjs --check",
     "uiux": "node .agent/skills/ui-ux-pro-max/scripts/search.mjs",

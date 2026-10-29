@@ -372,8 +372,8 @@ export const BuildSandbox: React.FC<BuildSandboxProps> = () => {
             />
           </div>
 
-          {/* Items Grid */}
-          <div className="grid grid-cols-2 gap-2.5 max-h-[540px] overflow-y-auto pr-1">
+          {/* Items Grid (Single column on small mobile for clean, untruncated item names) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[540px] overflow-y-auto pr-1">
             {filteredShopItems.map((item) => (
               <button
                 key={item.id}

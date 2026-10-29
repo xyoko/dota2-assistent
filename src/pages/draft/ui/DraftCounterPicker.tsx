@@ -213,10 +213,11 @@ export const DraftCounterPicker: React.FC<DraftCounterPickerProps> = ({
                         e.stopPropagation();
                         handleRemoveEnemy(hero.id);
                       }}
-                      className="p-1 rounded bg-black/60 hover:bg-red-600 text-slate-300 hover:text-white transition-colors"
+                      className="p-1.5 rounded bg-black/60 hover:bg-red-600 text-slate-300 hover:text-white transition-colors relative before:absolute before:-inset-2 before:content-[''] focus-hud"
                       title="Remove hero"
+                      aria-label={`Remove ${hero.name}`}
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>

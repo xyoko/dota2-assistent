@@ -1,6 +1,9 @@
 export type AttributeType = 'str' | 'agi' | 'int' | 'all';
 export type AttackType = 'Melee' | 'Ranged';
 export type RoleType = 'Carry' | 'Mid' | 'Offlane' | 'Soft Support' | 'Hard Support';
+export type PositionNumber = 1 | 2 | 3 | 4 | 5;
+export type HeroPositionSelection = PositionNumber | 'default';
+
 
 export interface Ability {
   name: string;

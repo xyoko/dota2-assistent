@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { HeroData } from '../../../entities/hero/bi/types';
+import { HeroData, PositionNumber, HeroPositionSelection } from '../../../entities/hero/bi/types';
+import { resolveHeroPosition } from '../../../entities/hero/bi/heroPositions';
+import { HeroPositionSelector } from './HeroPositionSelector';
 import { StorageService } from '../../../shared/bi/storage/storageService';
 import { SoundEngine } from '../../../shared/bi/sound/soundFx';
 import { DotaComplexity, DotaRoleBadge, getItemImageUrl, getHeroFullBodyRenderUrl } from '../../../shared/ui/dota/DotaUIComponents';
+
 import { SEASON_META_DATA } from '../../../entities/meta/bi/seasonMetaData';
 import { getNumberedSkillPriority, getSkillNumberFromKey } from '../../../shared/bi/utils/skillUtils';
 import { 
@@ -29,6 +32,7 @@ import {
 
 interface HeroBuildViewProps {
   hero: HeroData;
+  initialPosition?: PositionNumber | null;
   onClose: () => void;
   isFavorite: boolean;
   onToggleFavorite: (heroId: string) => void;
@@ -38,16 +42,25 @@ interface HeroBuildViewProps {
 
 export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
   hero,
+  initialPosition,
   onClose,
   isFavorite,
   onToggleFavorite,
   onSelectOtherHero,
   onOpenPip
 }) => {
+  const [selectedPosition, setSelectedPosition] = useState<HeroPositionSelection>(() =>
+    resolveHeroPosition(hero.id, initialPosition)
+  );
+
   const [activeTab, setActiveTab] = useState<'build' | 'skills' | 'matchups' | 'strategy' | 'notes'>('build');
   const [userNote, setUserNote] = useState<string>('');
   const [noteSaved, setNoteSaved] = useState<boolean>(false);
   const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSelectedPosition(resolveHeroPosition(hero.id, initialPosition));
+  }, [hero.id, initialPosition]);
 
   const metaEntry = SEASON_META_DATA.heroes.find((m) => m.heroId === hero.id);
 
@@ -308,8 +321,16 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
                 </div>
               </div>
 
-              {/* Row 2: Official Role Badges, Metrics & Season Meta */}
+              {/* Row 2: Position Selector, Official Role Badges, Metrics & Season Meta */}
               <div className="flex flex-wrap items-center gap-2 pt-1">
+                <HeroPositionSelector
+                  heroId={hero.id}
+                  selectedPosition={selectedPosition}
+                  onChange={setSelectedPosition}
+                />
+
+                <div className="h-4 w-px bg-white/[0.1] mx-1 hidden sm:block" />
+
                 <div className="flex flex-wrap items-center gap-1.5">
                   {hero.roles.map((r) => (
                     <DotaRoleBadge key={r} role={r} />
@@ -473,6 +494,16 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               </div>
             </div>
 
+            {/* Tactical Position Selector (Mobile) */}
+            <div className="pt-0.5">
+              <HeroPositionSelector
+                heroId={hero.id}
+                selectedPosition={selectedPosition}
+                onChange={setSelectedPosition}
+                className="w-full"
+              />
+            </div>
+
             {/* Mobile Collapsible Doctrine & Power Spikes Drawer Toggle */}
             <div className="pt-1">
               <button
@@ -530,13 +561,13 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               setActiveTab('build');
               SoundEngine.playHover();
             }}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
+            className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
               activeTab === 'build'
                 ? 'border border-hud-cyan/50 text-hud-cyan bg-hud-cyan/10'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
             }`}
           >
-            <Sword className="w-4 h-4" />
+            <Sword className="w-4 h-4 shrink-0" />
             <span>Item Progression</span>
           </button>
 
@@ -545,13 +576,13 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               setActiveTab('skills');
               SoundEngine.playHover();
             }}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
+            className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
               activeTab === 'skills'
                 ? 'border border-hud-cyan/50 text-hud-cyan bg-hud-cyan/10'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
             }`}
           >
-            <Zap className="w-4 h-4" />
+            <Zap className="w-4 h-4 shrink-0" />
             <span>Skills & Talents</span>
           </button>
 
@@ -560,13 +591,13 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               setActiveTab('matchups');
               SoundEngine.playHover();
             }}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
+            className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
               activeTab === 'matchups'
                 ? 'border border-red-500/50 text-red-300 bg-red-500/10'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
             }`}
           >
-            <Crosshair className="w-4 h-4" />
+            <Crosshair className="w-4 h-4 shrink-0" />
             <span>Counters & Matchups</span>
           </button>
 
@@ -575,13 +606,13 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               setActiveTab('strategy');
               SoundEngine.playHover();
             }}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
+            className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
               activeTab === 'strategy'
                 ? 'border border-emerald-500/50 text-emerald-300 bg-emerald-500/10'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
             }`}
           >
-            <Clock className="w-4 h-4" />
+            <Clock className="w-4 h-4 shrink-0" />
             <span>Strategy & Spikes</span>
           </button>
 
@@ -590,13 +621,13 @@ export const HeroBuildView: React.FC<HeroBuildViewProps> = ({
               setActiveTab('notes');
               SoundEngine.playHover();
             }}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
+            className={`shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-colors whitespace-nowrap active:scale-[0.98] focus-hud touch-target ${
               activeTab === 'notes'
                 ? 'border border-hud-gold/50 text-hud-gold bg-hud-gold/10'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
             }`}
           >
-            <Layers className="w-4 h-4" />
+            <Layers className="w-4 h-4 shrink-0" />
             <span>My Match Notes</span>
           </button>
         </div>

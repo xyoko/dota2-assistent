@@ -64,21 +64,21 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
     <div 
       role="region" 
       aria-label="Cookie and Privacy Consent Banner"
-      className="fixed bottom-4 left-4 right-4 sm:left-6 sm:right-auto sm:max-w-xl z-50 animate-fadeIn"
+      className="fixed bottom-3 left-3 right-3 sm:bottom-4 sm:left-6 sm:right-auto sm:max-w-xl z-50 animate-fadeIn max-h-[85vh] flex flex-col"
     >
-      <div className="rounded-2xl border border-white/[0.12] p-5 shadow-2xl text-slate-200 bg-hud-surface space-y-4">
+      <div className="rounded-2xl border border-white/[0.12] p-3.5 sm:p-5 shadow-2xl text-slate-200 bg-hud-surface space-y-3 sm:space-y-4 max-h-[85vh] overflow-y-auto">
         
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-hud-cyan/15 border border-hud-cyan/40 flex items-center justify-center text-hud-cyan">
+            <div className="w-8 h-8 rounded-lg bg-hud-cyan/15 border border-hud-cyan/40 flex items-center justify-center text-hud-cyan shrink-0">
               <Cookie className="w-4 h-4 text-hud-cyan" />
             </div>
             <div>
-              <h4 className="font-sans font-bold text-sm text-slate-100 flex items-center gap-1.5">
+              <h4 className="font-sans font-bold text-xs sm:text-sm text-slate-100 flex items-center gap-1.5">
                 <span>Cookie Consent & Local Data Governance</span>
               </h4>
-              <p className="text-[11px] text-slate-400 font-sans">
+              <p className="text-[11px] text-slate-400 font-sans hidden sm:block">
                 GDPR & ePrivacy Directive Compliant — Zero Third-Party Trackers
               </p>
             </div>
@@ -86,7 +86,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
 
           <button
             onClick={handleEssentialOnly}
-            className="text-slate-400 hover:text-slate-200 p-1 rounded-md transition-colors btn-fade"
+            className="text-slate-400 hover:text-slate-200 p-1.5 rounded-md transition-colors btn-fade min-h-[36px] min-w-[36px] flex items-center justify-center"
             title="Dismiss with Essential Only"
             aria-label="Close cookie consent banner"
           >
@@ -130,8 +130,8 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
         )}
 
         {/* Actions Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
-          <div className="flex items-center gap-1.5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-800/80">
+          <div className="flex items-center justify-center sm:justify-start gap-1.5">
             <button
               onClick={() => setShowPreferences(!showPreferences)}
               className="text-[11px] text-hud-cyan hover:text-sky-300 underline underline-offset-4 flex items-center gap-1 btn-fade"
@@ -150,12 +150,12 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-end">
             <Button
               onClick={handleEssentialOnly}
               variant="outline"
               size="sm"
-              className="text-xs border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white btn-fade"
+              className="text-xs border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white btn-fade flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
             >
               Essential Only
             </Button>
@@ -165,7 +165,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
                 onClick={handleSavePreferences}
                 variant="gradient"
                 size="sm"
-                className="text-xs btn-fade"
+                className="text-xs btn-fade flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
               >
                 <Check className="w-3.5 h-3.5 mr-1" />
                 Save Preferences
@@ -175,7 +175,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
                 onClick={handleAcceptAll}
                 variant="gradient"
                 size="sm"
-                className="text-xs btn-fade"
+                className="text-xs btn-fade flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
               >
                 Accept All
               </Button>

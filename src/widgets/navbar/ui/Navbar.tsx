@@ -96,14 +96,14 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
   const activeSecondaryTab = SECONDARY_TABS.find(t => t.id === currentTab);
 
   return (
-    <header className="sticky top-0 z-40 bg-hud-bg/98 border-b border-white/[0.08] shadow-hud-sm">
-      <div className="max-w-7xl xl:max-w-[1500px] mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20">
+    <header className="sticky top-0 z-40 bg-hud-bg/98 border-b border-white/[0.08] shadow-hud-sm overflow-x-clip">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-2">
           
           {/* Logo & Brand */}
           <div 
             onClick={() => handleNavClick('home')}
-            className="flex items-center gap-3 cursor-pointer group select-none flex-shrink-0"
+            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group select-none flex-shrink-0"
           >
             <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-hud-surface border border-white/[0.08] group-hover:border-hud-cyan/50 transition-colors">
               <Compass className="w-5 h-5 sm:w-6 sm:h-6 text-hud-cyan" />
@@ -124,7 +124,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
           </div>
 
           {/* Quick Responsive Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 xl:gap-1.5 mx-2">
+          <nav className="hidden md:flex items-center gap-1 xl:gap-1.5 mx-1 xl:mx-2 shrink min-w-0">
             {PRIMARY_TABS.map((tab) => {
               const isActive = currentTab === tab.id;
               const TabIcon = tab.icon;
@@ -132,7 +132,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                 <button
                   key={tab.id}
                   onClick={() => handleNavClick(tab.id)}
-                  className={`min-h-[44px] sm:min-h-0 touch-target px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-colors flex items-center gap-1.5 focus-hud ${
+                  className={`min-h-[44px] sm:min-h-0 touch-target px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-colors flex items-center gap-1.5 focus-hud shrink-0 ${
                     isActive
                       ? 'text-slate-100 bg-hud-surface border border-white/[0.12] shadow-hud-sm'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
@@ -145,10 +145,10 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
             })}
 
             {/* Secondary Modules 'More' Dropdown */}
-            <div className="relative" ref={moreRef}>
+            <div className="relative shrink-0" ref={moreRef}>
               <button
                 onClick={() => setIsMoreOpen(prev => !prev)}
-                className={`min-h-[44px] sm:min-h-0 touch-target px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 transition-colors focus-hud ${
+                className={`min-h-[44px] sm:min-h-0 touch-target px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider whitespace-nowrap flex items-center gap-1.5 transition-colors focus-hud shrink-0 ${
                   activeSecondaryTab
                     ? 'text-hud-gold bg-hud-surface border border-hud-gold/40'
                     : isMoreOpen
@@ -196,13 +196,13 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
           </nav>
 
           {/* Spotlight Search Trigger */}
-          <div className="hidden lg:flex items-center gap-1.5 mx-2">
+          <div className="hidden xl:flex items-center gap-1.5 mx-1 xl:mx-2 shrink min-w-0">
             <button
               onClick={() => {
                 SoundEngine.playHover();
                 onOpenCommandPalette?.();
               }}
-              className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.15] text-xs text-slate-400 hover:text-slate-200 transition-colors w-52 xl:w-60 group cursor-pointer focus-hud min-h-[40px]"
+              className="flex items-center justify-between gap-2 px-2.5 xl:px-3 py-2 rounded-lg bg-hud-surface hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/[0.15] text-xs text-slate-400 hover:text-slate-200 transition-colors w-40 xl:w-48 2xl:w-60 group cursor-pointer focus-hud min-h-[40px] shrink"
               title="Quick Search & Navigation (Shortcut: Cmd+K)"
             >
               <div className="flex items-center gap-2 min-w-0">
@@ -218,7 +218,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
           </div>
 
           {/* Active View Quick Indicator & Controls */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Picture-in-Picture Mini HUD Trigger Button */}
             <button
               onClick={() => {

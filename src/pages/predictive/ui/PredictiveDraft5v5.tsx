@@ -46,7 +46,7 @@ import {
 export type DedicatedSlots = [string | null, string | null, string | null, string | null, string | null];
 
 export interface PredictiveDraft5v5Props {
-  onSelectHero?: (hero: HeroData) => void;
+  onSelectHero?: (hero: HeroData, pos?: PositionNumber) => void;
   favorites?: string[];
   onToggleFavorite?: (heroId: string) => void;
 }
@@ -857,7 +857,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (onSelectHero) onSelectHero(hero);
+                          if (onSelectHero) onSelectHero(hero, pos);
                         }}
                         className="flex items-center gap-1.5 overflow-hidden"
                       >
@@ -990,7 +990,7 @@ export const PredictiveDraft5v5: React.FC<PredictiveDraft5v5Props> = ({
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (onSelectHero) onSelectHero(hero);
+                          if (onSelectHero) onSelectHero(hero, pos);
                         }}
                         className="flex items-center gap-1.5 overflow-hidden"
                       >
